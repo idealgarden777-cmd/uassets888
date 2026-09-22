@@ -28,11 +28,20 @@ const els = {
   proButton: document.getElementById("proButton")
 };
 
-
 let activeCategory = "All";
 let selectedIcon = null;
 let activeCodeTab = "svg";
 
+let beanUser = null;
+let beanLogoutButton = null;
+
+const BEAN_API_BASE =
+  "https://accounts.signaturesi.com";
+
+
+/* =========================================================
+   CATEGORIES
+   ========================================================= */
 
 const categories = [
   "All",
@@ -87,6 +96,7 @@ function renderFilters() {
             button.dataset.category;
 
           renderFilters();
+
           renderIcons(
             getSearchTerm()
           );
@@ -97,7 +107,7 @@ function renderFilters() {
 
 
 /* =========================================================
-   ICON FILTER
+   ICON MATCHING
    ========================================================= */
 
 function matchesIcon(icon, term) {
@@ -144,7 +154,6 @@ function renderIcons(term = "") {
             data-icon="${icon.id}"
             aria-label="Open ${icon.name} icon"
           >
-
             <div class="icon-draw">
               ${icon.svg}
             </div>
@@ -158,7 +167,6 @@ function renderIcons(term = "") {
                 ${icon.category}
               </div>
             </div>
-
           </button>
         `
       )
@@ -185,7 +193,7 @@ function renderIcons(term = "") {
 
 
 /* =========================================================
-   COMPONENT NAME
+   REACT CODE
    ========================================================= */
 
 function toComponentName(name) {
@@ -201,11 +209,6 @@ function toComponentName(name) {
     .join("");
 }
 
-
-/* =========================================================
-   CODE GENERATORS
-   ========================================================= */
-
 function getReactCode(icon) {
   const componentName =
     toComponentName(icon.name);
@@ -216,10 +219,18 @@ function getReactCode(icon) {
 }
 
 
+/* =========================================================
+   HTML CODE
+   ========================================================= */
+
 function getHtmlCode(icon) {
   return icon.svg;
 }
 
+
+/* =========================================================
+   ACTIVE CODE
+   ========================================================= */
 
 function getActiveCode() {
   if (!selectedIcon) {
@@ -228,10 +239,14 @@ function getActiveCode() {
 
   switch (activeCodeTab) {
     case "react":
-      return getReactCode(selectedIcon);
+      return getReactCode(
+        selectedIcon
+      );
 
     case "html":
-      return getHtmlCode(selectedIcon);
+      return getHtmlCode(
+        selectedIcon
+      );
 
     case "svg":
     default:
@@ -241,7 +256,7 @@ function getActiveCode() {
 
 
 /* =========================================================
-   ICON DETAIL
+   OPEN ICON
    ========================================================= */
 
 function openIcon(id) {
@@ -255,9 +270,7 @@ function openIcon(id) {
   }
 
   selectedIcon = icon;
-
   activeCodeTab = "svg";
-
 
   els.iconPreview.innerHTML =
     icon.svg;
@@ -271,7 +284,6 @@ function openIcon(id) {
   els.detailDescription.textContent =
     icon.description;
 
-
   els.detailTags.innerHTML =
     icon.tags
       .map(
@@ -280,10 +292,8 @@ function openIcon(id) {
       )
       .join("");
 
-
   updateCodeTabs();
   updateCodePanel();
-
 
   els.iconOverlay.classList.remove(
     "hidden"
@@ -301,15 +311,17 @@ function openIcon(id) {
 
 function updateCodeTabs() {
   document
-    .querySelectorAll("[data-code-tab]")
+    .querySelectorAll(
+      "[data-code-tab]"
+    )
     .forEach(tab => {
       tab.classList.toggle(
         "active",
-        tab.dataset.codeTab === activeCodeTab
+        tab.dataset.codeTab ===
+          activeCodeTab
       );
     });
 }
-
 
 function updateCodePanel() {
   const labels = {
@@ -325,9 +337,10 @@ function updateCodePanel() {
     getActiveCode();
 }
 
-
 document
-  .querySelectorAll("[data-code-tab]")
+  .querySelectorAll(
+    "[data-code-tab]"
+  )
   .forEach(tab => {
     tab.addEventListener(
       "click",
@@ -357,7 +370,6 @@ function closeOverlay(id) {
   overlay.classList.add(
     "hidden"
   );
-
 
   if (
     els.iconOverlay.classList.contains(
@@ -418,7 +430,6 @@ function syncSearch(
   );
 }
 
-
 els.heroSearch.addEventListener(
   "input",
   () => {
@@ -428,7 +439,6 @@ els.heroSearch.addEventListener(
     );
   }
 );
-
 
 els.librarySearch.addEventListener(
   "input",
@@ -473,7 +483,6 @@ async function copyCurrentCode() {
     );
   }
 }
-
 
 els.copySvg.addEventListener(
   "click",
@@ -531,7 +540,6 @@ function downloadSelectedSvg() {
   );
 }
 
-
 els.downloadSvg.addEventListener(
   "click",
   downloadSelectedSvg
@@ -539,34 +547,226 @@ els.downloadSvg.addEventListener(
 
 
 /* =========================================================
-   BEAN ID DEMO
+   BEAN API REQUEST
    ========================================================= */
 
-function updateBeanButton(beanId) {
+async function beanRequest(
+  path,
+  options = {}
+) {
+  const headers =
+    new Headers(
+      options.headers || {}
+    );
+
+  if (
+    options.body &&
+    !headers.has(
+      "Content-Type"
+    )
+  ) {
+    headers.set(
+      "Content-Type",
+      "application/json"
+    );
+  }
+
+  const response =
+    await fetch(
+      `${BEAN_API_BASE}${path}`,
+      {
+        ...options,
+        headers,
+        credentials: "include"
+      }
+    );
+
+  let data = {};
+
+  try {
+    data =
+      await response.json();
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    const error =
+      new Error(
+        data.error ||
+        "Bean ID request failed."
+      );
+
+    error.status =
+      response.status;
+
+    throw error;
+  }
+
+  return data;
+}
+
+
+/* =========================================================
+   BEAN BUTTON
+   ========================================================= */
+
+function updateBeanButton() {
+  if (
+    beanUser &&
+    beanUser.beanId
+  ) {
+    els.openBean.innerHTML = `
+      <span class="bean-dot"></span>
+      ${beanUser.beanId}
+    `;
+
+    return;
+  }
+
   els.openBean.innerHTML = `
     <span class="bean-dot"></span>
-    ${beanId}
+    Login with Bean ID
   `;
 }
 
 
-function restoreBeanSession() {
-  const beanId =
-    localStorage.getItem(
-      "uasset_demo_bean_id"
+/* =========================================================
+   BEAN MODAL
+   ========================================================= */
+
+const beanNotice =
+  document.querySelector(
+    ".bean-modal .notice"
+  );
+
+function updateBeanModal() {
+  if (!beanNotice) {
+    return;
+  }
+
+  if (!beanUser) {
+    els.beanForm.classList.remove(
+      "hidden"
     );
 
-  if (beanId) {
-    updateBeanButton(
-      beanId
+    beanNotice.textContent =
+      "Sign in with your real Bean ID. Your session is stored in a secure HttpOnly cookie.";
+
+    if (
+      beanLogoutButton
+    ) {
+      beanLogoutButton.classList.add(
+        "hidden"
+      );
+    }
+
+    return;
+  }
+
+  els.beanForm.classList.add(
+    "hidden"
+  );
+
+  beanNotice.textContent =
+    `Signed in as ${beanUser.beanId}.`;
+
+  if (
+    !beanLogoutButton
+  ) {
+    beanLogoutButton =
+      document.createElement(
+        "button"
+      );
+
+    beanLogoutButton.type =
+      "button";
+
+    beanLogoutButton.className =
+      "light-button full";
+
+    beanLogoutButton.textContent =
+      "Log out";
+
+    beanLogoutButton.addEventListener(
+      "click",
+      handleBeanLogout
+    );
+
+    els.beanForm.parentNode.insertBefore(
+      beanLogoutButton,
+      els.beanForm.nextSibling
+    );
+  }
+
+  beanLogoutButton.classList.remove(
+    "hidden"
+  );
+}
+
+
+/* =========================================================
+   SET BEAN USER
+   ========================================================= */
+
+function setBeanUser(user) {
+  beanUser =
+    user || null;
+
+  updateBeanButton();
+  updateBeanModal();
+}
+
+
+/* =========================================================
+   LOAD BEAN SESSION
+   ========================================================= */
+
+async function loadBeanSession() {
+  try {
+    const data =
+      await beanRequest(
+        "/api/auth/session",
+        {
+          method: "GET"
+        }
+      );
+
+    if (
+      data.authenticated &&
+      data.user
+    ) {
+      setBeanUser(
+        data.user
+      );
+    } else {
+      setBeanUser(
+        null
+      );
+    }
+
+  } catch (error) {
+    console.error(
+      "Bean session check failed:",
+      error
+    );
+
+    setBeanUser(
+      null
     );
   }
 }
 
 
+/* =========================================================
+   OPEN BEAN
+   ========================================================= */
+
 els.openBean.addEventListener(
   "click",
   () => {
+    updateBeanModal();
+
     els.beanOverlay.classList.remove(
       "hidden"
     );
@@ -578,9 +778,13 @@ els.openBean.addEventListener(
 );
 
 
+/* =========================================================
+   BEAN LOGIN
+   ========================================================= */
+
 els.beanForm.addEventListener(
   "submit",
-  event => {
+  async event => {
     event.preventDefault();
 
     const formData =
@@ -588,47 +792,155 @@ els.beanForm.addEventListener(
         els.beanForm
       );
 
-    const beanId =
+    const username =
       String(
         formData.get(
           "beanId"
         ) || ""
       ).trim();
 
-    if (!beanId) {
+    const password =
+      String(
+        formData.get(
+          "password"
+        ) || ""
+      );
+
+    if (
+      !username ||
+      !password
+    ) {
+      showToast(
+        "Bean ID and password are required"
+      );
+
       return;
     }
 
+    const submitButton =
+      els.beanForm.querySelector(
+        'button[type="submit"]'
+      );
 
-    /*
-      DEMO ONLY
+    const originalText =
+      submitButton
+        ? submitButton.textContent
+        : "";
 
-      Later:
-      Bean ID API
-      →
-      secure session cookie
-    */
+    if (submitButton) {
+      submitButton.disabled =
+        true;
 
-    localStorage.setItem(
-      "uasset_demo_bean_id",
-      beanId
-    );
+      submitButton.textContent =
+        "Signing in...";
+    }
 
-    updateBeanButton(
-      beanId
-    );
+    try {
+      const data =
+        await beanRequest(
+          "/api/auth/login",
+          {
+            method: "POST",
+            body:
+              JSON.stringify({
+                username,
+                password
+              })
+          }
+        );
 
-    els.beanForm.reset();
+      setBeanUser(
+        data.user
+      );
 
-    closeOverlay(
-      "beanOverlay"
-    );
+      els.beanForm.reset();
 
-    showToast(
-      `Signed in as ${beanId}`
-    );
+      closeOverlay(
+        "beanOverlay"
+      );
+
+      showToast(
+        `Signed in as ${data.user.beanId}`
+      );
+
+    } catch (error) {
+      console.error(
+        "Bean login failed:",
+        error
+      );
+
+      if (
+        error.status === 401
+      ) {
+        showToast(
+          "Invalid Bean ID or password"
+        );
+
+      } else if (
+        error.status === 429
+      ) {
+        showToast(
+          "Too many login attempts. Try again later."
+        );
+
+      } else {
+        showToast(
+          error.message ||
+          "Bean login failed"
+        );
+      }
+
+    } finally {
+      if (submitButton) {
+        submitButton.disabled =
+          false;
+
+        submitButton.textContent =
+          originalText;
+      }
+    }
   }
 );
+
+
+/* =========================================================
+   BEAN LOGOUT
+   ========================================================= */
+
+async function handleBeanLogout() {
+  if (!beanUser) {
+    return;
+  }
+
+  try {
+    await beanRequest(
+      "/api/auth/logout",
+      {
+        method: "POST"
+      }
+    );
+
+  } catch (error) {
+    console.error(
+      "Bean logout failed:",
+      error
+    );
+  }
+
+  setBeanUser(
+    null
+  );
+
+  els.beanForm.reset();
+
+  closeOverlay(
+    "beanOverlay"
+  );
+
+  showToast(
+    "Logged out"
+  );
+}
 
 
 /* =========================================================
@@ -636,7 +948,9 @@ els.beanForm.addEventListener(
    ========================================================= */
 
 document
-  .querySelectorAll("[data-close]")
+  .querySelectorAll(
+    "[data-close]"
+  )
   .forEach(button => {
     button.addEventListener(
       "click",
@@ -677,7 +991,9 @@ document.addEventListener(
   "keydown",
   event => {
 
-    if (event.key === "Escape") {
+    if (
+      event.key === "Escape"
+    ) {
       closeOverlay(
         "iconOverlay"
       );
@@ -686,7 +1002,6 @@ document.addEventListener(
         "beanOverlay"
       );
     }
-
 
     if (
       event.key === "/" &&
@@ -714,4 +1029,8 @@ renderFilters();
 
 renderIcons();
 
-restoreBeanSession();
+updateBeanButton();
+
+updateBeanModal();
+
+loadBeanSession();
