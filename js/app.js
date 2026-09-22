@@ -7,7 +7,6 @@ const els = {
   emptyState: document.getElementById("emptyState"),
 
   iconOverlay: document.getElementById("iconOverlay"),
-  beanOverlay: document.getElementById("beanOverlay"),
 
   iconPreview: document.getElementById("iconPreview"),
   detailCategory: document.getElementById("detailCategory"),
@@ -22,31 +21,304 @@ const els = {
   downloadSvg: document.getElementById("downloadSvg"),
 
   openBean: document.getElementById("openBean"),
-  beanForm: document.getElementById("beanForm"),
 
   toast: document.getElementById("toast"),
   proButton: document.getElementById("proButton")
 };
 
+
+/* =========================================================
+   UASSET AUTH / CENTRAL ACCOUNTS
+   Same architecture as NEYO
+   ========================================================= */
+
+const ACCOUNTS_ORIGIN =
+  "https://accounts.signaturesi.com";
+
+const LOGIN_URL =
+  `${ACCOUNTS_ORIGIN}/?mode=login`;
+
+const SESSION_ENDPOINT =
+  `${ACCOUNTS_ORIGIN}/api/auth/session`;
+
+const LOGOUT_ENDPOINT =
+  `${ACCOUNTS_ORIGIN}/api/auth/logout`;
+
+let authenticated = false;
+let currentUser = null;
+let restoringSession = null;
+let loggingOut = false;
+
+
+/* =========================================================
+   AUTH HELPERS
+   ========================================================= */
+
+function redirectToLogin() {
+  window.location.replace(
+    LOGIN_URL
+  );
+}
+
+function setAuthenticatedUser(user) {
+  if (
+    !user ||
+    typeof user !== "object" ||
+    !user.id
+  ) {
+    authenticated = false;
+    currentUser = null;
+
+    return false;
+  }
+
+  currentUser = {
+    id:
+      user.id || null,
+
+    username:
+      user.username || "user",
+
+    displayName:
+      user.displayName ||
+      user.username ||
+      "user",
+
+    beanId:
+      user.beanId || null,
+
+    email:
+      user.email || null,
+
+    planType:
+      user.planType || "free"
+  };
+
+  authenticated = true;
+
+  return true;
+}
+
+function updateBeanButton() {
+  if (
+    authenticated &&
+    currentUser?.beanId
+  ) {
+    els.openBean.innerHTML = `
+      <span class="bean-dot"></span>
+      ${currentUser.beanId}
+    `;
+
+    return;
+  }
+
+  els.openBean.innerHTML = `
+    <span class="bean-dot"></span>
+    Login with Bean ID
+  `;
+}
+
+
+/* =========================================================
+   SESSION RESTORE
+   ========================================================= */
+
+async function performSessionRestore() {
+  try {
+    const response =
+      await fetch(
+        SESSION_ENDPOINT,
+        {
+          method: "GET",
+
+          credentials: "include",
+
+          cache: "no-store",
+
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+    if (
+      !response.ok ||
+      !data.authenticated ||
+      !data.user
+    ) {
+      authenticated = false;
+      currentUser = null;
+
+      updateBeanButton();
+
+      return false;
+    }
+
+    if (
+      !setAuthenticatedUser(
+        data.user
+      )
+    ) {
+      updateBeanButton();
+
+      return false;
+    }
+
+    updateBeanButton();
+
+    return true;
+
+  } catch (error) {
+    console.error(
+      "Bean session restore failed:",
+      error
+    );
+
+    authenticated = false;
+    currentUser = null;
+
+    updateBeanButton();
+
+    return false;
+  }
+}
+
+async function restoreSession() {
+  if (restoringSession) {
+    return restoringSession;
+  }
+
+  restoringSession =
+    performSessionRestore();
+
+  try {
+    return await restoringSession;
+  } finally {
+    restoringSession = null;
+  }
+}
+
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
+async function logout() {
+  if (
+    loggingOut ||
+    !authenticated
+  ) {
+    return false;
+  }
+
+  loggingOut = true;
+
+  try {
+    await fetch(
+      LOGOUT_ENDPOINT,
+      {
+        method: "POST",
+
+        credentials: "include",
+
+        cache: "no-store",
+
+        headers: {
+          Accept:
+            "application/json"
+        }
+      }
+    );
+  } catch (error) {
+    console.warn(
+      "Bean logout failed:",
+      error
+    );
+  }
+
+  authenticated = false;
+  currentUser = null;
+
+  updateBeanButton();
+
+  loggingOut = false;
+
+  redirectToLogin();
+
+  return true;
+}
+
+
+/* =========================================================
+   PUBLIC UASSET AUTH API
+   ========================================================= */
+
+window.UAssetAuth =
+  Object.freeze({
+    restore:
+      restoreSession,
+
+    login:
+      redirectToLogin,
+
+    logout,
+
+    isAuthenticated:
+      () =>
+        authenticated,
+
+    getUser:
+      () =>
+        currentUser
+          ? {
+              ...currentUser
+            }
+          : null,
+
+    getAccountsOrigin:
+      () =>
+        ACCOUNTS_ORIGIN,
+
+    getLoginUrl:
+      () =>
+        LOGIN_URL
+  });
+
+
+/* =========================================================
+   BEAN BUTTON
+   ========================================================= */
+
+els.openBean.addEventListener(
+  "click",
+  () => {
+    redirectToLogin();
+  }
+);
+
+
+/* =========================================================
+   ICON LIBRARY
+   ========================================================= */
+
 let activeCategory = "All";
 let selectedIcon = null;
 let activeCodeTab = "svg";
 
-let beanUser = null;
-let beanLogoutButton = null;
-
-const BEAN_API_BASE =
-  "https://accounts.signaturesi.com";
-
-
-/* =========================================================
-   CATEGORIES
-   ========================================================= */
-
 const categories = [
   "All",
   ...new Set(
-    ICONS.map(icon => icon.category)
+    ICONS.map(
+      icon => icon.category
+    )
   )
 ];
 
@@ -87,22 +359,26 @@ function renderFilters() {
       .join("");
 
   els.filters
-    .querySelectorAll("[data-category]")
-    .forEach(button => {
-      button.addEventListener(
-        "click",
-        () => {
-          activeCategory =
-            button.dataset.category;
+    .querySelectorAll(
+      "[data-category]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            activeCategory =
+              button.dataset.category;
 
-          renderFilters();
+            renderFilters();
 
-          renderIcons(
-            getSearchTerm()
-          );
-        }
-      );
-    });
+            renderIcons(
+              getSearchTerm()
+            );
+          }
+        );
+      }
+    );
 }
 
 
@@ -110,7 +386,10 @@ function renderFilters() {
    ICON MATCHING
    ========================================================= */
 
-function matchesIcon(icon, term) {
+function matchesIcon(
+  icon,
+  term
+) {
   if (
     activeCategory !== "All" &&
     icon.category !== activeCategory
@@ -130,7 +409,9 @@ function matchesIcon(icon, term) {
     .join(" ")
     .toLowerCase();
 
-  return searchableText.includes(term);
+  return searchableText.includes(
+    term
+  );
 }
 
 
@@ -138,10 +419,16 @@ function matchesIcon(icon, term) {
    ICON GRID
    ========================================================= */
 
-function renderIcons(term = "") {
+function renderIcons(
+  term = ""
+) {
   const visibleIcons =
-    ICONS.filter(icon =>
-      matchesIcon(icon, term)
+    ICONS.filter(
+      icon =>
+        matchesIcon(
+          icon,
+          term
+        )
     );
 
   els.iconGrid.innerHTML =
@@ -178,17 +465,21 @@ function renderIcons(term = "") {
   );
 
   els.iconGrid
-    .querySelectorAll("[data-icon]")
-    .forEach(card => {
-      card.addEventListener(
-        "click",
-        () => {
-          openIcon(
-            card.dataset.icon
-          );
-        }
-      );
-    });
+    .querySelectorAll(
+      "[data-icon]"
+    )
+    .forEach(
+      card => {
+        card.addEventListener(
+          "click",
+          () => {
+            openIcon(
+              card.dataset.icon
+            );
+          }
+        );
+      }
+    );
 }
 
 
@@ -196,22 +487,33 @@ function renderIcons(term = "") {
    REACT CODE
    ========================================================= */
 
-function toComponentName(name) {
+function toComponentName(
+  name
+) {
   return name
-    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .replace(
+      /[^a-zA-Z0-9 ]/g,
+      ""
+    )
     .split(" ")
     .filter(Boolean)
     .map(
       word =>
-        word.charAt(0).toUpperCase() +
+        word
+          .charAt(0)
+          .toUpperCase() +
         word.slice(1)
     )
     .join("");
 }
 
-function getReactCode(icon) {
+function getReactCode(
+  icon
+) {
   const componentName =
-    toComponentName(icon.name);
+    toComponentName(
+      icon.name
+    );
 
   return `const ${componentName} = () => (
   ${icon.svg}
@@ -223,7 +525,9 @@ function getReactCode(icon) {
    HTML CODE
    ========================================================= */
 
-function getHtmlCode(icon) {
+function getHtmlCode(
+  icon
+) {
   return icon.svg;
 }
 
@@ -237,7 +541,9 @@ function getActiveCode() {
     return "";
   }
 
-  switch (activeCodeTab) {
+  switch (
+    activeCodeTab
+  ) {
     case "react":
       return getReactCode(
         selectedIcon
@@ -270,7 +576,9 @@ function openIcon(id) {
   }
 
   selectedIcon = icon;
-  activeCodeTab = "svg";
+
+  activeCodeTab =
+    "svg";
 
   els.iconPreview.innerHTML =
     icon.svg;
@@ -293,6 +601,7 @@ function openIcon(id) {
       .join("");
 
   updateCodeTabs();
+
   updateCodePanel();
 
   els.iconOverlay.classList.remove(
@@ -314,13 +623,15 @@ function updateCodeTabs() {
     .querySelectorAll(
       "[data-code-tab]"
     )
-    .forEach(tab => {
-      tab.classList.toggle(
-        "active",
-        tab.dataset.codeTab ===
-          activeCodeTab
-      );
-    });
+    .forEach(
+      tab => {
+        tab.classList.toggle(
+          "active",
+          tab.dataset.codeTab ===
+            activeCodeTab
+        );
+      }
+    );
 }
 
 function updateCodePanel() {
@@ -341,25 +652,30 @@ document
   .querySelectorAll(
     "[data-code-tab]"
   )
-  .forEach(tab => {
-    tab.addEventListener(
-      "click",
-      () => {
-        activeCodeTab =
-          tab.dataset.codeTab;
+  .forEach(
+    tab => {
+      tab.addEventListener(
+        "click",
+        () => {
+          activeCodeTab =
+            tab.dataset.codeTab;
 
-        updateCodeTabs();
-        updateCodePanel();
-      }
-    );
-  });
+          updateCodeTabs();
+
+          updateCodePanel();
+        }
+      );
+    }
+  );
 
 
 /* =========================================================
    CLOSE MODALS
    ========================================================= */
 
-function closeOverlay(id) {
+function closeOverlay(
+  id
+) {
   const overlay =
     document.getElementById(id);
 
@@ -374,9 +690,6 @@ function closeOverlay(id) {
   if (
     els.iconOverlay.classList.contains(
       "hidden"
-    ) &&
-    els.beanOverlay.classList.contains(
-      "hidden"
     )
   ) {
     document.body.classList.remove(
@@ -390,7 +703,9 @@ function closeOverlay(id) {
    TOAST
    ========================================================= */
 
-function showToast(message) {
+function showToast(
+  message
+) {
   els.toast.textContent =
     message;
 
@@ -518,7 +833,8 @@ function downloadSelectedSvg() {
       "a"
     );
 
-  link.href = url;
+  link.href =
+    url;
 
   link.download =
     `${selectedIcon.id}.svg`;
@@ -547,403 +863,6 @@ els.downloadSvg.addEventListener(
 
 
 /* =========================================================
-   BEAN API REQUEST
-   ========================================================= */
-
-async function beanRequest(
-  path,
-  options = {}
-) {
-  const headers =
-    new Headers(
-      options.headers || {}
-    );
-
-  if (
-    options.body &&
-    !headers.has(
-      "Content-Type"
-    )
-  ) {
-    headers.set(
-      "Content-Type",
-      "application/json"
-    );
-  }
-
-  const response =
-    await fetch(
-      `${BEAN_API_BASE}${path}`,
-      {
-        ...options,
-        headers,
-        credentials: "include"
-      }
-    );
-
-  let data = {};
-
-  try {
-    data =
-      await response.json();
-  } catch {
-    data = {};
-  }
-
-  if (!response.ok) {
-    const error =
-      new Error(
-        data.error ||
-        "Bean ID request failed."
-      );
-
-    error.status =
-      response.status;
-
-    throw error;
-  }
-
-  return data;
-}
-
-
-/* =========================================================
-   BEAN BUTTON
-   ========================================================= */
-
-function updateBeanButton() {
-  if (
-    beanUser &&
-    beanUser.beanId
-  ) {
-    els.openBean.innerHTML = `
-      <span class="bean-dot"></span>
-      ${beanUser.beanId}
-    `;
-
-    return;
-  }
-
-  els.openBean.innerHTML = `
-    <span class="bean-dot"></span>
-    Login with Bean ID
-  `;
-}
-
-
-/* =========================================================
-   BEAN MODAL
-   ========================================================= */
-
-const beanNotice =
-  document.querySelector(
-    ".bean-modal .notice"
-  );
-
-function updateBeanModal() {
-  if (!beanNotice) {
-    return;
-  }
-
-  if (!beanUser) {
-    els.beanForm.classList.remove(
-      "hidden"
-    );
-
-    beanNotice.textContent =
-      "Sign in with your real Bean ID. Your session is stored in a secure HttpOnly cookie.";
-
-    if (
-      beanLogoutButton
-    ) {
-      beanLogoutButton.classList.add(
-        "hidden"
-      );
-    }
-
-    return;
-  }
-
-  els.beanForm.classList.add(
-    "hidden"
-  );
-
-  beanNotice.textContent =
-    `Signed in as ${beanUser.beanId}.`;
-
-  if (
-    !beanLogoutButton
-  ) {
-    beanLogoutButton =
-      document.createElement(
-        "button"
-      );
-
-    beanLogoutButton.type =
-      "button";
-
-    beanLogoutButton.className =
-      "light-button full";
-
-    beanLogoutButton.textContent =
-      "Log out";
-
-    beanLogoutButton.addEventListener(
-      "click",
-      handleBeanLogout
-    );
-
-    els.beanForm.parentNode.insertBefore(
-      beanLogoutButton,
-      els.beanForm.nextSibling
-    );
-  }
-
-  beanLogoutButton.classList.remove(
-    "hidden"
-  );
-}
-
-
-/* =========================================================
-   SET BEAN USER
-   ========================================================= */
-
-function setBeanUser(user) {
-  beanUser =
-    user || null;
-
-  updateBeanButton();
-  updateBeanModal();
-}
-
-
-/* =========================================================
-   LOAD BEAN SESSION
-   ========================================================= */
-
-async function loadBeanSession() {
-  try {
-    const data =
-      await beanRequest(
-        "/api/auth/session",
-        {
-          method: "GET"
-        }
-      );
-
-    if (
-      data.authenticated &&
-      data.user
-    ) {
-      setBeanUser(
-        data.user
-      );
-    } else {
-      setBeanUser(
-        null
-      );
-    }
-
-  } catch (error) {
-    console.error(
-      "Bean session check failed:",
-      error
-    );
-
-    setBeanUser(
-      null
-    );
-  }
-}
-
-
-/* =========================================================
-   OPEN BEAN
-   ========================================================= */
-
-els.openBean.addEventListener(
-  "click",
-  () => {
-    updateBeanModal();
-
-    els.beanOverlay.classList.remove(
-      "hidden"
-    );
-
-    document.body.classList.add(
-      "modal-open"
-    );
-  }
-);
-
-
-/* =========================================================
-   BEAN LOGIN
-   ========================================================= */
-
-els.beanForm.addEventListener(
-  "submit",
-  async event => {
-    event.preventDefault();
-
-    const formData =
-      new FormData(
-        els.beanForm
-      );
-
-    const username =
-      String(
-        formData.get(
-          "beanId"
-        ) || ""
-      ).trim();
-
-    const password =
-      String(
-        formData.get(
-          "password"
-        ) || ""
-      );
-
-    if (
-      !username ||
-      !password
-    ) {
-      showToast(
-        "Bean ID and password are required"
-      );
-
-      return;
-    }
-
-    const submitButton =
-      els.beanForm.querySelector(
-        'button[type="submit"]'
-      );
-
-    const originalText =
-      submitButton
-        ? submitButton.textContent
-        : "";
-
-    if (submitButton) {
-      submitButton.disabled =
-        true;
-
-      submitButton.textContent =
-        "Signing in...";
-    }
-
-    try {
-      const data =
-        await beanRequest(
-          "/api/auth/login",
-          {
-            method: "POST",
-            body:
-              JSON.stringify({
-                username,
-                password
-              })
-          }
-        );
-
-      setBeanUser(
-        data.user
-      );
-
-      els.beanForm.reset();
-
-      closeOverlay(
-        "beanOverlay"
-      );
-
-      showToast(
-        `Signed in as ${data.user.beanId}`
-      );
-
-    } catch (error) {
-      console.error(
-        "Bean login failed:",
-        error
-      );
-
-      if (
-        error.status === 401
-      ) {
-        showToast(
-          "Invalid Bean ID or password"
-        );
-
-      } else if (
-        error.status === 429
-      ) {
-        showToast(
-          "Too many login attempts. Try again later."
-        );
-
-      } else {
-        showToast(
-          error.message ||
-          "Bean login failed"
-        );
-      }
-
-    } finally {
-      if (submitButton) {
-        submitButton.disabled =
-          false;
-
-        submitButton.textContent =
-          originalText;
-      }
-    }
-  }
-);
-
-
-/* =========================================================
-   BEAN LOGOUT
-   ========================================================= */
-
-async function handleBeanLogout() {
-  if (!beanUser) {
-    return;
-  }
-
-  try {
-    await beanRequest(
-      "/api/auth/logout",
-      {
-        method: "POST"
-      }
-    );
-
-  } catch (error) {
-    console.error(
-      "Bean logout failed:",
-      error
-    );
-  }
-
-  setBeanUser(
-    null
-  );
-
-  els.beanForm.reset();
-
-  closeOverlay(
-    "beanOverlay"
-  );
-
-  showToast(
-    "Logged out"
-  );
-}
-
-
-/* =========================================================
    CLOSE BUTTONS
    ========================================================= */
 
@@ -951,16 +870,18 @@ document
   .querySelectorAll(
     "[data-close]"
   )
-  .forEach(button => {
-    button.addEventListener(
-      "click",
-      () => {
-        closeOverlay(
-          button.dataset.close
-        );
-      }
-    );
-  });
+  .forEach(
+    button => {
+      button.addEventListener(
+        "click",
+        () => {
+          closeOverlay(
+            button.dataset.close
+          );
+        }
+      );
+    }
+  );
 
 
 /* =========================================================
@@ -992,14 +913,11 @@ document.addEventListener(
   event => {
 
     if (
-      event.key === "Escape"
+      event.key ===
+      "Escape"
     ) {
       closeOverlay(
         "iconOverlay"
-      );
-
-      closeOverlay(
-        "beanOverlay"
       );
     }
 
@@ -1009,7 +927,8 @@ document.addEventListener(
         "INPUT",
         "TEXTAREA"
       ].includes(
-        document.activeElement.tagName
+        document.activeElement
+          .tagName
       )
     ) {
       event.preventDefault();
@@ -1031,6 +950,4 @@ renderIcons();
 
 updateBeanButton();
 
-updateBeanModal();
-
-loadBeanSession();
+restoreSession();
