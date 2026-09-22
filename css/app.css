@@ -14,6 +14,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -91,7 +95,8 @@ button {
 .nav-link {
   font-size: 13px;
   color: var(--muted);
-  transition: color 0.15s ease;
+
+  transition: color .15s ease;
 }
 
 .nav-link:hover,
@@ -116,33 +121,38 @@ button {
   font-size: 12px;
   font-weight: 600;
 
-  transition: box-shadow 0.15s ease,
-              transform 0.15s ease;
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease;
 }
 
 .bean-button:hover {
-  box-shadow: var(--shadow);
   transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 
 .bean-dot {
   width: 7px;
   height: 7px;
 
-  background: var(--text);
   border-radius: 50%;
+  background: var(--text);
 }
 
 
-/* HERO */
+/* MAIN */
 
 main {
   max-width: var(--max);
   margin: 0 auto;
 }
 
+
+/* HERO */
+
 .hero {
   text-align: center;
+
   padding: 100px 24px 70px;
 }
 
@@ -150,7 +160,7 @@ main {
   margin: 0 0 14px;
 
   font: 500 10px/1 var(--mono);
-  letter-spacing: 0.13em;
+  letter-spacing: .13em;
 
   color: var(--muted);
 }
@@ -161,7 +171,7 @@ main {
   margin: 0;
 
   font-family: var(--serif);
-  letter-spacing: -0.045em;
+  letter-spacing: -.045em;
   line-height: 1.05;
 }
 
@@ -185,7 +195,7 @@ main {
 }
 
 
-/* MAIN PILL SEARCH */
+/* HERO PILL SEARCH */
 
 .hero-search {
   width: min(680px, 100%);
@@ -205,19 +215,19 @@ main {
   border-radius: 999px;
 
   box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.035);
+    0 8px 30px rgba(0, 0, 0, .035);
 
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    border-color .15s ease,
+    box-shadow .15s ease,
+    transform .15s ease;
 }
 
 .hero-search:focus-within {
   border-color: #bdbdb5;
 
   box-shadow:
-    0 10px 35px rgba(0, 0, 0, 0.055);
+    0 12px 38px rgba(0, 0, 0, .06);
 
   transform: translateY(-1px);
 }
@@ -228,10 +238,11 @@ main {
   width: 22px;
 
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 
-  color: #8b8c86;
+  color: #898a84;
+
   font-size: 21px;
   line-height: 1;
 }
@@ -255,8 +266,8 @@ main {
 .hero-search kbd {
   flex: 0 0 auto;
 
-  min-width: 27px;
-  height: 27px;
+  min-width: 28px;
+  height: 28px;
 
   display: grid;
   place-items: center;
@@ -269,7 +280,6 @@ main {
   background: var(--surface-soft);
 
   font: 10px var(--mono);
-
   color: var(--muted);
 }
 
@@ -286,7 +296,7 @@ main {
 }
 
 
-/* SECTIONS */
+/* SECTION */
 
 .section {
   padding: 48px 24px 85px;
@@ -328,18 +338,20 @@ main {
   border-radius: 999px;
 
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color .15s ease,
+    box-shadow .15s ease;
 }
 
 .mini-search:focus-within {
   border-color: var(--line-strong);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.035);
+
+  box-shadow:
+    0 5px 20px rgba(0, 0, 0, .035);
 }
 
 .mini-search .search-symbol {
-  font-size: 18px;
   width: 18px;
+  font-size: 18px;
 }
 
 .mini-search input {
@@ -349,9 +361,9 @@ main {
   outline: 0;
 
   background: transparent;
-  color: var(--text);
 
   font-size: 12px;
+  color: var(--text);
 }
 
 .mini-search input::placeholder {
@@ -364,6 +376,7 @@ main {
 .filters {
   display: flex;
   flex-wrap: wrap;
+
   gap: 7px;
 
   margin-bottom: 22px;
@@ -382,16 +395,24 @@ main {
   font-size: 11px;
 
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+    background .15s ease,
+    color .15s ease,
+    border-color .15s ease,
+    transform .15s ease;
 }
 
-.filter:hover,
-.filter.active {
+.filter:hover {
   background: var(--surface);
   color: var(--text);
   border-color: var(--line-strong);
+
+  transform: translateY(-1px);
+}
+
+.filter.active {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
 }
 
 
@@ -399,7 +420,10 @@ main {
 
 .icon-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
   gap: 12px;
 }
 
@@ -408,27 +432,39 @@ main {
 
   padding: 18px;
 
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  text-align: left;
+
   background: var(--surface);
 
   border: 1px solid var(--line);
   border-radius: 15px;
 
-  text-align: left;
+  color: var(--text);
+
+  appearance: none;
 
   transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    border-color 0.16s ease;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+    transform .16s ease,
+    box-shadow .16s ease,
+    border-color .16s ease,
+    background .16s ease;
 }
 
 .icon-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow);
+
   border-color: var(--line-strong);
+
+  box-shadow: var(--shadow);
+}
+
+.icon-card:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }
 
 .icon-draw {
@@ -441,6 +477,13 @@ main {
 .icon-draw svg {
   width: 48px;
   height: 48px;
+
+  transition:
+    transform .16s ease;
+}
+
+.icon-card:hover .icon-draw svg {
+  transform: scale(1.06);
 }
 
 .icon-title {
@@ -452,23 +495,29 @@ main {
   margin-top: 4px;
 
   font-size: 10px;
+
   color: var(--muted);
 }
 
+
+/* EMPTY */
+
 .empty {
+  min-height: 170px;
+
   display: flex;
   flex-direction: column;
-  gap: 5px;
 
   align-items: center;
   justify-content: center;
 
-  padding: 55px;
+  gap: 5px;
 
   border: 1px dashed var(--line-strong);
   border-radius: 15px;
 
   color: var(--muted);
+
   font-size: 12px;
 }
 
@@ -477,14 +526,19 @@ main {
 
 .collection-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
 
   gap: 12px;
 }
 
 .collection-card {
   display: grid;
-  grid-template-columns: 46px 1fr auto;
+
+  grid-template-columns:
+    46px 1fr auto;
+
   align-items: center;
 
   gap: 13px;
@@ -512,6 +566,7 @@ main {
 
 .collection-card h3 {
   margin: 0;
+
   font-size: 13px;
 }
 
@@ -534,9 +589,11 @@ main {
 
 .pricing {
   display: grid;
+
   grid-template-columns: 1fr 300px;
 
   align-items: center;
+
   gap: 30px;
 
   border-top: 1px solid var(--line);
@@ -556,12 +613,16 @@ main {
   margin: 9px 0 17px;
 
   font: 700 34px var(--serif);
-  letter-spacing: -0.04em;
+
+  letter-spacing: -.04em;
 }
 
 .price small {
-  font: 11px var(--sans);
+  font:
+    11px var(--sans);
+
   color: var(--muted);
+
   font-weight: 400;
 }
 
@@ -571,6 +632,7 @@ main {
 .dark-button,
 .light-button {
   border-radius: 11px;
+
   padding: 11px 14px;
 
   font-size: 12px;
@@ -580,17 +642,19 @@ main {
 .dark-button {
   background: #111;
   color: #fff;
+
   border: 1px solid #111;
 }
 
 .light-button {
   background: var(--surface);
   color: var(--text);
+
   border: 1px solid var(--line-strong);
 }
 
 .dark-button:hover {
-  opacity: 0.9;
+  opacity: .9;
 }
 
 .light-button:hover {
@@ -606,12 +670,14 @@ main {
 
 .footer {
   max-width: var(--max);
+
   margin: auto;
 
   padding: 25px 24px;
 
   display: flex;
   justify-content: space-between;
+
   gap: 20px;
 
   border-top: 1px solid var(--line);
@@ -621,11 +687,12 @@ main {
 }
 
 
-/* MODALS */
+/* MODAL */
 
 .overlay {
   position: fixed;
   inset: 0;
+
   z-index: 60;
 
   display: grid;
@@ -633,7 +700,8 @@ main {
 
   padding: 18px;
 
-  background: rgba(12, 12, 12, 0.35);
+  background: rgba(12, 12, 12, .35);
+
   backdrop-filter: blur(7px);
 }
 
@@ -646,16 +714,17 @@ main {
 
   background: var(--surface);
 
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255,255,255,.8);
 
   border-radius: 22px;
 
   box-shadow:
-    0 30px 100px rgba(0, 0, 0, 0.18);
+    0 30px 100px rgba(0,0,0,.18);
 }
 
 .close {
   position: absolute;
+
   right: 12px;
   top: 10px;
 
@@ -663,7 +732,17 @@ main {
   background: transparent;
 
   font-size: 28px;
+
   color: var(--muted);
+
+  transition:
+    color .15s ease,
+    transform .15s ease;
+}
+
+.close:hover {
+  color: var(--text);
+  transform: scale(1.05);
 }
 
 .preview {
@@ -688,29 +767,33 @@ main {
 .detail-row {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
 
   gap: 20px;
 }
 
 .detail-row h2 {
   font-size: 31px;
-  margin-bottom: 8px;
+
+  margin: 0 0 8px;
 }
 
 .detail-row .muted {
   margin: 0;
-  font-size: 12px;
+
   max-width: 490px;
+
+  font-size: 12px;
 }
 
 .tags {
   display: flex;
   flex-wrap: wrap;
 
-  gap: 6px;
-
   justify-content: flex-end;
   align-content: flex-start;
+
+  gap: 6px;
 }
 
 .tag {
@@ -720,6 +803,7 @@ main {
   border-radius: 999px;
 
   font-size: 9px;
+
   color: var(--muted);
 }
 
@@ -731,9 +815,10 @@ main {
 }
 
 .code {
+  overflow: hidden;
+
   border: 1px solid var(--line);
   border-radius: 13px;
-  overflow: hidden;
 }
 
 .code-head {
@@ -745,6 +830,7 @@ main {
   background: var(--surface-soft);
 
   font: 9px var(--mono);
+
   color: var(--muted);
 }
 
@@ -753,20 +839,24 @@ main {
 
   padding: 13px;
 
-  background: #111;
-  color: #eee;
-
-  overflow: auto;
   max-height: 210px;
 
-  font: 10px/1.5 var(--mono);
+  overflow: auto;
+
+  background: #111;
+
+  color: #eee;
+
+  font:
+    10px/1.5 var(--mono);
 }
 
 
-/* BEAN ID */
+/* BEAN */
 
 .bean-modal {
   width: min(410px, 100%);
+
   padding: 32px;
 }
 
@@ -787,16 +877,19 @@ main {
 
 .bean-modal h2 {
   font-size: 29px;
-  margin-bottom: 9px;
+
+  margin: 0 0 9px;
 }
 
 .bean-modal > .muted {
-  font-size: 12px;
   margin: 0;
+
+  font-size: 12px;
 }
 
 #beanForm {
   display: grid;
+
   gap: 12px;
 
   margin-top: 19px;
@@ -804,10 +897,13 @@ main {
 
 #beanForm label {
   display: grid;
+
   gap: 6px;
 
   font-size: 10px;
+
   color: var(--muted);
+
   font-weight: 600;
 }
 
@@ -822,6 +918,8 @@ main {
   outline: 0;
 
   background: var(--bg);
+
+  color: var(--text);
 }
 
 #beanForm input:focus {
@@ -844,6 +942,7 @@ main {
 
   left: 50%;
   bottom: 22px;
+
   z-index: 90;
 
   transform: translateX(-50%);
@@ -857,7 +956,8 @@ main {
 
   font-size: 11px;
 
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 10px 25px rgba(0,0,0,.2);
 }
 
 
@@ -866,7 +966,8 @@ main {
 @media (max-width: 920px) {
 
   .icon-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
   }
 
   .collection-grid {
@@ -882,7 +983,9 @@ main {
 
   .header {
     grid-template-columns: 1fr auto;
+
     height: 67px;
+
     padding: 0 14px;
   }
 
@@ -912,7 +1015,8 @@ main {
   }
 
   .icon-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 
   .detail-row {
@@ -925,6 +1029,7 @@ main {
 
   .footer {
     flex-direction: column;
+
     gap: 7px;
   }
 }
