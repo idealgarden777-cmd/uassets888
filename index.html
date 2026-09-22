@@ -39,7 +39,11 @@
       <a class="nav-link" href="#pricing">Pricing</a>
     </nav>
 
-    <button class="bean-button" id="openBean">
+    <button
+      class="bean-button"
+      id="openBean"
+      type="button"
+    >
       <span class="bean-dot"></span>
       Login with Bean ID
     </button>
@@ -52,7 +56,9 @@
     <!-- HERO -->
     <section class="hero">
 
-      <p class="eyebrow">SIGNATURESI / UASSET</p>
+      <p class="eyebrow">
+        SIGNATURESI / UASSET
+      </p>
 
       <h1>
         SVG icons for<br>
@@ -65,7 +71,12 @@
 
       <div class="hero-search">
 
-        <span class="search-symbol" aria-hidden="true">⌕</span>
+        <span
+          class="search-symbol"
+          aria-hidden="true"
+        >
+          ⌕
+        </span>
 
         <input
           id="heroSearch"
@@ -91,25 +102,38 @@
 
 
     <!-- ICON LIBRARY -->
-    <section class="section" id="library">
+    <section
+      class="section"
+      id="library"
+    >
 
       <div class="section-head">
 
         <div>
-          <p class="eyebrow">ICON LIBRARY</p>
-          <h2>Essential icons.</h2>
+          <p class="eyebrow">
+            ICON LIBRARY
+          </p>
+
+          <h2>
+            Essential icons.
+          </h2>
         </div>
 
         <div class="mini-search">
 
-          <span class="search-symbol" aria-hidden="true">⌕</span>
+          <span
+            class="search-symbol"
+            aria-hidden="true"
+          >
+            ⌕
+          </span>
 
           <input
             id="librarySearch"
             type="search"
             placeholder="Search..."
             autocomplete="off"
-            aria-label="Search library"
+            aria-label="Search icon library"
           >
 
         </div>
@@ -117,24 +141,32 @@
       </div>
 
 
+      <!-- FILTERS -->
       <div
         class="filters"
         id="filters"
       ></div>
 
 
+      <!-- ICON GRID -->
       <div
         class="icon-grid"
         id="iconGrid"
       ></div>
 
 
+      <!-- EMPTY STATE -->
       <div
         class="empty hidden"
         id="emptyState"
       >
-        <strong>No icons found.</strong>
-        <span>Try a different search.</span>
+        <strong>
+          No icons found.
+        </strong>
+
+        <span>
+          Try a different search.
+        </span>
       </div>
 
     </section>
@@ -149,8 +181,13 @@
       <div class="section-head simple">
 
         <div>
-          <p class="eyebrow">COLLECTIONS</p>
-          <h2>Curated sets.</h2>
+          <p class="eyebrow">
+            COLLECTIONS
+          </p>
+
+          <h2>
+            Curated sets.
+          </h2>
         </div>
 
       </div>
@@ -160,42 +197,69 @@
 
         <article class="collection-card">
 
-          <div class="collection-mark">◌</div>
-
-          <div>
-            <h3>Essential UI</h3>
-            <p>Navigation, actions and system basics.</p>
+          <div class="collection-mark">
+            ◌
           </div>
 
-          <small>12 icons</small>
+          <div>
+            <h3>
+              Essential UI
+            </h3>
+
+            <p>
+              Navigation, actions and system basics.
+            </p>
+          </div>
+
+          <small>
+            12 icons
+          </small>
 
         </article>
 
 
         <article class="collection-card">
 
-          <div class="collection-mark">◷</div>
-
-          <div>
-            <h3>Time &amp; Calendar</h3>
-            <p>Time, recent activity and date states.</p>
+          <div class="collection-mark">
+            ◷
           </div>
 
-          <small>4 icons</small>
+          <div>
+            <h3>
+              Time &amp; Calendar
+            </h3>
+
+            <p>
+              Time, recent activity and date states.
+            </p>
+          </div>
+
+          <small>
+            4 icons
+          </small>
 
         </article>
 
 
         <article class="collection-card">
 
-          <div class="collection-mark">▦</div>
-
-          <div>
-            <h3>Files &amp; Product</h3>
-            <p>Useful patterns for product interfaces.</p>
+          <div class="collection-mark">
+            ▦
           </div>
 
-          <small>8 icons</small>
+          <div>
+            <h3>
+              Files &amp; Product
+            </h3>
+
+            <p>
+              Useful patterns for product interfaces.
+            </p>
+          </div>
+
+          <small>
+            8 icons
+          </small>
 
         </article>
 
@@ -212,9 +276,13 @@
 
       <div>
 
-        <p class="eyebrow">UASSET PRO</p>
+        <p class="eyebrow">
+          UASSET PRO
+        </p>
 
-        <h2>More assets. More speed.</h2>
+        <h2>
+          More assets. More speed.
+        </h2>
 
         <p class="muted">
           Premium packs and team access will be added after the core library is ready.
@@ -225,7 +293,9 @@
 
       <div class="price-box">
 
-        <span class="eyebrow">PRO</span>
+        <span class="eyebrow">
+          PRO
+        </span>
 
         <div class="price">
           $9
@@ -235,6 +305,7 @@
         <button
           class="dark-button"
           id="proButton"
+          type="button"
         >
           Coming next
         </button>
@@ -249,8 +320,13 @@
   <!-- FOOTER -->
   <footer class="footer">
 
-    <span>© 2026 UAsset / Signaturesi</span>
-    <span>Premium digital assets.</span>
+    <span>
+      © 2026 UAsset / Signaturesi
+    </span>
+
+    <span>
+      Premium digital assets.
+    </span>
 
   </footer>
 
@@ -265,72 +341,166 @@
       class="modal icon-modal"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="detailName"
     >
 
       <button
         class="close"
         data-close="iconOverlay"
         aria-label="Close"
+        type="button"
       >
         ×
       </button>
 
-      <div
-        class="preview"
-        id="iconPreview"
-      ></div>
 
-      <div class="detail-row">
+      <div class="detail-layout">
 
-        <div>
+        <!-- PREVIEW -->
+        <div class="detail-preview">
+
+          <div
+            class="preview"
+            id="iconPreview"
+          ></div>
+
+          <div class="preview-meta">
+            <span>24×24</span>
+            <span>•</span>
+            <span>2px</span>
+            <span>•</span>
+            <span>SVG</span>
+          </div>
+
+        </div>
+
+
+        <!-- DETAILS -->
+        <div class="detail-content">
 
           <p
             class="eyebrow"
             id="detailCategory"
           ></p>
 
-          <h2 id="detailName"></h2>
+          <h2
+            id="detailName"
+          ></h2>
 
           <p
-            class="muted"
+            class="detail-description"
             id="detailDescription"
           ></p>
 
-        </div>
 
-        <div
-          class="tags"
-          id="detailTags"
-        ></div>
+          <!-- TAGS -->
+          <div
+            class="tags"
+            id="detailTags"
+          ></div>
+
+
+          <!-- SPECS -->
+          <div class="detail-specs">
+
+            <div class="spec-item">
+              <span>Format</span>
+              <strong>SVG</strong>
+            </div>
+
+            <div class="spec-item">
+              <span>Canvas</span>
+              <strong>24×24</strong>
+            </div>
+
+            <div class="spec-item">
+              <span>Stroke</span>
+              <strong>2px</strong>
+            </div>
+
+            <div class="spec-item">
+              <span>Color</span>
+              <strong>currentColor</strong>
+            </div>
+
+          </div>
+
+
+          <!-- ACTIONS -->
+          <div class="actions">
+
+            <button
+              class="dark-button"
+              id="copySvg"
+              type="button"
+            >
+              Copy SVG
+            </button>
+
+            <button
+              class="light-button"
+              id="downloadSvg"
+              type="button"
+            >
+              Download SVG
+            </button>
+
+          </div>
+
+        </div>
 
       </div>
 
-      <div class="actions">
 
-        <button
-          class="dark-button"
-          id="copySvg"
-        >
-          Copy SVG
-        </button>
+      <!-- CODE -->
+      <div class="code-section">
 
-        <button
-          class="light-button"
-          id="downloadSvg"
-        >
-          Download SVG
-        </button>
+        <div class="code-tabs">
 
-      </div>
+          <button
+            type="button"
+            class="code-tab active"
+            data-code-tab="svg"
+          >
+            SVG
+          </button>
 
-      <div class="code">
+          <button
+            type="button"
+            class="code-tab"
+            data-code-tab="react"
+          >
+            React
+          </button>
 
-        <div class="code-head">
-          <span>SVG</span>
-          <span>24×24 / 2px</span>
+          <button
+            type="button"
+            class="code-tab"
+            data-code-tab="html"
+          >
+            HTML
+          </button>
+
         </div>
 
-        <pre id="svgCode"></pre>
+
+        <div class="code">
+
+          <div class="code-head">
+
+            <span id="codeLabel">
+              SVG
+            </span>
+
+            <span>
+              24×24 / 2px
+            </span>
+
+          </div>
+
+          <pre id="svgCode"></pre>
+
+        </div>
 
       </div>
 
@@ -355,19 +525,31 @@
         class="close"
         data-close="beanOverlay"
         aria-label="Close"
+        type="button"
       >
         ×
       </button>
 
-      <div class="bean-mark">B</div>
 
-      <p class="eyebrow">BEAN ID</p>
+      <div class="bean-mark">
+        B
+      </div>
 
-      <h2>Sign in to UAsset.</h2>
+
+      <p class="eyebrow">
+        BEAN ID
+      </p>
+
+
+      <h2>
+        Sign in to UAsset.
+      </h2>
+
 
       <p class="muted">
         This is a demo login. It stays local until the real Bean ID API is connected.
       </p>
+
 
       <form id="beanForm">
 
@@ -382,6 +564,7 @@
           >
         </label>
 
+
         <label>
           Password
 
@@ -394,6 +577,7 @@
           >
         </label>
 
+
         <button
           class="dark-button full"
           type="submit"
@@ -402,6 +586,7 @@
         </button>
 
       </form>
+
 
       <div class="notice">
         Demo only — no credentials are sent to a server.
@@ -412,12 +597,14 @@
   </div>
 
 
+  <!-- TOAST -->
   <div
     class="toast hidden"
     id="toast"
   ></div>
 
 
+  <!-- SCRIPTS -->
   <script src="js/icons.js"></script>
   <script src="js/app.js"></script>
 
