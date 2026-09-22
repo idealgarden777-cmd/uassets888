@@ -1,167 +1,489 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UAsset — Premium SVG Asset Library</title>
-  <meta name="description" content="UAsset — original, developer-ready SVG icons." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="UAsset — premium SVG icons for modern products."
+  >
+
+  <title>UAsset — SVG Icons</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/tokens.css" />
-  <link rel="stylesheet" href="css/app.css" />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
 </head>
+
 <body>
-  <header class="site-header">
-    <a class="brand" href="index.html" aria-label="UAsset home">
-      <span class="brand-mark">U</span>
-      <span class="brand-name">UAsset</span>
+
+  <!-- HEADER -->
+  <header class="header">
+
+    <a class="brand" href="#">
+      <span class="brand-logo">U</span>
+      <span>UAsset</span>
     </a>
-    <nav class="nav-links">
-      <a class="active" href="#icons">Icons</a>
-      <a href="#collections">Collections</a>
-      <a href="#pricing">Pricing</a>
+
+    <nav class="nav">
+      <a class="nav-link active" href="#library">Icons</a>
+      <a class="nav-link" href="#collections">Collections</a>
+      <a class="nav-link" href="#pricing">Pricing</a>
     </nav>
-    <button class="bean-login-btn" id="openLogin">
+
+    <button class="bean-button" id="openBean">
       <span class="bean-dot"></span>
       Login with Bean ID
     </button>
+
   </header>
 
+
   <main>
+
+    <!-- HERO -->
     <section class="hero">
-      <div class="eyebrow">SIGNATURESI / UASSET</div>
-      <h1>Beautiful SVG icons<br><span>for modern products.</span></h1>
-      <p>Original, minimal, developer-ready assets designed for interfaces that stay out of the way.</p>
+
+      <p class="eyebrow">
+        SIGNATURESI / UASSET
+      </p>
+
+      <h1>
+        SVG icons for<br>
+        <span>modern products.</span>
+      </h1>
+
+      <p class="hero-text">
+        Original, minimal and developer-ready icons for clean product interfaces.
+      </p>
 
       <div class="hero-search">
-        <span class="search-icon">⌕</span>
-        <input id="heroSearch" type="search" placeholder="Search 20+ icons..." autocomplete="off" />
+
+        <span class="search-symbol">⌕</span>
+
+        <input
+          id="heroSearch"
+          type="search"
+          placeholder="Search icons..."
+          autocomplete="off"
+        >
+
         <kbd>/</kbd>
+
       </div>
 
-      <div class="hero-meta">
-        <span>24×24</span><span>•</span><span>2px stroke</span><span>•</span><span>currentColor</span>
+      <div class="specs">
+        <span>24×24</span>
+        <span>•</span>
+        <span>2px</span>
+        <span>•</span>
+        <span>currentColor</span>
       </div>
+
     </section>
 
-    <section class="library" id="icons">
-      <div class="section-top">
+
+    <!-- ICON LIBRARY -->
+    <section class="section" id="library">
+
+      <div class="section-head">
+
         <div>
-          <p class="section-kicker">ICON LIBRARY</p>
-          <h2>Start with the essentials.</h2>
+          <p class="eyebrow">ICON LIBRARY</p>
+          <h2>Essential icons.</h2>
         </div>
-        <div class="library-tools">
-          <div class="small-search">
-            <span class="search-icon">⌕</span>
-            <input id="librarySearch" type="search" placeholder="Search icons" autocomplete="off" />
-          </div>
+
+        <div class="mini-search">
+
+          <span class="search-symbol">⌕</span>
+
+          <input
+            id="librarySearch"
+            type="search"
+            placeholder="Search..."
+            autocomplete="off"
+          >
+
         </div>
+
       </div>
 
-      <div class="category-row" id="categoryRow"></div>
 
-      <div class="icon-grid" id="iconGrid"></div>
-      <div class="empty-state hidden" id="emptyState">
-        <h3>No icons found</h3>
-        <p>Try another search term or category.</p>
+      <!-- FILTERS -->
+      <div
+        class="filters"
+        id="filters"
+      ></div>
+
+
+      <!-- ICON GRID -->
+      <div
+        class="icon-grid"
+        id="iconGrid"
+      ></div>
+
+
+      <!-- EMPTY -->
+      <div
+        class="empty hidden"
+        id="emptyState"
+      >
+        <strong>No icons found.</strong>
+        <span>Try a different search.</span>
       </div>
+
     </section>
 
-    <section class="collections" id="collections">
-      <div class="section-top compact">
+
+    <!-- COLLECTIONS -->
+    <section
+      class="section"
+      id="collections"
+    >
+
+      <div class="section-head simple">
+
         <div>
-          <p class="section-kicker">COLLECTIONS</p>
-          <h2>Curated starting points.</h2>
+          <p class="eyebrow">COLLECTIONS</p>
+          <h2>Curated sets.</h2>
         </div>
+
       </div>
+
+
       <div class="collection-grid">
+
         <article class="collection-card">
-          <div class="collection-icon">◌</div>
-          <div><h3>Essential UI</h3><p>Navigation, actions and system basics.</p></div>
-          <span>12 icons</span>
+
+          <div class="collection-mark">
+            ◌
+          </div>
+
+          <div>
+            <h3>Essential UI</h3>
+            <p>
+              Navigation, actions and system basics.
+            </p>
+          </div>
+
+          <small>
+            12 icons
+          </small>
+
         </article>
+
+
         <article class="collection-card">
-          <div class="collection-icon">◷</div>
-          <div><h3>Time & Calendar</h3><p>Time, history, schedule and date states.</p></div>
-          <span>4 icons</span>
+
+          <div class="collection-mark">
+            ◷
+          </div>
+
+          <div>
+            <h3>Time & Calendar</h3>
+            <p>
+              Time, recent activity and date states.
+            </p>
+          </div>
+
+          <small>
+            4 icons
+          </small>
+
         </article>
+
+
         <article class="collection-card">
-          <div class="collection-icon">▦</div>
-          <div><h3>Product & Files</h3><p>Common patterns for modern product interfaces.</p></div>
-          <span>8 icons</span>
+
+          <div class="collection-mark">
+            ▦
+          </div>
+
+          <div>
+            <h3>Files & Product</h3>
+            <p>
+              Useful patterns for product interfaces.
+            </p>
+          </div>
+
+          <small>
+            8 icons
+          </small>
+
         </article>
+
       </div>
+
     </section>
 
-    <section class="pricing" id="pricing">
-      <div class="price-copy">
-        <p class="section-kicker">UASSET PRO</p>
-        <h2>Build faster with a larger library.</h2>
-        <p>Free icons first. Premium packs and team access can come later as the library grows.</p>
+
+    <!-- PRICING -->
+    <section
+      class="section pricing"
+      id="pricing"
+    >
+
+      <div>
+
+        <p class="eyebrow">
+          UASSET PRO
+        </p>
+
+        <h2>
+          More assets. More speed.
+        </h2>
+
+        <p class="muted">
+          Premium packs and team access will be added after the core library is ready.
+        </p>
+
       </div>
-      <div class="price-card">
-        <div class="price-label">PRO</div>
-        <div class="price"><strong>$9</strong><span>/ month</span></div>
-        <button class="primary-btn" id="proBtn">Coming next</button>
+
+
+      <div class="price-box">
+
+        <span class="eyebrow">
+          PRO
+        </span>
+
+        <div class="price">
+          $9
+          <small>/ month</small>
+        </div>
+
+        <button
+          class="dark-button"
+          id="proButton"
+        >
+          Coming next
+        </button>
+
       </div>
+
     </section>
+
   </main>
 
-  <footer class="site-footer">
-    <span>© 2026 UAsset / Signaturesi</span>
-    <span>Designed for modern products.</span>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+
+    <span>
+      © 2026 UAsset / Signaturesi
+    </span>
+
+    <span>
+      Premium digital assets.
+    </span>
+
   </footer>
 
-  <!-- Icon detail modal -->
-  <div class="modal-backdrop hidden" id="iconModal">
-    <div class="modal icon-modal" role="dialog" aria-modal="true">
-      <button class="modal-close" data-close="iconModal" aria-label="Close">×</button>
-      <div class="detail-preview" id="detailPreview"></div>
-      <div class="detail-main">
+
+  <!-- ICON DETAIL MODAL -->
+  <div
+    class="overlay hidden"
+    id="iconOverlay"
+  >
+
+    <div
+      class="modal icon-modal"
+      role="dialog"
+      aria-modal="true"
+    >
+
+      <button
+        class="close"
+        data-close="iconOverlay"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+
+      <div
+        class="preview"
+        id="iconPreview"
+      ></div>
+
+
+      <div class="detail-row">
+
         <div>
-          <p class="section-kicker" id="detailCategory"></p>
-          <h2 id="detailName"></h2>
-          <p id="detailDescription"></p>
+
+          <p
+            class="eyebrow"
+            id="detailCategory"
+          ></p>
+
+          <h2
+            id="detailName"
+          ></h2>
+
+          <p
+            class="muted"
+            id="detailDescription"
+          ></p>
+
         </div>
-        <div class="tag-list" id="detailTags"></div>
+
+
+        <div
+          class="tags"
+          id="detailTags"
+        ></div>
+
       </div>
-      <div class="detail-actions">
-        <button class="primary-btn" id="copySvg">Copy SVG</button>
-        <button class="secondary-btn" id="downloadSvg">Download SVG</button>
+
+
+      <div class="actions">
+
+        <button
+          class="dark-button"
+          id="copySvg"
+        >
+          Copy SVG
+        </button>
+
+        <button
+          class="light-button"
+          id="downloadSvg"
+        >
+          Download SVG
+        </button>
+
       </div>
-      <div class="code-panel">
-        <div class="code-top"><span>SVG</span><span id="detailSpecs"></span></div>
-        <pre><code id="detailCode"></code></pre>
+
+
+      <div class="code">
+
+        <div class="code-head">
+
+          <span>SVG</span>
+
+          <span>
+            24×24 / 2px
+          </span>
+
+        </div>
+
+        <pre id="svgCode"></pre>
+
       </div>
+
     </div>
+
   </div>
 
-  <!-- Bean ID login modal -->
-  <div class="modal-backdrop hidden" id="loginModal">
-    <div class="modal login-modal" role="dialog" aria-modal="true">
-      <button class="modal-close" data-close="loginModal" aria-label="Close">×</button>
-      <div class="login-mark">B</div>
-      <p class="section-kicker">BEAN ID</p>
-      <h2>Welcome to UAsset.</h2>
-      <p>Demo authentication flow — ready to connect to your real Bean ID backend later.</p>
 
-      <form id="loginForm">
-        <label>Bean ID
-          <input name="beanId" required placeholder="your.bean.id" autocomplete="username" />
+  <!-- BEAN ID MODAL -->
+  <div
+    class="overlay hidden"
+    id="beanOverlay"
+  >
+
+    <div
+      class="modal bean-modal"
+      role="dialog"
+      aria-modal="true"
+    >
+
+      <button
+        class="close"
+        data-close="beanOverlay"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+
+      <div class="bean-mark">
+        B
+      </div>
+
+
+      <p class="eyebrow">
+        BEAN ID
+      </p>
+
+
+      <h2>
+        Sign in to UAsset.
+      </h2>
+
+
+      <p class="muted">
+        This is a demo login. It stays local until the real Bean ID API is connected.
+      </p>
+
+
+      <form id="beanForm">
+
+        <label>
+
+          Bean ID
+
+          <input
+            name="beanId"
+            required
+            autocomplete="username"
+            placeholder="your.bean.id"
+          >
+
         </label>
-        <label>Password
-          <input name="password" type="password" required placeholder="••••••••" autocomplete="current-password" />
+
+
+        <label>
+
+          Password
+
+          <input
+            name="password"
+            required
+            type="password"
+            autocomplete="current-password"
+            placeholder="Password"
+          >
+
         </label>
-        <button class="primary-btn full" type="submit">Continue with Bean ID</button>
+
+
+        <button
+          class="dark-button full"
+          type="submit"
+        >
+          Continue with Bean ID
+        </button>
+
       </form>
-      <div class="demo-note">Demo only: credentials are not sent anywhere.</div>
+
+
+      <div class="notice">
+        Demo only — no credentials are sent to a server.
+      </div>
+
     </div>
+
   </div>
 
-  <div class="toast hidden" id="toast"></div>
 
+  <!-- TOAST -->
+  <div
+    class="toast hidden"
+    id="toast"
+  ></div>
+
+
+  <!-- JAVASCRIPT -->
   <script src="js/icons.js"></script>
   <script src="js/app.js"></script>
+
 </body>
 </html>
