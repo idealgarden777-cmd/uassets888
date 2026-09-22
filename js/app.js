@@ -36,7 +36,7 @@ const ACCOUNTS_ORIGIN =
   "https://accounts.signaturesi.com";
 
 const LOGIN_URL =
-  `${ACCOUNTS_ORIGIN}/?mode=login`;
+  `${ACCOUNTS_ORIGIN}/?mode=login&app=uasset`;
 
 const SESSION_ENDPOINT =
   `${ACCOUNTS_ORIGIN}/api/auth/session`;
