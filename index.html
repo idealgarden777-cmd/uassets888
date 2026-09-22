@@ -52,9 +52,7 @@
     <!-- HERO -->
     <section class="hero">
 
-      <p class="eyebrow">
-        SIGNATURESI / UASSET
-      </p>
+      <p class="eyebrow">SIGNATURESI / UASSET</p>
 
       <h1>
         SVG icons for<br>
@@ -67,13 +65,14 @@
 
       <div class="hero-search">
 
-        <span class="search-symbol">⌕</span>
+        <span class="search-symbol" aria-hidden="true">⌕</span>
 
         <input
           id="heroSearch"
           type="search"
           placeholder="Search icons..."
           autocomplete="off"
+          aria-label="Search icons"
         >
 
         <kbd>/</kbd>
@@ -103,13 +102,14 @@
 
         <div class="mini-search">
 
-          <span class="search-symbol">⌕</span>
+          <span class="search-symbol" aria-hidden="true">⌕</span>
 
           <input
             id="librarySearch"
             type="search"
             placeholder="Search..."
             autocomplete="off"
+            aria-label="Search library"
           >
 
         </div>
@@ -117,21 +117,18 @@
       </div>
 
 
-      <!-- FILTERS -->
       <div
         class="filters"
         id="filters"
       ></div>
 
 
-      <!-- ICON GRID -->
       <div
         class="icon-grid"
         id="iconGrid"
       ></div>
 
 
-      <!-- EMPTY -->
       <div
         class="empty hidden"
         id="emptyState"
@@ -163,60 +160,42 @@
 
         <article class="collection-card">
 
-          <div class="collection-mark">
-            ◌
-          </div>
+          <div class="collection-mark">◌</div>
 
           <div>
             <h3>Essential UI</h3>
-            <p>
-              Navigation, actions and system basics.
-            </p>
+            <p>Navigation, actions and system basics.</p>
           </div>
 
-          <small>
-            12 icons
-          </small>
+          <small>12 icons</small>
 
         </article>
 
 
         <article class="collection-card">
 
-          <div class="collection-mark">
-            ◷
-          </div>
+          <div class="collection-mark">◷</div>
 
           <div>
-            <h3>Time & Calendar</h3>
-            <p>
-              Time, recent activity and date states.
-            </p>
+            <h3>Time &amp; Calendar</h3>
+            <p>Time, recent activity and date states.</p>
           </div>
 
-          <small>
-            4 icons
-          </small>
+          <small>4 icons</small>
 
         </article>
 
 
         <article class="collection-card">
 
-          <div class="collection-mark">
-            ▦
-          </div>
+          <div class="collection-mark">▦</div>
 
           <div>
-            <h3>Files & Product</h3>
-            <p>
-              Useful patterns for product interfaces.
-            </p>
+            <h3>Files &amp; Product</h3>
+            <p>Useful patterns for product interfaces.</p>
           </div>
 
-          <small>
-            8 icons
-          </small>
+          <small>8 icons</small>
 
         </article>
 
@@ -233,13 +212,9 @@
 
       <div>
 
-        <p class="eyebrow">
-          UASSET PRO
-        </p>
+        <p class="eyebrow">UASSET PRO</p>
 
-        <h2>
-          More assets. More speed.
-        </h2>
+        <h2>More assets. More speed.</h2>
 
         <p class="muted">
           Premium packs and team access will be added after the core library is ready.
@@ -250,9 +225,7 @@
 
       <div class="price-box">
 
-        <span class="eyebrow">
-          PRO
-        </span>
+        <span class="eyebrow">PRO</span>
 
         <div class="price">
           $9
@@ -276,13 +249,8 @@
   <!-- FOOTER -->
   <footer class="footer">
 
-    <span>
-      © 2026 UAsset / Signaturesi
-    </span>
-
-    <span>
-      Premium digital assets.
-    </span>
+    <span>© 2026 UAsset / Signaturesi</span>
+    <span>Premium digital assets.</span>
 
   </footer>
 
@@ -307,12 +275,10 @@
         ×
       </button>
 
-
       <div
         class="preview"
         id="iconPreview"
       ></div>
-
 
       <div class="detail-row">
 
@@ -323,9 +289,7 @@
             id="detailCategory"
           ></p>
 
-          <h2
-            id="detailName"
-          ></h2>
+          <h2 id="detailName"></h2>
 
           <p
             class="muted"
@@ -334,14 +298,12 @@
 
         </div>
 
-
         <div
           class="tags"
           id="detailTags"
         ></div>
 
       </div>
-
 
       <div class="actions">
 
@@ -361,17 +323,11 @@
 
       </div>
 
-
       <div class="code">
 
         <div class="code-head">
-
           <span>SVG</span>
-
-          <span>
-            24×24 / 2px
-          </span>
-
+          <span>24×24 / 2px</span>
         </div>
 
         <pre id="svgCode"></pre>
@@ -403,31 +359,19 @@
         ×
       </button>
 
+      <div class="bean-mark">B</div>
 
-      <div class="bean-mark">
-        B
-      </div>
+      <p class="eyebrow">BEAN ID</p>
 
-
-      <p class="eyebrow">
-        BEAN ID
-      </p>
-
-
-      <h2>
-        Sign in to UAsset.
-      </h2>
-
+      <h2>Sign in to UAsset.</h2>
 
       <p class="muted">
         This is a demo login. It stays local until the real Bean ID API is connected.
       </p>
 
-
       <form id="beanForm">
 
         <label>
-
           Bean ID
 
           <input
@@ -436,12 +380,9 @@
             autocomplete="username"
             placeholder="your.bean.id"
           >
-
         </label>
 
-
         <label>
-
           Password
 
           <input
@@ -451,9 +392,7 @@
             autocomplete="current-password"
             placeholder="Password"
           >
-
         </label>
-
 
         <button
           class="dark-button full"
@@ -464,7 +403,6 @@
 
       </form>
 
-
       <div class="notice">
         Demo only — no credentials are sent to a server.
       </div>
@@ -474,14 +412,12 @@
   </div>
 
 
-  <!-- TOAST -->
   <div
     class="toast hidden"
     id="toast"
   ></div>
 
 
-  <!-- JAVASCRIPT -->
   <script src="js/icons.js"></script>
   <script src="js/app.js"></script>
 
