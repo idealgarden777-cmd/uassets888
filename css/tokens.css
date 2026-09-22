@@ -1,0 +1,14 @@
+:root{
+  --bg:#f7f7f5;
+  --surface:#ffffff;
+  --surface-soft:#f1f1ee;
+  --text:#111111;
+  --muted:#757670;
+  --line:#dfdfda;
+  --line-strong:#cfcfc8;
+  --shadow:0 14px 50px rgba(0,0,0,.06);
+  --serif:Sora, sans-serif;
+  --sans:Inter, sans-serif;
+  --mono:"IBM Plex Mono", monospace;
+  --max:1180px;
+}
