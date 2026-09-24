@@ -3,27 +3,60 @@ const els = {
   librarySearch: document.getElementById("librarySearch"),
 
   filters: document.getElementById("filters"),
-  iconGrid: document.getElementById("iconGrid"),
-  emptyState: document.getElementById("emptyState"),
 
-  iconOverlay: document.getElementById("iconOverlay"),
+  collectionContext:
+    document.getElementById("collectionContext"),
 
-  iconPreview: document.getElementById("iconPreview"),
-  detailCategory: document.getElementById("detailCategory"),
-  detailName: document.getElementById("detailName"),
-  detailDescription: document.getElementById("detailDescription"),
-  detailTags: document.getElementById("detailTags"),
+  collectionContextName:
+    document.getElementById("collectionContextName"),
 
-  svgCode: document.getElementById("svgCode"),
-  codeLabel: document.getElementById("codeLabel"),
+  clearCollection:
+    document.getElementById("clearCollection"),
 
-  copySvg: document.getElementById("copySvg"),
-  downloadSvg: document.getElementById("downloadSvg"),
+  iconGrid:
+    document.getElementById("iconGrid"),
 
-  openBean: document.getElementById("openBean"),
+  emptyState:
+    document.getElementById("emptyState"),
 
-  toast: document.getElementById("toast"),
-  proButton: document.getElementById("proButton")
+  iconOverlay:
+    document.getElementById("iconOverlay"),
+
+  iconPreview:
+    document.getElementById("iconPreview"),
+
+  detailCategory:
+    document.getElementById("detailCategory"),
+
+  detailName:
+    document.getElementById("detailName"),
+
+  detailDescription:
+    document.getElementById("detailDescription"),
+
+  detailTags:
+    document.getElementById("detailTags"),
+
+  svgCode:
+    document.getElementById("svgCode"),
+
+  codeLabel:
+    document.getElementById("codeLabel"),
+
+  copySvg:
+    document.getElementById("copySvg"),
+
+  downloadSvg:
+    document.getElementById("downloadSvg"),
+
+  openBean:
+    document.getElementById("openBean"),
+
+  toast:
+    document.getElementById("toast"),
+
+  proButton:
+    document.getElementById("proButton")
 };
 
 
@@ -60,7 +93,10 @@ function redirectToLogin() {
   );
 }
 
-function setAuthenticatedUser(user) {
+
+function setAuthenticatedUser(
+  user
+) {
   if (
     !user ||
     typeof user !== "object" ||
@@ -98,6 +134,7 @@ function setAuthenticatedUser(user) {
 
   return true;
 }
+
 
 function updateBeanButton() {
   if (
@@ -190,6 +227,7 @@ async function performSessionRestore() {
     return false;
   }
 }
+
 
 async function restoreSession() {
   if (restoringSession) {
@@ -310,14 +348,59 @@ els.openBean.addEventListener(
    ========================================================= */
 
 let activeCategory = "All";
+let activeCollection = null;
 let selectedIcon = null;
 let activeCodeTab = "svg";
 
+
+/* =========================================================
+   COLLECTIONS
+   ========================================================= */
+
+const collections = [
+  {
+    id: "essential-ui",
+
+    name: "Essential UI",
+
+    categories: [
+      "Navigation",
+      "Actions",
+      "System"
+    ]
+  },
+
+  {
+    id: "time-calendar",
+
+    name: "Time & Calendar",
+
+    categories: [
+      "Time"
+    ]
+  },
+
+  {
+    id: "files-product",
+
+    name: "Files & Product",
+
+    categories: [
+      "Files",
+      "Security",
+      "Communication"
+    ]
+  }
+];
+
+
 const categories = [
   "All",
+
   ...new Set(
     ICONS.map(
-      icon => icon.category
+      icon =>
+        icon.category
     )
   )
 ];
@@ -370,7 +453,11 @@ function renderFilters() {
             activeCategory =
               button.dataset.category;
 
+            activeCollection = null;
+
             renderFilters();
+
+            renderCollectionContext();
 
             renderIcons(
               getSearchTerm()
@@ -383,6 +470,156 @@ function renderFilters() {
 
 
 /* =========================================================
+   ACTIVE COLLECTION
+   ========================================================= */
+
+function getActiveCollection() {
+  if (!activeCollection) {
+    return null;
+  }
+
+  return (
+    collections.find(
+      collection =>
+        collection.id ===
+        activeCollection
+    ) || null
+  );
+}
+
+
+/* =========================================================
+   COLLECTION CONTEXT
+   ========================================================= */
+
+function renderCollectionContext() {
+  const collection =
+    getActiveCollection();
+
+  if (!collection) {
+    els.collectionContext.classList.add(
+      "hidden"
+    );
+
+    els.collectionContextName.textContent =
+      "";
+
+    return;
+  }
+
+  const count =
+    ICONS.filter(
+      icon =>
+        collection.categories.includes(
+          icon.category
+        )
+    ).length;
+
+  els.collectionContextName.textContent =
+    collection.name +
+    " · " +
+    count +
+    " " +
+    (
+      count === 1
+        ? "icon"
+        : "icons"
+    );
+
+  els.collectionContext.classList.remove(
+    "hidden"
+  );
+}
+
+
+/* =========================================================
+   SELECT COLLECTION
+   ========================================================= */
+
+function selectCollection(
+  collectionId
+) {
+  const collection =
+    collections.find(
+      item =>
+        item.id ===
+        collectionId
+    );
+
+  if (!collection) {
+    return;
+  }
+
+  activeCollection =
+    collection.id;
+
+  activeCategory =
+    "All";
+
+  renderFilters();
+
+  renderCollectionContext();
+
+  renderIcons(
+    getSearchTerm()
+  );
+
+  document
+    .getElementById(
+      "library"
+    )
+    ?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+}
+
+
+/* =========================================================
+   COLLECTION CARD EVENTS
+   ========================================================= */
+
+document
+  .querySelectorAll(
+    "[data-collection]"
+  )
+  .forEach(
+    card => {
+      card.addEventListener(
+        "click",
+        () => {
+          selectCollection(
+            card.dataset.collection
+          );
+        }
+      );
+    }
+  );
+
+
+/* =========================================================
+   CLEAR COLLECTION
+   ========================================================= */
+
+els.clearCollection.addEventListener(
+  "click",
+  () => {
+    activeCollection = null;
+
+    activeCategory = "All";
+
+    renderFilters();
+
+    renderCollectionContext();
+
+    renderIcons(
+      getSearchTerm()
+    );
+  }
+);
+
+
+/* =========================================================
    ICON MATCHING
    ========================================================= */
 
@@ -390,9 +627,21 @@ function matchesIcon(
   icon,
   term
 ) {
-  if (
+  const collection =
+    getActiveCollection();
+
+  if (collection) {
+    if (
+      !collection.categories.includes(
+        icon.category
+      )
+    ) {
+      return false;
+    }
+  } else if (
     activeCategory !== "All" &&
-    icon.category !== activeCategory
+    icon.category !==
+      activeCategory
   ) {
     return false;
   }
@@ -441,19 +690,25 @@ function renderIcons(
             data-icon="${icon.id}"
             aria-label="Open ${icon.name} icon"
           >
+
             <div class="icon-draw">
               ${icon.svg}
             </div>
 
+
             <div>
+
               <div class="icon-title">
                 ${icon.name}
               </div>
 
+
               <div class="icon-category">
                 ${icon.category}
               </div>
+
             </div>
+
           </button>
         `
       )
@@ -506,6 +761,7 @@ function toComponentName(
     )
     .join("");
 }
+
 
 function getReactCode(
   icon
@@ -565,17 +821,21 @@ function getActiveCode() {
    OPEN ICON
    ========================================================= */
 
-function openIcon(id) {
+function openIcon(
+  id
+) {
   const icon =
     ICONS.find(
-      item => item.id === id
+      item =>
+        item.id === id
     );
 
   if (!icon) {
     return;
   }
 
-  selectedIcon = icon;
+  selectedIcon =
+    icon;
 
   activeCodeTab =
     "svg";
@@ -634,6 +894,7 @@ function updateCodeTabs() {
     );
 }
 
+
 function updateCodePanel() {
   const labels = {
     svg: "SVG",
@@ -647,6 +908,7 @@ function updateCodePanel() {
   els.svgCode.textContent =
     getActiveCode();
 }
+
 
 document
   .querySelectorAll(
@@ -677,7 +939,9 @@ function closeOverlay(
   id
 ) {
   const overlay =
-    document.getElementById(id);
+    document.getElementById(
+      id
+    );
 
   if (!overlay) {
     return;
@@ -745,6 +1009,7 @@ function syncSearch(
   );
 }
 
+
 els.heroSearch.addEventListener(
   "input",
   () => {
@@ -754,6 +1019,7 @@ els.heroSearch.addEventListener(
     );
   }
 );
+
 
 els.librarySearch.addEventListener(
   "input",
@@ -798,6 +1064,7 @@ async function copyCurrentCode() {
     );
   }
 }
+
 
 els.copySvg.addEventListener(
   "click",
@@ -855,6 +1122,7 @@ function downloadSelectedSvg() {
     "SVG downloaded"
   );
 }
+
 
 els.downloadSvg.addEventListener(
   "click",
@@ -945,6 +1213,8 @@ document.addEventListener(
    ========================================================= */
 
 renderFilters();
+
+renderCollectionContext();
 
 renderIcons();
 
