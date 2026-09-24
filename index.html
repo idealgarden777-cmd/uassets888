@@ -82,12 +82,14 @@
         Icons
       </a>
 
+
       <a
         class="nav-link"
         href="#collections"
       >
         Collections
       </a>
+
 
       <a
         class="nav-link"
@@ -252,6 +254,37 @@
       ></div>
 
 
+      <!-- COLLECTION CONTEXT -->
+
+      <div
+        class="collection-context hidden"
+        id="collectionContext"
+        aria-live="polite"
+      >
+
+        <div class="collection-context-copy">
+
+          <span class="collection-context-label">
+            COLLECTION
+          </span>
+
+          <strong id="collectionContextName">
+          </strong>
+
+        </div>
+
+
+        <button
+          class="collection-context-clear"
+          id="clearCollection"
+          type="button"
+        >
+          Clear
+        </button>
+
+      </div>
+
+
       <!-- ICON GRID -->
 
       <div
@@ -308,7 +341,12 @@
 
       <div class="collection-grid">
 
-        <article class="collection-card">
+        <button
+          class="collection-card"
+          type="button"
+          data-collection="essential-ui"
+          aria-label="View Essential UI collection"
+        >
 
           <div class="collection-mark">
             ◌
@@ -327,13 +365,18 @@
           </div>
 
           <small>
-            12 icons
+            13 icons
           </small>
 
-        </article>
+        </button>
 
 
-        <article class="collection-card">
+        <button
+          class="collection-card"
+          type="button"
+          data-collection="time-calendar"
+          aria-label="View Time and Calendar collection"
+        >
 
           <div class="collection-mark">
             ◷
@@ -352,13 +395,18 @@
           </div>
 
           <small>
-            4 icons
+            3 icons
           </small>
 
-        </article>
+        </button>
 
 
-        <article class="collection-card">
+        <button
+          class="collection-card"
+          type="button"
+          data-collection="files-product"
+          aria-label="View Files and Product collection"
+        >
 
           <div class="collection-mark">
             ▦
@@ -380,7 +428,7 @@
             8 icons
           </small>
 
-        </article>
+        </button>
 
       </div>
 
