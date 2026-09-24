@@ -121,7 +121,6 @@ const els = {
 
 /* =========================================================
    UASSET AUTH / CENTRAL ACCOUNTS
-   Same architecture as NEYO
    ========================================================= */
 
 const ACCOUNTS_ORIGIN =
@@ -136,10 +135,43 @@ const SESSION_ENDPOINT =
 const LOGOUT_ENDPOINT =
   `${ACCOUNTS_ORIGIN}/api/auth/logout`;
 
+
+/* =========================================================
+   UASSET BILLING
+   Billing is completely separate from Bean identity.
+   ========================================================= */
+
+const BILLING_STATUS_ENDPOINT =
+  "/api/billing/status";
+
+const BILLING_CHECKOUT_ENDPOINT =
+  "/api/billing/create-checkout";
+
+
 let authenticated = false;
+
 let currentUser = null;
+
 let restoringSession = null;
+
 let loggingOut = false;
+
+
+/* =========================================================
+   BILLING STATE
+   ========================================================= */
+
+let billingState = {
+  loaded: false,
+
+  pro: false,
+
+  plan: "free",
+
+  testMode: true,
+
+  subscription: null
+};
 
 
 /* =========================================================
@@ -153,6 +185,21 @@ function redirectToLogin() {
 }
 
 
+function resetBillingState() {
+  billingState = {
+    loaded: false,
+
+    pro: false,
+
+    plan: "free",
+
+    testMode: true,
+
+    subscription: null
+  };
+}
+
+
 function setAuthenticatedUser(
   user
 ) {
@@ -162,7 +209,10 @@ function setAuthenticatedUser(
     !user.id
   ) {
     authenticated = false;
+
     currentUser = null;
+
+    resetBillingState();
 
     updateBeanButton();
     updateProPlanUI();
@@ -186,10 +236,7 @@ function setAuthenticatedUser(
       user.beanId || null,
 
     email:
-      user.email || null,
-
-    planType:
-      user.planType || "free"
+      user.email || null
   };
 
   authenticated = true;
@@ -227,30 +274,22 @@ function updateBeanButton() {
 
 function getPlanType() {
   if (
-    !authenticated ||
-    !currentUser
+    !authenticated
   ) {
     return "free";
   }
 
-  return String(
-    currentUser.planType ||
-      "free"
-  )
-    .trim()
-    .toLowerCase();
+  return billingState.pro
+    ? "pro"
+    : "free";
 }
 
 
 function isProUser() {
-  const plan =
-    getPlanType();
-
-  return [
-    "pro",
-    "uasset-pro",
-    "premium"
-  ].includes(plan);
+  return (
+    authenticated &&
+    billingState.pro === true
+  );
 }
 
 
@@ -275,10 +314,45 @@ function updateProPlanUI() {
     return;
   }
 
-  const pro =
-    isProUser();
+  /* -------------------------------------------------------
+     Billing loading
+     ------------------------------------------------------- */
 
-  if (pro) {
+  if (
+    authenticated &&
+    !billingState.loaded
+  ) {
+    els.proPlanBadge.textContent =
+      "PLAN";
+
+    els.proPlanBadge.classList.remove(
+      "free",
+      "pro"
+    );
+
+    els.proPlanStatus.textContent =
+      "Checking current plan...";
+
+    els.proPlanDescription.textContent =
+      "Checking your UAsset subscription.";
+
+    els.proButton.textContent =
+      "View UAsset Pro";
+
+    if (els.proPlanBox) {
+      els.proPlanBox.classList.remove(
+        "pro-active"
+      );
+    }
+
+    return;
+  }
+
+  /* -------------------------------------------------------
+     PRO
+     ------------------------------------------------------- */
+
+  if (isProUser()) {
     els.proPlanBadge.textContent =
       "PRO";
 
@@ -294,7 +368,7 @@ function updateProPlanUI() {
       "Current plan: UAsset Pro";
 
     els.proPlanDescription.textContent =
-      "Your Bean account has UAsset Pro access.";
+      "Your UAsset Pro subscription is active.";
 
     els.proButton.textContent =
       "UAsset Pro Active";
@@ -307,6 +381,10 @@ function updateProPlanUI() {
 
     return;
   }
+
+  /* -------------------------------------------------------
+     FREE
+     ------------------------------------------------------- */
 
   els.proPlanBadge.textContent =
     "FREE";
@@ -326,7 +404,7 @@ function updateProPlanUI() {
 
   els.proPlanDescription.textContent =
     authenticated
-      ? "Your current plan controls access to future premium UAsset assets."
+      ? "Upgrade to UAsset Pro for premium SVG icon access."
       : "Sign in with Bean ID to connect your UAsset plan.";
 
   els.proButton.textContent =
@@ -338,6 +416,214 @@ function updateProPlanUI() {
     els.proPlanBox.classList.remove(
       "pro-active"
     );
+  }
+}
+
+
+/* =========================================================
+   LOAD UASSET BILLING STATUS
+   ========================================================= */
+
+async function loadBillingStatus() {
+  if (!authenticated || !currentUser?.id) {
+    resetBillingState();
+
+    updateProPlanUI();
+
+    return false;
+  }
+
+  try {
+    const response =
+      await fetch(
+        BILLING_STATUS_ENDPOINT,
+        {
+          method:
+            "GET",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+    if (
+      !response.ok ||
+      data.authenticated !== true
+    ) {
+      resetBillingState();
+
+      billingState.loaded =
+        true;
+
+      updateProPlanUI();
+
+      return false;
+    }
+
+    billingState = {
+      loaded: true,
+
+      pro:
+        data.pro === true,
+
+      plan:
+        data.plan === "pro"
+          ? "pro"
+          : "free",
+
+      testMode:
+        data.testMode === true,
+
+      subscription:
+        data.subscription || null
+    };
+
+    updateProPlanUI();
+
+    return true;
+
+  } catch (error) {
+    console.error(
+      "UAsset billing status failed:",
+      error
+    );
+
+    resetBillingState();
+
+    billingState.loaded =
+      true;
+
+    updateProPlanUI();
+
+    return false;
+  }
+}
+
+
+/* =========================================================
+   START UASSET PRO CHECKOUT
+   ========================================================= */
+
+async function startProCheckout() {
+  if (!authenticated) {
+    redirectToLogin();
+
+    return;
+  }
+
+  if (isProUser()) {
+    showToast(
+      "UAsset Pro is already active"
+    );
+
+    return;
+  }
+
+  const originalText =
+    els.proButton.textContent;
+
+  els.proButton.disabled =
+    true;
+
+  els.proButton.textContent =
+    "Opening checkout...";
+
+  try {
+    const response =
+      await fetch(
+        BILLING_CHECKOUT_ENDPOINT,
+        {
+          method:
+            "POST",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
+          headers: {
+            Accept:
+              "application/json",
+
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({})
+        }
+      );
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+    if (
+      response.status ===
+      401
+    ) {
+      redirectToLogin();
+
+      return;
+    }
+
+    if (
+      !response.ok ||
+      !data.success ||
+      !data.checkoutUrl
+    ) {
+      console.error(
+        "UAsset checkout failed:",
+        data
+      );
+
+      showToast(
+        data.error ||
+        "Unable to open checkout"
+      );
+
+      return;
+    }
+
+    window.location.assign(
+      data.checkoutUrl
+    );
+
+  } catch (error) {
+    console.error(
+      "UAsset checkout error:",
+      error
+    );
+
+    showToast(
+      "Unable to open checkout"
+    );
+
+  } finally {
+    els.proButton.disabled =
+      false;
+
+    els.proButton.textContent =
+      originalText;
   }
 }
 
@@ -406,11 +692,14 @@ async function performSessionRestore() {
       await fetch(
         SESSION_ENDPOINT,
         {
-          method: "GET",
+          method:
+            "GET",
 
-          credentials: "include",
+          credentials:
+            "include",
 
-          cache: "no-store",
+          cache:
+            "no-store",
 
           headers: {
             Accept:
@@ -431,8 +720,13 @@ async function performSessionRestore() {
       !data.authenticated ||
       !data.user
     ) {
-      authenticated = false;
-      currentUser = null;
+      authenticated =
+        false;
+
+      currentUser =
+        null;
+
+      resetBillingState();
 
       updateBeanButton();
       updateProPlanUI();
@@ -445,11 +739,16 @@ async function performSessionRestore() {
         data.user
       )
     ) {
-      updateBeanButton();
-      updateProPlanUI();
-
       return false;
     }
+
+    /*
+      Important:
+      Bean confirms identity first.
+      Then UAsset checks its own billing database.
+    */
+
+    await loadBillingStatus();
 
     return true;
 
@@ -459,8 +758,13 @@ async function performSessionRestore() {
       error
     );
 
-    authenticated = false;
-    currentUser = null;
+    authenticated =
+      false;
+
+    currentUser =
+      null;
+
+    resetBillingState();
 
     updateBeanButton();
     updateProPlanUI();
@@ -504,11 +808,14 @@ async function logout() {
     await fetch(
       LOGOUT_ENDPOINT,
       {
-        method: "POST",
+        method:
+          "POST",
 
-        credentials: "include",
+        credentials:
+          "include",
 
-        cache: "no-store",
+        cache:
+          "no-store",
 
         headers: {
           Accept:
@@ -523,13 +830,19 @@ async function logout() {
     );
   }
 
-  authenticated = false;
-  currentUser = null;
+  authenticated =
+    false;
+
+  currentUser =
+    null;
+
+  resetBillingState();
 
   updateBeanButton();
   updateProPlanUI();
 
-  loggingOut = false;
+  loggingOut =
+    false;
 
   redirectToLogin();
 
@@ -591,25 +904,7 @@ els.openBean.addEventListener(
 
 els.proButton.addEventListener(
   "click",
-  () => {
-    if (!authenticated) {
-      redirectToLogin();
-
-      return;
-    }
-
-    if (isProUser()) {
-      showToast(
-        "UAsset Pro is active"
-      );
-
-      return;
-    }
-
-    showToast(
-      "UAsset Pro billing is coming next"
-    );
-  }
+  startProCheckout
 );
 
 
@@ -856,8 +1151,11 @@ function selectCollection(
       "library"
     )
     ?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
+      behavior:
+        "smooth",
+
+      block:
+        "start"
     });
 }
 
@@ -985,13 +1283,11 @@ function renderIcons(
               ${icon.svg}
             </div>
 
-
             <div>
 
               <div class="icon-title">
                 ${icon.name}
               </div>
-
 
               <div class="icon-category">
                 ${icon.category}
@@ -1477,7 +1773,6 @@ document.addEventListener(
 document.addEventListener(
   "keydown",
   event => {
-
     if (
       event.key ===
       "Escape"
@@ -1501,7 +1796,6 @@ document.addEventListener(
 
       els.heroSearch.focus();
     }
-
   }
 );
 
