@@ -1,22 +1,70 @@
-import { createClient } from "@supabase/supabase-js";
-import crypto from "node:crypto";
-
-
 /* =========================================================
-   SUPABASE
+   UASSET / LEMON SQUEEZY WEBHOOK
+   Billing belongs to UAsset.
+   Bean is identity only.
    ========================================================= */
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  }
-);
+import crypto from "node:crypto";
 
+/* =========================================================
+   CONFIG
+   ========================================================= */
+
+const SUPABASE_TABLE =
+  "uasset_subscriptions";
+
+const SUBSCRIPTION_EVENTS = new Set([
+  "subscription_created",
+  "subscription_updated",
+  "subscription_cancelled",
+  "subscription_resumed",
+  "subscription_expired",
+  "subscription_paused",
+  "subscription_unpaused",
+  "subscription_plan_changed"
+]);
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function getRequiredEnv(name) {
+  const value = process.env[name];
+
+  if (!value || !String(value).trim()) {
+    throw new Error(`${name} is missing`);
+  }
+
+  return String(value).trim();
+}
+
+/* =========================================================
+   RAW BODY
+   Lemon Squeezy signature must be calculated from the
+   original raw request body.
+   ========================================================= */
+
+function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+
+    req.on("data", (chunk) => {
+      chunks.push(
+        Buffer.isBuffer(chunk)
+          ? chunk
+          : Buffer.from(chunk)
+      );
+    });
+
+    req.on("end", () => {
+      resolve(Buffer.concat(chunks));
+    });
+
+    req.on("error", (error) => {
+      reject(error);
+    });
+  });
+}
 
 /* =========================================================
    SIGNATURE VERIFICATION
@@ -28,13 +76,14 @@ function verifySignature(
   secret
 ) {
   if (
-    !signature ||
-    !secret
+    !rawBody ||
+    !rawBody.length ||
+    !signature
   ) {
     return false;
   }
 
-  const expected =
+  const expectedSignature =
     crypto
       .createHmac(
         "sha256",
@@ -45,57 +94,166 @@ function verifySignature(
 
   const expectedBuffer =
     Buffer.from(
-      expected,
+      expectedSignature,
       "utf8"
     );
 
-  const signatureBuffer =
+  const receivedBuffer =
     Buffer.from(
-      String(
-        signature
-      ),
+      String(signature),
       "utf8"
     );
 
   if (
     expectedBuffer.length !==
-    signatureBuffer.length
+    receivedBuffer.length
   ) {
     return false;
   }
 
   return crypto.timingSafeEqual(
     expectedBuffer,
-    signatureBuffer
+    receivedBuffer
   );
 }
 
-
 /* =========================================================
-   NORMALIZE VALUE
+   SUPABASE UPSERT
    ========================================================= */
 
-function toNullableNumber(
-  value
+async function upsertSubscription(
+  subscription
 ) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
-    return null;
+  const supabaseUrl =
+    getRequiredEnv(
+      "SUPABASE_URL"
+    );
+
+  const serviceRoleKey =
+    getRequiredEnv(
+      "SUPABASE_SERVICE_ROLE_KEY"
+    );
+
+  const subscriptionId =
+    String(
+      subscription.id
+    );
+
+  const attributes =
+    subscription.attributes || {};
+
+  const row = {
+    bean_user_id:
+      subscription.bean_user_id,
+
+    provider:
+      "lemonsqueezy",
+
+    provider_subscription_id:
+      subscriptionId,
+
+    customer_id:
+      attributes.customer_id != null
+        ? String(attributes.customer_id)
+        : null,
+
+    order_id:
+      attributes.order_id != null
+        ? String(attributes.order_id)
+        : null,
+
+    product_id:
+      attributes.product_id != null
+        ? String(attributes.product_id)
+        : null,
+
+    variant_id:
+      attributes.variant_id != null
+        ? String(attributes.variant_id)
+        : null,
+
+    product_name:
+      attributes.product_name ||
+      null,
+
+    variant_name:
+      attributes.variant_name ||
+      null,
+
+    status:
+      attributes.status ||
+      "unknown",
+
+    cancelled:
+      Boolean(
+        attributes.cancelled
+      ),
+
+    renews_at:
+      attributes.renews_at ||
+      null,
+
+    ends_at:
+      attributes.ends_at ||
+      null,
+
+    test_mode:
+      Boolean(
+        attributes.test_mode
+      ),
+
+    updated_at:
+      new Date().toISOString()
+  };
+
+  const response =
+    await fetch(
+      `${supabaseUrl}/rest/v1/${SUPABASE_TABLE}?on_conflict=provider,provider_subscription_id`,
+      {
+        method:
+          "POST",
+
+        headers: {
+          apikey:
+            serviceRoleKey,
+
+          Authorization:
+            `Bearer ${serviceRoleKey}`,
+
+          "Content-Type":
+            "application/json",
+
+          Prefer:
+            "resolution=merge-duplicates,return=representation"
+        },
+
+        body:
+          JSON.stringify([
+            row
+          ])
+      }
+    );
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
+      );
+
+  if (!response.ok) {
+    console.error(
+      "Supabase subscription upsert failed:",
+      data
+    );
+
+    throw new Error(
+      "Failed to save subscription"
+    );
   }
 
-  const number =
-    Number(value);
-
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : null;
+  return data;
 }
-
 
 /* =========================================================
    WEBHOOK HANDLER
@@ -109,7 +267,6 @@ export default async function handler(
     "Cache-Control",
     "no-store"
   );
-
 
   /* =======================================================
      METHOD
@@ -132,17 +289,34 @@ export default async function handler(
       });
   }
 
-
   /* =======================================================
-     SECRET
+     ENVIRONMENT
      ======================================================= */
 
-  const secret =
-    process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+  let webhookSecret;
+  let expectedVariantId;
+  let expectedStoreId;
 
-  if (!secret) {
+  try {
+    webhookSecret =
+      getRequiredEnv(
+        "LEMONSQUEEZY_WEBHOOK_SECRET"
+      );
+
+    expectedVariantId =
+      getRequiredEnv(
+        "LEMONSQUEEZY_VARIANT_ID"
+      );
+
+    expectedStoreId =
+      getRequiredEnv(
+        "LEMONSQUEEZY_STORE_ID"
+      );
+
+  } catch (error) {
     console.error(
-      "LEMONSQUEEZY_WEBHOOK_SECRET is missing"
+      "UAsset webhook configuration error:",
+      error.message
     );
 
     return res
@@ -153,29 +327,21 @@ export default async function handler(
       });
   }
 
-
   /* =======================================================
-     RAW BODY
+     RAW REQUEST BODY
      ======================================================= */
 
   let rawBody;
 
   try {
-    if (
-      typeof req.body ===
-      "string"
-    ) {
-      rawBody =
-        req.body;
-    } else {
-      rawBody =
-        JSON.stringify(
-          req.body || {}
-        );
-    }
+    rawBody =
+      await getRawBody(
+        req
+      );
+
   } catch (error) {
     console.error(
-      "Webhook body parsing failed:",
+      "Failed to read webhook body:",
       error
     );
 
@@ -187,7 +353,6 @@ export default async function handler(
       });
   }
 
-
   /* =======================================================
      SIGNATURE
      ======================================================= */
@@ -197,28 +362,28 @@ export default async function handler(
       "x-signature"
     ];
 
-  if (
-    !verifySignature(
+  const validSignature =
+    verifySignature(
       rawBody,
       signature,
-      secret
-    )
-  ) {
-    console.warn(
+      webhookSecret
+    );
+
+  if (!validSignature) {
+    console.error(
       "Invalid Lemon Squeezy webhook signature"
     );
 
     return res
-      .status(401)
+      .status(403)
       .json({
         error:
-          "Invalid signature"
+          "Invalid webhook signature"
       });
   }
 
-
   /* =======================================================
-     PAYLOAD
+     PARSE JSON
      ======================================================= */
 
   let payload;
@@ -226,11 +391,14 @@ export default async function handler(
   try {
     payload =
       JSON.parse(
-        rawBody
+        rawBody.toString(
+          "utf8"
+        )
       );
+
   } catch (error) {
     console.error(
-      "Webhook JSON parse failed:",
+      "Invalid webhook JSON:",
       error
     );
 
@@ -238,120 +406,34 @@ export default async function handler(
       .status(400)
       .json({
         error:
-          "Invalid JSON"
+          "Invalid JSON payload"
       });
   }
 
+  /* =======================================================
+     EVENT NAME
+     ======================================================= */
 
   const eventName =
-    payload?.meta?.event_name ||
-    req.headers[
-      "x-event-name"
-    ] ||
-    "";
-
-
-  /* =======================================================
-     CUSTOM DATA
-     ======================================================= */
-
-  const customData =
-    payload?.meta?.custom_data ||
-    {};
-
-  const userId =
-    customData?.user_id;
-
-  const application =
-    customData?.application;
-
-
-  /* =======================================================
-     IGNORE NON-UASSET EVENTS
-     ======================================================= */
-
-  if (
-    application !==
-    "uasset"
-  ) {
-    return res
-      .status(200)
-      .json({
-        received:
-          true
-      });
-  }
-
-
-  /* =======================================================
-     USER ID REQUIRED
-     ======================================================= */
-
-  if (!userId) {
-    console.error(
-      "UAsset webhook missing Bean user_id",
-      {
-        eventName
-      }
+    String(
+      req.headers[
+        "x-event-name"
+      ] ||
+        payload?.meta?.event_name ||
+        ""
     );
 
-    return res
-      .status(400)
-      .json({
-        error:
-          "Missing Bean user_id"
-      });
-  }
-
+  console.log(
+    "Lemon Squeezy event:",
+    eventName
+  );
 
   /* =======================================================
-     SUBSCRIPTION DATA
+     IGNORE EVENTS WE DO NOT PROCESS
      ======================================================= */
 
-  const subscription =
-    payload?.data;
-
-  const attributes =
-    subscription?.attributes ||
-    {};
-
-  const subscriptionId =
-    subscription?.id;
-
-
   if (
-    !subscriptionId
-  ) {
-    console.error(
-      "Webhook missing subscription ID"
-    );
-
-    return res
-      .status(400)
-      .json({
-        error:
-          "Missing subscription ID"
-      });
-  }
-
-
-  /* =======================================================
-     ALLOWED EVENTS
-     ======================================================= */
-
-  const allowedEvents =
-    new Set([
-      "subscription_created",
-      "subscription_updated",
-      "subscription_cancelled",
-      "subscription_expired",
-      "subscription_payment_success",
-      "subscription_payment_failed",
-      "subscription_payment_recovered"
-    ]);
-
-  if (
-    !allowedEvents.has(
+    !SUBSCRIPTION_EVENTS.has(
       eventName
     )
   ) {
@@ -359,137 +441,195 @@ export default async function handler(
       .status(200)
       .json({
         received:
-          true
+          true,
+
+        ignored:
+          true,
+
+        event:
+          eventName || null
       });
   }
 
-
   /* =======================================================
-     SUBSCRIPTION RECORD
+     DATA
      ======================================================= */
 
-  const record = {
-    user_id:
-      userId,
+  const data =
+    payload?.data;
 
-    provider:
-      "lemonsqueezy",
+  if (
+    !data ||
+    data.type !==
+      "subscriptions"
+  ) {
+    console.error(
+      "Webhook does not contain a subscription object"
+    );
 
-    provider_subscription_id:
-      String(
-        subscriptionId
-      ),
+    return res
+      .status(400)
+      .json({
+        error:
+          "Invalid subscription payload"
+      });
+  }
 
-    store_id:
-      toNullableNumber(
-        attributes.store_id
-      ),
-
-    customer_id:
-      toNullableNumber(
-        attributes.customer_id
-      ),
-
-    order_id:
-      toNullableNumber(
-        attributes.order_id
-      ),
-
-    product_id:
-      toNullableNumber(
-        attributes.product_id
-      ),
-
-    variant_id:
-      toNullableNumber(
-        attributes.variant_id
-      ),
-
-    product_name:
-      attributes.product_name ||
-      null,
-
-    variant_name:
-      attributes.variant_name ||
-      null,
-
-    status:
-      attributes.status ||
-      null,
-
-    cancelled:
-      Boolean(
-        attributes.cancelled
-      ),
-
-    renews_at:
-      attributes.renews_at ||
-      null,
-
-    ends_at:
-      attributes.ends_at ||
-      null,
-
-    updated_at:
-      new Date().toISOString()
-  };
-
+  const attributes =
+    data.attributes || {};
 
   /* =======================================================
-     SAVE SUBSCRIPTION
+     UASSET CUSTOM DATA
+     create-checkout.js sends:
+       application
+       bean_user_id
+       bean_id
+
+     Lemon returns this custom data in:
+       meta.custom_data
      ======================================================= */
 
-  try {
-    const {
-      error
-    } =
-      await supabase
-        .from(
-          "bean_subscriptions"
-        )
-        .upsert(
-          record,
-          {
-            onConflict:
-              "provider_subscription_id"
-          }
-        );
+  const customData =
+    payload?.meta?.custom_data ||
+    {};
 
-    if (error) {
-      console.error(
-        "Subscription save failed:",
-        error
-      );
+  const application =
+    customData?.application;
 
-      return res
-        .status(500)
-        .json({
-          error:
-            "Unable to save subscription"
-        });
-    }
+  const beanUserId =
+    customData?.bean_user_id;
 
+  /* =======================================================
+     ONLY UASSET
+     ======================================================= */
+
+  if (
+    application !==
+    "uasset"
+  ) {
     console.log(
-      "UAsset billing webhook processed:",
-      {
-        eventName,
-        subscriptionId,
-        userId,
-        status:
-          attributes.status
-      }
+      "Ignoring non-UAsset webhook"
     );
 
     return res
       .status(200)
       .json({
         received:
-          true
+          true,
+
+        ignored:
+          true,
+
+        reason:
+          "Not a UAsset checkout"
       });
+  }
+
+  /* =======================================================
+     BEAN USER REQUIRED
+     ======================================================= */
+
+  if (
+    !beanUserId
+  ) {
+    console.error(
+      "UAsset webhook missing bean_user_id"
+    );
+
+    return res
+      .status(400)
+      .json({
+        error:
+          "Missing Bean user ID"
+      });
+  }
+
+  /* =======================================================
+     VALIDATE VARIANT
+     Prevent another Lemon product/variant from
+     accidentally granting UAsset Pro.
+     ======================================================= */
+
+  const incomingVariantId =
+    String(
+      attributes.variant_id ??
+      ""
+    );
+
+  if (
+    incomingVariantId !==
+    String(
+      expectedVariantId
+    )
+  ) {
+    console.error(
+      "Unexpected Lemon Squeezy variant:",
+      incomingVariantId
+    );
+
+    return res
+      .status(400)
+      .json({
+        error:
+          "Unexpected UAsset variant"
+      });
+  }
+
+  /* =======================================================
+     VALIDATE STORE
+     ======================================================= */
+
+  const incomingStoreId =
+    String(
+      attributes.store_id ??
+      ""
+    );
+
+  if (
+    incomingStoreId !==
+    String(
+      expectedStoreId
+    )
+  ) {
+    console.error(
+      "Unexpected Lemon Squeezy store:",
+      incomingStoreId
+    );
+
+    return res
+      .status(400)
+      .json({
+        error:
+          "Unexpected Lemon store"
+      });
+  }
+
+  /* =======================================================
+     BUILD SUBSCRIPTION RECORD
+     ======================================================= */
+
+  const subscription = {
+    id:
+      data.id,
+
+    bean_user_id:
+      beanUserId,
+
+    attributes
+  };
+
+  /* =======================================================
+     SAVE TO SUPABASE
+     ======================================================= */
+
+  try {
+    await upsertSubscription(
+      subscription
+    );
 
   } catch (error) {
     console.error(
-      "Webhook processing exception:",
+      "UAsset webhook database error:",
       error
     );
 
@@ -497,7 +637,45 @@ export default async function handler(
       .status(500)
       .json({
         error:
-          "Webhook processing failed"
+          "Failed to save subscription"
       });
   }
+
+  /* =======================================================
+     SUCCESS
+     ======================================================= */
+
+  return res
+    .status(200)
+    .json({
+      received:
+        true,
+
+      processed:
+        true,
+
+      event:
+        eventName,
+
+      subscriptionId:
+        String(
+          data.id
+        ),
+
+      beanUserId:
+        beanUserId
+    });
 }
+
+/* =========================================================
+   IMPORTANT:
+   Disable Vercel's automatic body parser so the original
+   raw body is available for HMAC signature verification.
+   ========================================================= */
+
+export const config = {
+  api: {
+    bodyParser:
+      false
+  }
+};
