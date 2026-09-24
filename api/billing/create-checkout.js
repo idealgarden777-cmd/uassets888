@@ -1,242 +1,115 @@
-import { createClient } from "@supabase/supabase-js";
+/* =========================================================
+   UASSET / LEMON SQUEEZY CHECKOUT
+   Identity comes from central Bean Accounts.
+   Billing belongs to UAsset.
+   ========================================================= */
 
 
 /* =========================================================
-   SUPABASE
+   CONFIG
    ========================================================= */
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  }
-);
+const ACCOUNTS_SESSION_URL =
+  "https://accounts.signaturesi.com/api/auth/session";
+
+const LEMON_CHECKOUT_URL =
+  "https://api.lemonsqueezy.com/v1/checkouts";
 
 
 /* =========================================================
-   ALLOWED ORIGINS
+   HELPERS
    ========================================================= */
 
-const ALLOWED_ORIGINS = new Set([
-  "https://uasset.signaturesi.com",
-  "https://uassets888.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:4173"
-]);
-
-
-/* =========================================================
-   CORS
-   ========================================================= */
-
-function setCors(req, res) {
-  const origin =
-    req.headers.origin;
-
-  if (!origin) {
-    return true;
-  }
-
-  if (
-    !ALLOWED_ORIGINS.has(
-      origin
-    )
-  ) {
-    res.status(403).json({
-      error:
-        "Origin not allowed"
-    });
-
-    return false;
-  }
-
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    origin
-  );
-
-  res.setHeader(
-    "Vary",
-    "Origin"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Credentials",
-    "true"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Accept"
-  );
-
-  return true;
-}
-
-
-/* =========================================================
-   COOKIE READER
-   ========================================================= */
-
-function getCookie(
-  req,
+function getRequiredEnv(
   name
 ) {
-  const cookies =
-    String(
-      req.headers.cookie || ""
-    ).split(";");
+  const value =
+    process.env[name];
 
-  for (const cookie of cookies) {
-    const [
-      key,
-      ...valueParts
-    ] =
-      cookie
-        .trim()
-        .split("=");
-
-    if (
-      key === name
-    ) {
-      return decodeURIComponent(
-        valueParts.join("=")
-      );
-    }
+  if (
+    !value ||
+    !String(value).trim()
+  ) {
+    throw new Error(
+      `${name} is missing`
+    );
   }
 
-  return null;
+  return String(value).trim();
 }
 
 
 /* =========================================================
-   USER SESSION
+   AUTHENTICATED BEAN USER
    ========================================================= */
 
-async function getAuthenticatedUser(
+async function getBeanUser(
   req
 ) {
-  const cookieName =
-    process.env.SESSION_COOKIE_NAME ||
-    "bean_session";
+  const cookie =
+    req.headers.cookie;
 
-  const rawToken =
-    getCookie(
-      req,
-      cookieName
+  if (
+    !cookie
+  ) {
+    return null;
+  }
+
+  const response =
+    await fetch(
+      ACCOUNTS_SESSION_URL,
+      {
+        method: "GET",
+
+        headers: {
+          Accept:
+            "application/json",
+
+          Cookie:
+            cookie
+        },
+
+        cache: "no-store"
+      }
     );
 
-  if (!rawToken) {
-    return null;
-  }
-
-  const crypto =
-    await import("node:crypto");
-
-  const tokenHash =
-    crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
-
-  const {
-    data: session,
-    error: sessionError
-  } =
-    await supabase
-      .from("bean_sessions")
-      .select(
-        "user_id, expires_at, revoked_at"
-      )
-      .eq(
-        "token_hash",
-        tokenHash
-      )
-      .maybeSingle();
+  const data =
+    await response
+      .json()
+      .catch(
+        () => ({})
+      );
 
   if (
-    sessionError ||
-    !session
+    !response.ok ||
+    !data.authenticated ||
+    !data.user
   ) {
     return null;
   }
 
-  if (
-    session.revoked_at ||
-    new Date(
-      session.expires_at
-    ).getTime() <=
-      Date.now()
-  ) {
-    return null;
-  }
-
-  const {
-    data: user,
-    error: userError
-  } =
-    await supabase
-      .from("bean_users")
-      .select(
-        "id, username, display_name, email, status"
-      )
-      .eq(
-        "id",
-        session.user_id
-      )
-      .maybeSingle();
-
-  if (
-    userError ||
-    !user ||
-    user.status !== "active"
-  ) {
-    return null;
-  }
-
-  return user;
+  return data.user;
 }
 
 
 /* =========================================================
-   CREATE CHECKOUT
+   CHECKOUT HANDLER
    ========================================================= */
 
 export default async function handler(
   req,
   res
 ) {
+
   res.setHeader(
     "Cache-Control",
     "no-store"
   );
 
-  if (
-    !setCors(
-      req,
-      res
-    )
-  ) {
-    return;
-  }
 
-  if (
-    req.method ===
-    "OPTIONS"
-  ) {
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "POST, OPTIONS"
-    );
-
-    return res
-      .status(204)
-      .end();
-  }
+  /* =======================================================
+     METHOD
+     ======================================================= */
 
   if (
     req.method !==
@@ -244,7 +117,7 @@ export default async function handler(
   ) {
     res.setHeader(
       "Allow",
-      "POST, OPTIONS"
+      "POST"
     );
 
     return res
@@ -260,22 +133,31 @@ export default async function handler(
      ENVIRONMENT
      ======================================================= */
 
-  const apiKey =
-    process.env.LEMONSQUEEZY_API_KEY;
+  let apiKey;
+  let storeId;
+  let variantId;
 
-  const storeId =
-    process.env.LEMONSQUEEZY_STORE_ID;
+  try {
+    apiKey =
+      getRequiredEnv(
+        "LEMONSQUEEZY_API_KEY"
+      );
 
-  const variantId =
-    process.env.LEMONSQUEEZY_VARIANT_ID;
+    storeId =
+      getRequiredEnv(
+        "LEMONSQUEEZY_STORE_ID"
+      );
 
-  if (
-    !apiKey ||
-    !storeId ||
-    !variantId
-  ) {
+    variantId =
+      getRequiredEnv(
+        "LEMONSQUEEZY_VARIANT_ID"
+      );
+
+  } catch (error) {
+
     console.error(
-      "Lemon Squeezy environment variables are missing"
+      "UAsset billing configuration error:",
+      error.message
     );
 
     return res
@@ -288,31 +170,40 @@ export default async function handler(
 
 
   /* =======================================================
-     AUTHENTICATED BEAN USER
+     BEAN SESSION
      ======================================================= */
 
   let user;
 
   try {
+
     user =
-      await getAuthenticatedUser(
+      await getBeanUser(
         req
       );
+
   } catch (error) {
+
     console.error(
-      "Session verification failed:",
+      "Bean session lookup failed:",
       error
     );
 
     return res
-      .status(500)
+      .status(502)
       .json({
         error:
-          "Unable to verify account"
+          "Unable to verify Bean account"
       });
   }
 
+
+  /* =======================================================
+     LOGIN REQUIRED
+     ======================================================= */
+
   if (!user) {
+
     return res
       .status(401)
       .json({
@@ -323,43 +214,102 @@ export default async function handler(
 
 
   /* =======================================================
-     CHECKOUT
+     CUSTOM DATA
+     This is returned by Lemon Squeezy in webhooks.
      ======================================================= */
 
   const customData = {
-    user_id:
+    application:
+      "uasset",
+
+    bean_user_id:
       user.id,
 
     bean_id:
-      `${user.username}@bean`,
-
-    application:
-      "uasset"
+      user.beanId ||
+      (
+        user.username
+          ? `${user.username}@bean`
+          : null
+      )
   };
 
-  const checkoutPayload = {
+
+  /* =======================================================
+     TEST MODE
+     ======================================================= */
+
+  const testMode =
+    String(
+      process.env.LEMONSQUEEZY_TEST_MODE ||
+        "true"
+    ).toLowerCase() ===
+    "true";
+
+
+  /* =======================================================
+     CHECKOUT PAYLOAD
+     ======================================================= */
+
+  const payload = {
     data: {
       type:
         "checkouts",
 
       attributes: {
+
+        checkout_options: {
+          embed:
+            false,
+
+          media:
+            true,
+
+          logo:
+            true,
+
+          desc:
+            true,
+
+          discount:
+            true,
+
+          skip_trial:
+            false,
+
+          subscription_preview:
+            true
+        },
+
         product_options: {
+
+          redirect_url:
+            "https://uasset.signaturesi.com/#pricing",
+
           enabled_variants: [
             Number(
               variantId
             )
           ],
 
-          redirect_url:
-            "https://uasset.signaturesi.com/#pricing"
+          receipt_button_text:
+            "Return to UAsset",
+
+          receipt_link_url:
+            "https://uasset.signaturesi.com/#pricing",
+
+          receipt_thank_you_note:
+            "Thank you for subscribing to UAsset Pro."
         },
 
         checkout_data: {
+
           email:
-            user.email || "",
+            user.email ||
+            "",
 
           name:
-            user.display_name ||
+            user.displayName ||
             user.username ||
             "",
 
@@ -368,11 +318,11 @@ export default async function handler(
         },
 
         test_mode:
-          process.env.LEMONSQUEEZY_TEST_MODE ===
-          "true"
+          testMode
       },
 
       relationships: {
+
         store: {
           data: {
             type:
@@ -401,15 +351,21 @@ export default async function handler(
   };
 
 
+  /* =======================================================
+     CALL LEMON SQUEEZY
+     ======================================================= */
+
   try {
+
     const response =
       await fetch(
-        "https://api.lemonsqueezy.com/v1/checkouts",
+        LEMON_CHECKOUT_URL,
         {
           method:
             "POST",
 
           headers: {
+
             Accept:
               "application/vnd.api+json",
 
@@ -422,10 +378,11 @@ export default async function handler(
 
           body:
             JSON.stringify(
-              checkoutPayload
+              payload
             )
         }
       );
+
 
     const data =
       await response
@@ -434,11 +391,17 @@ export default async function handler(
           () => ({})
         );
 
+
+    /* =====================================================
+       LEMON ERROR
+       ===================================================== */
+
     if (
       !response.ok
     ) {
+
       console.error(
-        "Lemon checkout creation failed:",
+        "Lemon Squeezy checkout error:",
         data
       );
 
@@ -446,14 +409,23 @@ export default async function handler(
         .status(502)
         .json({
           error:
-            "Unable to create checkout"
+            "Unable to create UAsset Pro checkout"
         });
     }
+
+
+    /* =====================================================
+       CHECKOUT URL
+       ===================================================== */
 
     const checkoutUrl =
       data?.data?.attributes?.url;
 
-    if (!checkoutUrl) {
+
+    if (
+      !checkoutUrl
+    ) {
+
       console.error(
         "Lemon checkout URL missing:",
         data
@@ -467,18 +439,28 @@ export default async function handler(
         });
     }
 
+
+    /* =====================================================
+       SUCCESS
+       ===================================================== */
+
     return res
       .status(200)
       .json({
+
         success:
           true,
 
-        checkoutUrl
+        checkoutUrl,
+
+        testMode
       });
 
+
   } catch (error) {
+
     console.error(
-      "Lemon checkout exception:",
+      "UAsset checkout exception:",
       error
     );
 
