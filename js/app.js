@@ -1,62 +1,121 @@
 const els = {
-  heroSearch: document.getElementById("heroSearch"),
-  librarySearch: document.getElementById("librarySearch"),
+  heroSearch:
+    document.getElementById("heroSearch"),
 
-  filters: document.getElementById("filters"),
+  librarySearch:
+    document.getElementById("librarySearch"),
+
+  filters:
+    document.getElementById("filters"),
 
   collectionContext:
     document.getElementById("collectionContext"),
 
   collectionContextName:
-    document.getElementById("collectionContextName"),
+    document.getElementById(
+      "collectionContextName"
+    ),
 
   clearCollection:
-    document.getElementById("clearCollection"),
+    document.getElementById(
+      "clearCollection"
+    ),
 
   iconGrid:
     document.getElementById("iconGrid"),
 
   emptyState:
-    document.getElementById("emptyState"),
+    document.getElementById(
+      "emptyState"
+    ),
 
   iconOverlay:
-    document.getElementById("iconOverlay"),
+    document.getElementById(
+      "iconOverlay"
+    ),
 
   iconPreview:
-    document.getElementById("iconPreview"),
+    document.getElementById(
+      "iconPreview"
+    ),
 
   detailCategory:
-    document.getElementById("detailCategory"),
+    document.getElementById(
+      "detailCategory"
+    ),
 
   detailName:
-    document.getElementById("detailName"),
+    document.getElementById(
+      "detailName"
+    ),
 
   detailDescription:
-    document.getElementById("detailDescription"),
+    document.getElementById(
+      "detailDescription"
+    ),
 
   detailTags:
-    document.getElementById("detailTags"),
+    document.getElementById(
+      "detailTags"
+    ),
 
   svgCode:
-    document.getElementById("svgCode"),
+    document.getElementById(
+      "svgCode"
+    ),
 
   codeLabel:
-    document.getElementById("codeLabel"),
+    document.getElementById(
+      "codeLabel"
+    ),
 
   copySvg:
-    document.getElementById("copySvg"),
+    document.getElementById(
+      "copySvg"
+    ),
 
   downloadSvg:
-    document.getElementById("downloadSvg"),
+    document.getElementById(
+      "downloadSvg"
+    ),
 
   openBean:
-    document.getElementById("openBean"),
+    document.getElementById(
+      "openBean"
+    ),
 
   toast:
     document.getElementById("toast"),
 
   proButton:
-    document.getElementById("proButton")
+    document.getElementById(
+      "proButton"
+    ),
+
+  proPlanDescription:
+    document.getElementById(
+      "proPlanDescription"
+    ),
+
+  proPlanBox:
+    document.getElementById(
+      "proPlanBox"
+    ),
+
+  proPlanBadge:
+    document.getElementById(
+      "proPlanBadge"
+    ),
+
+  proPrice:
+    document.getElementById(
+      "proPrice"
+    ),
+
+  proPlanStatus:
+    document.getElementById(
+      "proPlanStatus"
+    )
 };
 
 
@@ -105,6 +164,9 @@ function setAuthenticatedUser(
     authenticated = false;
     currentUser = null;
 
+    updateBeanButton();
+    updateProPlanUI();
+
     return false;
   }
 
@@ -132,6 +194,9 @@ function setAuthenticatedUser(
 
   authenticated = true;
 
+  updateBeanButton();
+  updateProPlanUI();
+
   return true;
 }
 
@@ -154,6 +219,181 @@ function updateBeanButton() {
     Login with Bean ID
   `;
 }
+
+
+/* =========================================================
+   PLAN HELPERS
+   ========================================================= */
+
+function getPlanType() {
+  if (
+    !authenticated ||
+    !currentUser
+  ) {
+    return "free";
+  }
+
+  return String(
+    currentUser.planType ||
+      "free"
+  )
+    .trim()
+    .toLowerCase();
+}
+
+
+function isProUser() {
+  const plan =
+    getPlanType();
+
+  return [
+    "pro",
+    "uasset-pro",
+    "premium"
+  ].includes(plan);
+}
+
+
+function getPlanLabel() {
+  return isProUser()
+    ? "PRO"
+    : "FREE";
+}
+
+
+/* =========================================================
+   PRO PLAN UI
+   ========================================================= */
+
+function updateProPlanUI() {
+  if (
+    !els.proPlanBadge ||
+    !els.proPlanStatus ||
+    !els.proPlanDescription ||
+    !els.proButton
+  ) {
+    return;
+  }
+
+  const pro =
+    isProUser();
+
+  if (pro) {
+    els.proPlanBadge.textContent =
+      "PRO";
+
+    els.proPlanBadge.classList.remove(
+      "free"
+    );
+
+    els.proPlanBadge.classList.add(
+      "pro"
+    );
+
+    els.proPlanStatus.textContent =
+      "Current plan: UAsset Pro";
+
+    els.proPlanDescription.textContent =
+      "Your Bean account has UAsset Pro access.";
+
+    els.proButton.textContent =
+      "UAsset Pro Active";
+
+    if (els.proPlanBox) {
+      els.proPlanBox.classList.add(
+        "pro-active"
+      );
+    }
+
+    return;
+  }
+
+  els.proPlanBadge.textContent =
+    "FREE";
+
+  els.proPlanBadge.classList.remove(
+    "pro"
+  );
+
+  els.proPlanBadge.classList.add(
+    "free"
+  );
+
+  els.proPlanStatus.textContent =
+    authenticated
+      ? "Current plan: Free"
+      : "Login to see your current plan";
+
+  els.proPlanDescription.textContent =
+    authenticated
+      ? "Your current plan controls access to future premium UAsset assets."
+      : "Sign in with Bean ID to connect your UAsset plan.";
+
+  els.proButton.textContent =
+    authenticated
+      ? "View UAsset Pro"
+      : "Login to UAsset Pro";
+
+  if (els.proPlanBox) {
+    els.proPlanBox.classList.remove(
+      "pro-active"
+    );
+  }
+}
+
+
+/* =========================================================
+   PREMIUM ACCESS API
+   ========================================================= */
+
+function requirePro(
+  callback
+) {
+  if (!authenticated) {
+    redirectToLogin();
+
+    return false;
+  }
+
+  if (!isProUser()) {
+    showToast(
+      "UAsset Pro access required"
+    );
+
+    return false;
+  }
+
+  if (
+    typeof callback ===
+    "function"
+  ) {
+    callback();
+  }
+
+  return true;
+}
+
+
+window.UAssetAccess =
+  Object.freeze({
+    isAuthenticated:
+      () =>
+        authenticated,
+
+    isPro:
+      () =>
+        isProUser(),
+
+    getPlan:
+      () =>
+        getPlanType(),
+
+    getPlanLabel:
+      () =>
+        getPlanLabel(),
+
+    requirePro
+  });
 
 
 /* =========================================================
@@ -195,6 +435,7 @@ async function performSessionRestore() {
       currentUser = null;
 
       updateBeanButton();
+      updateProPlanUI();
 
       return false;
     }
@@ -205,11 +446,10 @@ async function performSessionRestore() {
       )
     ) {
       updateBeanButton();
+      updateProPlanUI();
 
       return false;
     }
-
-    updateBeanButton();
 
     return true;
 
@@ -223,6 +463,7 @@ async function performSessionRestore() {
     currentUser = null;
 
     updateBeanButton();
+    updateProPlanUI();
 
     return false;
   }
@@ -286,6 +527,7 @@ async function logout() {
   currentUser = null;
 
   updateBeanButton();
+  updateProPlanUI();
 
   loggingOut = false;
 
@@ -344,13 +586,48 @@ els.openBean.addEventListener(
 
 
 /* =========================================================
+   PRO BUTTON
+   ========================================================= */
+
+els.proButton.addEventListener(
+  "click",
+  () => {
+    if (!authenticated) {
+      redirectToLogin();
+
+      return;
+    }
+
+    if (isProUser()) {
+      showToast(
+        "UAsset Pro is active"
+      );
+
+      return;
+    }
+
+    showToast(
+      "UAsset Pro billing is coming next"
+    );
+  }
+);
+
+
+/* =========================================================
    ICON LIBRARY
    ========================================================= */
 
-let activeCategory = "All";
-let activeCollection = null;
-let selectedIcon = null;
-let activeCodeTab = "svg";
+let activeCategory =
+  "All";
+
+let activeCollection =
+  null;
+
+let selectedIcon =
+  null;
+
+let activeCodeTab =
+  "svg";
 
 
 /* =========================================================
@@ -359,9 +636,11 @@ let activeCodeTab = "svg";
 
 const collections = [
   {
-    id: "essential-ui",
+    id:
+      "essential-ui",
 
-    name: "Essential UI",
+    name:
+      "Essential UI",
 
     categories: [
       "Navigation",
@@ -371,9 +650,11 @@ const collections = [
   },
 
   {
-    id: "time-calendar",
+    id:
+      "time-calendar",
 
-    name: "Time & Calendar",
+    name:
+      "Time & Calendar",
 
     categories: [
       "Time"
@@ -381,9 +662,11 @@ const collections = [
   },
 
   {
-    id: "files-product",
+    id:
+      "files-product",
 
-    name: "Files & Product",
+    name:
+      "Files & Product",
 
     categories: [
       "Files",
@@ -429,7 +712,8 @@ function renderFilters() {
           <button
             type="button"
             class="filter ${
-              category === activeCategory
+              category ===
+              activeCategory
                 ? "active"
                 : ""
             }"
@@ -453,7 +737,8 @@ function renderFilters() {
             activeCategory =
               button.dataset.category;
 
-            activeCollection = null;
+            activeCollection =
+              null;
 
             renderFilters();
 
@@ -474,7 +759,9 @@ function renderFilters() {
    ========================================================= */
 
 function getActiveCollection() {
-  if (!activeCollection) {
+  if (
+    !activeCollection
+  ) {
     return null;
   }
 
@@ -604,9 +891,11 @@ document
 els.clearCollection.addEventListener(
   "click",
   () => {
-    activeCollection = null;
+    activeCollection =
+      null;
 
-    activeCategory = "All";
+    activeCategory =
+      "All";
 
     renderFilters();
 
@@ -639,7 +928,8 @@ function matchesIcon(
       return false;
     }
   } else if (
-    activeCategory !== "All" &&
+    activeCategory !==
+      "All" &&
     icon.category !==
       activeCategory
   ) {
@@ -716,7 +1006,8 @@ function renderIcons(
 
   els.emptyState.classList.toggle(
     "hidden",
-    visibleIcons.length !== 0
+    visibleIcons.length !==
+      0
   );
 
   els.iconGrid
@@ -897,13 +1188,20 @@ function updateCodeTabs() {
 
 function updateCodePanel() {
   const labels = {
-    svg: "SVG",
-    react: "React",
-    html: "HTML"
+    svg:
+      "SVG",
+
+    react:
+      "React",
+
+    html:
+      "HTML"
   };
 
   els.codeLabel.textContent =
-    labels[activeCodeTab];
+    labels[
+      activeCodeTab
+    ];
 
   els.svgCode.textContent =
     getActiveCode();
@@ -1219,5 +1517,7 @@ renderCollectionContext();
 renderIcons();
 
 updateBeanButton();
+
+updateProPlanUI();
 
 restoreSession();
