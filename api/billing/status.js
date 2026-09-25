@@ -4,15 +4,12 @@
    Billing data belongs to UAsset.
    ========================================================= */
 
-/* =========================================================
-   CONFIG
-   ========================================================= */
-
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
 const SUPABASE_TABLE =
   "uasset_subscriptions";
+
 
 /* =========================================================
    HELPERS
@@ -34,8 +31,9 @@ function getRequiredEnv(name) {
   return String(value).trim();
 }
 
+
 /* =========================================================
-   GET AUTHENTICATED BEAN USER
+   BEAN USER
    ========================================================= */
 
 async function getBeanUser(req) {
@@ -83,8 +81,9 @@ async function getBeanUser(req) {
   return data.user;
 }
 
+
 /* =========================================================
-   CHECK WHETHER SUBSCRIPTION IS CURRENTLY ACTIVE
+   CHECK ACTIVE SUBSCRIPTION
    ========================================================= */
 
 function isSubscriptionActive(
@@ -97,27 +96,21 @@ function isSubscriptionActive(
   const status =
     String(
       subscription.status ||
-      ""
+        ""
     ).toLowerCase();
 
+  const now =
+    Date.now();
+
+
   /* -------------------------------------------------------
-     Normal active subscription
+     Cancelled subscription:
+     access continues until ends_at.
      ------------------------------------------------------- */
 
   if (
-    status === "active" ||
-    status === "on_trial"
-  ) {
-    return true;
-  }
-
-  /* -------------------------------------------------------
-     Cancelled subscriptions remain valid until ends_at.
-     ------------------------------------------------------- */
-
-  if (
-    status === "cancelled" &&
-    subscription.cancelled === true
+    subscription.cancelled ===
+    true
   ) {
     if (
       !subscription.ends_at
@@ -140,15 +133,51 @@ function isSubscriptionActive(
 
     return (
       endsAt >
-      Date.now()
+      now
     );
   }
+
+
+  /* -------------------------------------------------------
+     Standard active states
+     ------------------------------------------------------- */
+
+  if (
+    status === "active" ||
+    status === "on_trial"
+  ) {
+    if (
+      subscription.ends_at
+    ) {
+      const endsAt =
+        new Date(
+          subscription.ends_at
+        ).getTime();
+
+      if (
+        !Number.isNaN(
+          endsAt
+        ) &&
+        endsAt <= now
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  /* -------------------------------------------------------
+     All other states are not Pro.
+     ------------------------------------------------------- */
 
   return false;
 }
 
+
 /* =========================================================
-   GET SUBSCRIPTION FROM SUPABASE
+   GET SUBSCRIPTION
    ========================================================= */
 
 async function getSubscription(
@@ -166,7 +195,10 @@ async function getSubscription(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
 
-  const query = new URLSearchParams();
+
+  const query =
+    new URLSearchParams();
+
 
   query.set(
     "select",
@@ -191,35 +223,42 @@ async function getSubscription(
     ].join(",")
   );
 
+
   query.set(
     "bean_user_id",
     `eq.${beanUserId}`
   );
+
 
   query.set(
     "provider",
     "eq.lemonsqueezy"
   );
 
+
   query.set(
     "variant_id",
     `eq.${variantId}`
   );
+
 
   query.set(
     "test_mode",
     `eq.${testMode}`
   );
 
+
   query.set(
     "order",
     "updated_at.desc"
   );
 
+
   query.set(
     "limit",
     "1"
   );
+
 
   const response =
     await fetch(
@@ -244,6 +283,7 @@ async function getSubscription(
       }
     );
 
+
   const data =
     await response
       .json()
@@ -251,7 +291,10 @@ async function getSubscription(
         () => null
       );
 
-  if (!response.ok) {
+
+  if (
+    !response.ok
+  ) {
     console.error(
       "Supabase billing status query failed:",
       data
@@ -262,15 +305,20 @@ async function getSubscription(
     );
   }
 
+
   if (
-    !Array.isArray(data) ||
+    !Array.isArray(
+      data
+    ) ||
     data.length === 0
   ) {
     return null;
   }
 
+
   return data[0];
 }
+
 
 /* =========================================================
    HANDLER
@@ -285,6 +333,7 @@ export default async function handler(
     "no-store"
   );
 
+
   /* =======================================================
      METHOD
      ======================================================= */
@@ -298,13 +347,12 @@ export default async function handler(
       "GET"
     );
 
-    return res
-      .status(405)
-      .json({
-        error:
-          "Method not allowed"
-      });
+    return res.status(405).json({
+      error:
+        "Method not allowed"
+    });
   }
+
 
   /* =======================================================
      ENVIRONMENT
@@ -318,6 +366,7 @@ export default async function handler(
         "true"
     ).toLowerCase() ===
     "true";
+
 
   try {
     variantId =
@@ -339,13 +388,12 @@ export default async function handler(
       error.message
     );
 
-    return res
-      .status(500)
-      .json({
-        error:
-          "Billing configuration is incomplete"
-      });
+    return res.status(500).json({
+      error:
+        "Billing configuration is incomplete"
+    });
   }
+
 
   /* =======================================================
      BEAN SESSION
@@ -365,35 +413,36 @@ export default async function handler(
       error
     );
 
-    return res
-      .status(502)
-      .json({
-        error:
-          "Unable to verify Bean account"
-      });
+    return res.status(502).json({
+      error:
+        "Unable to verify Bean account"
+    });
   }
+
 
   /* =======================================================
      LOGIN REQUIRED
      ======================================================= */
 
   if (!user) {
-    return res
-      .status(401)
-      .json({
-        authenticated:
-          false,
+    return res.status(401).json({
+      authenticated:
+        false,
 
-        pro:
-          false,
+      pro:
+        false,
 
-        subscription:
-          null,
+      plan:
+        "free",
 
-        error:
-          "Please log in with Bean ID first"
-      });
+      subscription:
+        null,
+
+      error:
+        "Please log in with Bean ID first"
+    });
   }
+
 
   /* =======================================================
      USER ID
@@ -403,20 +452,15 @@ export default async function handler(
     user.id;
 
   if (!beanUserId) {
-    console.error(
-      "Bean session does not contain user ID"
-    );
-
-    return res
-      .status(500)
-      .json({
-        error:
-          "Bean user identity is missing"
-      });
+    return res.status(500).json({
+      error:
+        "Bean user identity is missing"
+    });
   }
 
+
   /* =======================================================
-     GET SUBSCRIPTION
+     DATABASE
      ======================================================= */
 
   let subscription;
@@ -435,40 +479,38 @@ export default async function handler(
       error
     );
 
-    return res
-      .status(500)
-      .json({
-        error:
-          "Unable to load billing status"
-      });
+    return res.status(500).json({
+      error:
+        "Unable to load billing status"
+    });
   }
+
 
   /* =======================================================
      NO SUBSCRIPTION
      ======================================================= */
 
   if (!subscription) {
-    return res
-      .status(200)
-      .json({
-        authenticated:
-          true,
+    return res.status(200).json({
+      authenticated:
+        true,
 
-        pro:
-          false,
+      pro:
+        false,
 
-        plan:
-          "free",
+      plan:
+        "free",
 
-        testMode,
+      testMode,
 
-        subscription:
-          null
-      });
+      subscription:
+        null
+    });
   }
 
+
   /* =======================================================
-     ACCESS
+     PRO ACCESS
      ======================================================= */
 
   const pro =
@@ -476,46 +518,45 @@ export default async function handler(
       subscription
     );
 
+
   /* =======================================================
      RESPONSE
      ======================================================= */
 
-  return res
-    .status(200)
-    .json({
-      authenticated:
-        true,
+  return res.status(200).json({
+    authenticated:
+      true,
 
-      pro,
+    pro,
 
-      plan:
-        pro
-          ? "pro"
-          : "free",
+    plan:
+      pro
+        ? "pro"
+        : "free",
 
-      testMode,
+    testMode,
 
-      subscription: {
-        id:
-          subscription.provider_subscription_id,
+    subscription: {
+      id:
+        subscription.provider_subscription_id,
 
-        status:
-          subscription.status,
+      status:
+        subscription.status,
 
-        cancelled:
-          subscription.cancelled,
+      cancelled:
+        subscription.cancelled,
 
-        renewsAt:
-          subscription.renews_at,
+      renewsAt:
+        subscription.renews_at,
 
-        endsAt:
-          subscription.ends_at,
+      endsAt:
+        subscription.ends_at,
 
-        productName:
-          subscription.product_name,
+      productName:
+        subscription.product_name,
 
-        variantName:
-          subscription.variant_name
-      }
-    });
+      variantName:
+        subscription.variant_name
+    }
+  });
 }
