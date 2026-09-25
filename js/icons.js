@@ -50,6 +50,7 @@ const ICONS = [
     category: "Time",
     tags: ["date", "event", "schedule"],
     description: "Compact calendar for dates and schedules.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16"/></svg>`
   },
 
@@ -59,6 +60,7 @@ const ICONS = [
     category: "Time",
     tags: ["recent", "activity", "previous"],
     description: "History arrow for recent actions and activity logs.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11.5a7.5 7.5 0 107.5-7.5c-2.6 0-4.7 1.2-6.1 3.1"/><path d="M4.5 5.5v6h6"/><path d="M12 8v4l2.5 2"/></svg>`
   },
 
@@ -86,6 +88,7 @@ const ICONS = [
     category: "Actions",
     tags: ["write", "modify", "pencil"],
     description: "Compact edit mark for content and settings.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18l.6-3.2L15.8 5.6a1.8 1.8 0 012.6 2.6L9.2 17.4 6 18z"/><path d="M14.5 6.9l2.6 2.6"/></svg>`
   },
 
@@ -95,6 +98,7 @@ const ICONS = [
     category: "Actions",
     tags: ["remove", "trash", "delete"],
     description: "Restrained delete icon for destructive controls.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 7h13M9 7V4.5h6V7M7.5 7l1 13h7l1-13M10 10.5v6M14 10.5v6"/></svg>`
   },
 
@@ -104,6 +108,7 @@ const ICONS = [
     category: "Files",
     tags: ["save", "export", "download"],
     description: "Download action for digital asset files.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M8.5 10.5L12 14l3.5-3.5"/><path d="M5 19.5h14"/></svg>`
   },
 
@@ -113,6 +118,7 @@ const ICONS = [
     category: "Files",
     tags: ["import", "upload", "send"],
     description: "Upload action for bringing files into a project.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M8.5 13.5L12 10l3.5 3.5"/><path d="M5 4.5h14"/></svg>`
   },
 
@@ -131,6 +137,7 @@ const ICONS = [
     category: "Files",
     tags: ["directory", "collection", "folder"],
     description: "Folder outline for file groups and collections.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h6l1.5 2H20v9H4z"/></svg>`
   },
 
@@ -140,6 +147,7 @@ const ICONS = [
     category: "Users",
     tags: ["like", "saved", "favorite"],
     description: "Simple favorite control for saved assets.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.2-7-9a4 4 0 017-2.6A4 4 0 0119 11c0 4.8-7 9-7 9z"/></svg>`
   },
 
@@ -185,6 +193,7 @@ const ICONS = [
     category: "Security",
     tags: ["protect", "safe", "security"],
     description: "Security shield for privacy and protection concepts.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7 2.8v5.1c0 4-2.4 7.4-7 9.1-4.6-1.7-7-5.1-7-9.1V6.3z"/><path d="M9 12l2 2 4-4"/></svg>`
   },
 
@@ -221,6 +230,7 @@ const ICONS = [
     category: "System",
     tags: ["information", "help", "details"],
     description: "Information icon for contextual guidance and details.",
+    pro: true,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 10.5v5"/><circle cx="12" cy="7.5" r="0.8" fill="currentColor" stroke="none"/></svg>`
   }
 ];
