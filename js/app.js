@@ -332,7 +332,116 @@ function getPlanLabel() {
 
 
 /* =========================================================
-   PRO UI
+   ICON ACCESS HELPERS
+   ========================================================= */
+
+function isProIcon(
+  icon
+) {
+  return (
+    icon?.pro === true
+  );
+}
+
+
+function canAccessIcon(
+  icon
+) {
+  if (
+    !isProIcon(icon)
+  ) {
+    return true;
+  }
+
+  return isProUser();
+}
+
+
+function getLockSvg() {
+  return `
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="13"
+      height="13"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <rect
+        x="5"
+        y="10"
+        width="14"
+        height="10"
+        rx="2"
+      />
+      <path
+        d="M8 10V7a4 4 0 018 0v3"
+      />
+    </svg>
+  `;
+}
+
+
+function getProBadge(
+  icon
+) {
+  if (
+    !isProIcon(icon)
+  ) {
+    return "";
+  }
+
+  if (
+    isProUser()
+  ) {
+    return `
+      <span
+        style="
+          display:inline-flex;
+          align-items:center;
+          gap:4px;
+          margin-left:6px;
+          font-size:10px;
+          line-height:1;
+          font-weight:600;
+          letter-spacing:.06em;
+          opacity:.72;
+          vertical-align:middle;
+        "
+      >
+        PRO
+      </span>
+    `;
+  }
+
+  return `
+    <span
+      style="
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        margin-left:6px;
+        font-size:10px;
+        line-height:1;
+        font-weight:600;
+        letter-spacing:.06em;
+        opacity:.7;
+        vertical-align:middle;
+      "
+    >
+      ${getLockSvg()}
+      PRO
+    </span>
+  `;
+}
+
+
+/* =========================================================
+   PRO PLAN UI
    ========================================================= */
 
 function updateProPlanUI() {
@@ -475,6 +584,10 @@ async function loadBillingStatus() {
 
     updateProPlanUI();
 
+    renderIcons(
+      getSearchTerm()
+    );
+
     return false;
   }
 
@@ -520,6 +633,10 @@ async function loadBillingStatus() {
 
       updateProPlanUI();
 
+      renderIcons(
+        getSearchTerm()
+      );
+
       return false;
     }
 
@@ -540,6 +657,10 @@ async function loadBillingStatus() {
         true;
 
       updateProPlanUI();
+
+      renderIcons(
+        getSearchTerm()
+      );
 
       return false;
     }
@@ -571,6 +692,10 @@ async function loadBillingStatus() {
 
     updateProPlanUI();
 
+    renderIcons(
+      getSearchTerm()
+    );
+
     return true;
 
   } catch (error) {
@@ -585,6 +710,10 @@ async function loadBillingStatus() {
       true;
 
     updateProPlanUI();
+
+    renderIcons(
+      getSearchTerm()
+    );
 
     return false;
   }
@@ -829,6 +958,10 @@ async function performSessionRestore() {
 
       updateProPlanUI();
 
+      renderIcons(
+        getSearchTerm()
+      );
+
       return false;
     }
 
@@ -863,6 +996,10 @@ async function performSessionRestore() {
     updateBeanButton();
 
     updateProPlanUI();
+
+    renderIcons(
+      getSearchTerm()
+    );
 
     return false;
   }
@@ -946,6 +1083,10 @@ async function logout() {
   updateBeanButton();
 
   updateProPlanUI();
+
+  renderIcons(
+    getSearchTerm()
+  );
 
   loggingOut =
     false;
@@ -1393,32 +1534,79 @@ function renderIcons(
   els.iconGrid.innerHTML =
     visibleIcons
       .map(
-        icon => `
-          <button
-            type="button"
-            class="icon-card"
-            data-icon="${icon.id}"
-            aria-label="Open ${icon.name} icon"
-          >
+        icon => {
+          const locked =
+            isProIcon(icon) &&
+            !isProUser();
 
-            <div class="icon-draw">
-              ${icon.svg}
-            </div>
+          const lockOpacity =
+            locked
+              ? "opacity:.52;"
+              : "";
 
-            <div>
+          const lockLabel =
+            locked
+              ? " · UAsset Pro required"
+              : "";
 
-              <div class="icon-title">
-                ${icon.name}
+          return `
+            <button
+              type="button"
+              class="icon-card"
+              data-icon="${icon.id}"
+              aria-label="Open ${icon.name} icon${lockLabel}"
+              style="position:relative;"
+            >
+
+              ${
+                locked
+                  ? `
+                    <span
+                      aria-hidden="true"
+                      style="
+                        position:absolute;
+                        top:10px;
+                        right:10px;
+                        width:26px;
+                        height:26px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        border:1px solid currentColor;
+                        border-radius:999px;
+                        opacity:.7;
+                        pointer-events:none;
+                      "
+                    >
+                      ${getLockSvg()}
+                    </span>
+                  `
+                  : ""
+              }
+
+              <div
+                class="icon-draw"
+                style="${lockOpacity}"
+              >
+                ${icon.svg}
               </div>
 
-              <div class="icon-category">
-                ${icon.category}
+              <div>
+
+                <div class="icon-title">
+                  ${icon.name}
+                  ${getProBadge(icon)}
+                </div>
+
+                <div class="icon-category">
+                  ${icon.category}
+                </div>
+
               </div>
 
-            </div>
-
-          </button>
-        `
+            </button>
+          `;
+        }
       )
       .join("");
 
@@ -1548,6 +1736,31 @@ function openIcon(
 
 
   if (!icon) {
+    return;
+  }
+
+
+  /* -------------------------------------------------------
+     PRO ACCESS CHECK
+     ------------------------------------------------------- */
+
+  if (
+    !canAccessIcon(
+      icon
+    )
+  ) {
+    if (
+      !authenticated
+    ) {
+      redirectToLogin();
+
+      return;
+    }
+
+    showToast(
+      "UAsset Pro access required"
+    );
+
     return;
   }
 
@@ -1779,6 +1992,26 @@ els.librarySearch.addEventListener(
    ========================================================= */
 
 async function copyCurrentCode() {
+  if (
+    !selectedIcon
+  ) {
+    return;
+  }
+
+
+  if (
+    !canAccessIcon(
+      selectedIcon
+    )
+  ) {
+    showToast(
+      "UAsset Pro access required"
+    );
+
+    return;
+  }
+
+
   const code =
     getActiveCode();
 
@@ -1822,7 +2055,22 @@ els.copySvg.addEventListener(
    ========================================================= */
 
 function downloadSelectedSvg() {
-  if (!selectedIcon) {
+  if (
+    !selectedIcon
+  ) {
+    return;
+  }
+
+
+  if (
+    !canAccessIcon(
+      selectedIcon
+    )
+  ) {
+    showToast(
+      "UAsset Pro access required"
+    );
+
     return;
   }
 
