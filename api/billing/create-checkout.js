@@ -4,11 +4,6 @@
    Billing belongs to UAsset.
    ========================================================= */
 
-
-/* =========================================================
-   CONFIG
-   ========================================================= */
-
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
@@ -20,19 +15,11 @@ const LEMON_CHECKOUT_URL =
    HELPERS
    ========================================================= */
 
-function getRequiredEnv(
-  name
-) {
-  const value =
-    process.env[name];
+function getRequiredEnv(name) {
+  const value = process.env[name];
 
-  if (
-    !value ||
-    !String(value).trim()
-  ) {
-    throw new Error(
-      `${name} is missing`
-    );
+  if (!value || !String(value).trim()) {
+    throw new Error(`${name} is missing`);
   }
 
   return String(value).trim();
@@ -40,45 +27,33 @@ function getRequiredEnv(
 
 
 /* =========================================================
-   AUTHENTICATED BEAN USER
+   GET BEAN USER
    ========================================================= */
 
-async function getBeanUser(
-  req
-) {
-  const cookie =
-    req.headers.cookie;
+async function getBeanUser(req) {
+  const cookie = req.headers.cookie;
 
-  if (
-    !cookie
-  ) {
+  if (!cookie) {
     return null;
   }
 
-  const response =
-    await fetch(
-      ACCOUNTS_SESSION_URL,
-      {
-        method: "GET",
+  const response = await fetch(
+    ACCOUNTS_SESSION_URL,
+    {
+      method: "GET",
 
-        headers: {
-          Accept:
-            "application/json",
+      headers: {
+        Accept: "application/json",
+        Cookie: cookie
+      },
 
-          Cookie:
-            cookie
-        },
+      cache: "no-store"
+    }
+  );
 
-        cache: "no-store"
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => ({})
-      );
+  const data = await response
+    .json()
+    .catch(() => ({}));
 
   if (
     !response.ok ||
@@ -93,39 +68,28 @@ async function getBeanUser(
 
 
 /* =========================================================
-   CHECKOUT HANDLER
+   HANDLER
    ========================================================= */
 
-export default async function handler(
-  req,
-  res
-) {
-
+export default async function handler(req, res) {
   res.setHeader(
     "Cache-Control",
     "no-store"
   );
 
-
   /* =======================================================
      METHOD
      ======================================================= */
 
-  if (
-    req.method !==
-    "POST"
-  ) {
+  if (req.method !== "POST") {
     res.setHeader(
       "Allow",
       "POST"
     );
 
-    return res
-      .status(405)
-      .json({
-        error:
-          "Method not allowed"
-      });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
 
@@ -137,64 +101,92 @@ export default async function handler(
   let storeId;
   let variantId;
 
+  const testMode =
+    String(
+      process.env.LEMONSQUEEZY_TEST_MODE ||
+        "true"
+    ).toLowerCase() === "true";
+
   try {
-    apiKey =
-      getRequiredEnv(
-        "LEMONSQUEEZY_API_KEY"
-      );
+    apiKey = getRequiredEnv(
+      "LEMONSQUEEZY_API_KEY"
+    );
 
-    storeId =
-      getRequiredEnv(
-        "LEMONSQUEEZY_STORE_ID"
-      );
+    storeId = getRequiredEnv(
+      "LEMONSQUEEZY_STORE_ID"
+    );
 
-    variantId =
-      getRequiredEnv(
-        "LEMONSQUEEZY_VARIANT_ID"
-      );
+    variantId = getRequiredEnv(
+      "LEMONSQUEEZY_VARIANT_ID"
+    );
 
   } catch (error) {
-
     console.error(
       "UAsset billing configuration error:",
       error.message
     );
 
-    return res
-      .status(500)
-      .json({
-        error:
-          "Billing configuration is incomplete"
-      });
+    return res.status(500).json({
+      error:
+        "Billing configuration is incomplete"
+    });
   }
 
 
   /* =======================================================
-     BEAN SESSION
+     VALIDATE NUMERIC IDS
+     ======================================================= */
+
+  const numericStoreId =
+    Number(storeId);
+
+  const numericVariantId =
+    Number(variantId);
+
+  if (
+    !Number.isInteger(
+      numericStoreId
+    ) ||
+    numericStoreId <= 0
+  ) {
+    return res.status(500).json({
+      error:
+        "Invalid Lemon Squeezy Store ID"
+    });
+  }
+
+  if (
+    !Number.isInteger(
+      numericVariantId
+    ) ||
+    numericVariantId <= 0
+  ) {
+    return res.status(500).json({
+      error:
+        "Invalid Lemon Squeezy Variant ID"
+    });
+  }
+
+
+  /* =======================================================
+     VERIFY BEAN LOGIN
      ======================================================= */
 
   let user;
 
   try {
-
-    user =
-      await getBeanUser(
-        req
-      );
+    user = await getBeanUser(req);
 
   } catch (error) {
-
     console.error(
       "Bean session lookup failed:",
       error
     );
 
-    return res
-      .status(502)
-      .json({
-        error:
-          "Unable to verify Bean account"
-      });
+    return res.status(502).json({
+      error:
+        "Unable to verify Bean account"
+    });
   }
 
 
@@ -203,27 +195,39 @@ export default async function handler(
      ======================================================= */
 
   if (!user) {
+    return res.status(401).json({
+      error:
+        "Please log in with Bean ID first"
+    });
+  }
 
-    return res
-      .status(401)
-      .json({
-        error:
-          "Please log in with Bean ID first"
-      });
+
+  /* =======================================================
+     USER ID
+     ======================================================= */
+
+  if (!user.id) {
+    console.error(
+      "Bean session has no user ID"
+    );
+
+    return res.status(500).json({
+      error:
+        "Bean user identity is missing"
+    });
   }
 
 
   /* =======================================================
      CUSTOM DATA
-     This is returned by Lemon Squeezy in webhooks.
+     Returned later by Lemon Squeezy webhooks.
      ======================================================= */
 
   const customData = {
-    application:
-      "uasset",
+    application: "uasset",
 
     bean_user_id:
-      user.id,
+      String(user.id),
 
     bean_id:
       user.beanId ||
@@ -236,60 +240,36 @@ export default async function handler(
 
 
   /* =======================================================
-     TEST MODE
-     ======================================================= */
-
-  const testMode =
-    String(
-      process.env.LEMONSQUEEZY_TEST_MODE ||
-        "true"
-    ).toLowerCase() ===
-    "true";
-
-
-  /* =======================================================
      CHECKOUT PAYLOAD
      ======================================================= */
 
   const payload = {
     data: {
-      type:
-        "checkouts",
+      type: "checkouts",
 
       attributes: {
-
         checkout_options: {
-          embed:
-            false,
+          embed: false,
 
-          media:
-            true,
+          media: true,
 
-          logo:
-            true,
+          logo: true,
 
-          desc:
-            true,
+          desc: true,
 
-          discount:
-            true,
+          discount: true,
 
-          skip_trial:
-            false,
+          skip_trial: false,
 
-          subscription_preview:
-            true
+          subscription_preview: true
         },
 
         product_options: {
-
           redirect_url:
             "https://uasset.signaturesi.com/#pricing",
 
           enabled_variants: [
-            Number(
-              variantId
-            )
+            numericVariantId
           ],
 
           receipt_button_text:
@@ -303,15 +283,14 @@ export default async function handler(
         },
 
         checkout_data: {
-
           email:
             user.email ||
-            "",
+            undefined,
 
           name:
             user.displayName ||
             user.username ||
-            "",
+            undefined,
 
           custom:
             customData
@@ -322,27 +301,24 @@ export default async function handler(
       },
 
       relationships: {
-
         store: {
           data: {
-            type:
-              "stores",
+            type: "stores",
 
             id:
               String(
-                storeId
+                numericStoreId
               )
           }
         },
 
         variant: {
           data: {
-            type:
-              "variants",
+            type: "variants",
 
             id:
               String(
-                variantId
+                numericVariantId
               )
           }
         }
@@ -352,20 +328,17 @@ export default async function handler(
 
 
   /* =======================================================
-     CALL LEMON SQUEEZY
+     CREATE CHECKOUT
      ======================================================= */
 
   try {
-
     const response =
       await fetch(
         LEMON_CHECKOUT_URL,
         {
-          method:
-            "POST",
+          method: "POST",
 
           headers: {
-
             Accept:
               "application/vnd.api+json",
 
@@ -383,34 +356,70 @@ export default async function handler(
         }
       );
 
-
     const data =
       await response
         .json()
-        .catch(
-          () => ({})
-        );
+        .catch(() => ({}));
 
 
     /* =====================================================
        LEMON ERROR
        ===================================================== */
 
-    if (
-      !response.ok
-    ) {
-
+    if (!response.ok) {
       console.error(
         "Lemon Squeezy checkout error:",
-        data
+        {
+          status:
+            response.status,
+
+          statusText:
+            response.statusText,
+
+          response:
+            data
+        }
       );
 
-      return res
-        .status(502)
-        .json({
-          error:
-            "Unable to create UAsset Pro checkout"
-        });
+      const details =
+        Array.isArray(
+          data?.errors
+        )
+          ? data.errors.map(
+              error => ({
+                status:
+                  error?.status ||
+                  null,
+
+                code:
+                  error?.code ||
+                  null,
+
+                title:
+                  error?.title ||
+                  null,
+
+                detail:
+                  error?.detail ||
+                  null
+              })
+            )
+          : [];
+
+      return res.status(502).json({
+        error:
+          details[0]?.detail ||
+          details[0]?.title ||
+          "Unable to create UAsset Pro checkout",
+
+        provider:
+          "lemonsqueezy",
+
+        providerStatus:
+          response.status,
+
+        details
+      });
     }
 
 
@@ -421,22 +430,16 @@ export default async function handler(
     const checkoutUrl =
       data?.data?.attributes?.url;
 
-
-    if (
-      !checkoutUrl
-    ) {
-
+    if (!checkoutUrl) {
       console.error(
         "Lemon checkout URL missing:",
         data
       );
 
-      return res
-        .status(502)
-        .json({
-          error:
-            "Checkout URL was not returned"
-        });
+      return res.status(502).json({
+        error:
+          "Checkout URL was not returned"
+      });
     }
 
 
@@ -444,31 +447,23 @@ export default async function handler(
        SUCCESS
        ===================================================== */
 
-    return res
-      .status(200)
-      .json({
+    return res.status(200).json({
+      success: true,
 
-        success:
-          true,
+      checkoutUrl,
 
-        checkoutUrl,
-
-        testMode
-      });
-
+      testMode
+    });
 
   } catch (error) {
-
     console.error(
       "UAsset checkout exception:",
       error
     );
 
-    return res
-      .status(500)
-      .json({
-        error:
-          "Unable to create checkout"
-      });
+    return res.status(500).json({
+      error:
+        "Unable to create checkout"
+    });
   }
 }
