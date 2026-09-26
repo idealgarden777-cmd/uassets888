@@ -1,7 +1,7 @@
 /* =========================================================
    UASSET — js/app.js
    Step 10: Production Hardening
-   + error.message surfaced in Pro icon modal
+   + Real backend error surfacing (500/503 fix)
    ========================================================= */
 
 const els = {
@@ -269,6 +269,11 @@ function getProBadge(icon) {
 
 /* =========================================================
    SECURE PRO SVG LOADER
+   ---------------------------------------------------------
+   Step 10 + Fix:
+   - Response body PEHLE parse hoti hai
+   - 500/503 par bhi backend ka actual data.error surface
+     hota hai (generic message hide nahi karta)
    ========================================================= */
 
 async function getSecureProSvg(assetId) {
@@ -303,31 +308,53 @@ async function getSecureProSvg(assetId) {
       }
     );
 
+    /* ✅ FIX: Body pehle parse karo — 500 par bhi */
+    const data = await response.json().catch(() => ({}));
+
     if (response.status === 429) {
       proAssetRateLimited = true;
       proAssetErrorCode = 429;
-      throw new Error(PRO_ASSET_RATE_LIMIT_MESSAGE);
+      throw new Error(
+        data.error || PRO_ASSET_RATE_LIMIT_MESSAGE
+      );
     }
 
     if (response.status === 401) {
       proAssetErrorCode = 401;
-      throw new Error(PRO_ASSET_SESSION_MESSAGE);
+      throw new Error(
+        data.error || PRO_ASSET_SESSION_MESSAGE
+      );
     }
 
     if (response.status === 403) {
       proAssetErrorCode = 403;
-      throw new Error(PRO_ASSET_FORBIDDEN_MESSAGE);
+      throw new Error(
+        data.error || PRO_ASSET_FORBIDDEN_MESSAGE
+      );
     }
 
+    /* ✅ FIX: 5xx par backend ka actual error message dikhao */
     if (response.status >= 500) {
       proAssetErrorCode = response.status;
-      throw new Error(PRO_ASSET_UNAVAILABLE_MESSAGE);
+
+      console.error(
+        "Pro asset server error:",
+        response.status,
+        data
+      );
+
+      throw new Error(
+        data.error ||
+          data.message ||
+          `${PRO_ASSET_UNAVAILABLE_MESSAGE} (${response.status})`
+      );
     }
 
-    const data = await response.json().catch(() => ({}));
-
     if (!response.ok || !data.success || !data.pro || !data.url) {
-      throw new Error(data.error || "Unable to load Pro asset");
+      throw new Error(
+        data.error ||
+          `Unable to load Pro asset (${response.status})`
+      );
     }
 
     const svgResponse = await fetch(data.url, {
@@ -344,8 +371,26 @@ async function getSecureProSvg(assetId) {
       throw new Error(PRO_ASSET_RATE_LIMIT_MESSAGE);
     }
 
+    /* ✅ FIX: signed URL fetch fail par bhi detail dikhao */
     if (!svgResponse.ok) {
-      throw new Error("Unable to download Pro SVG");
+      let detail = "";
+
+      try {
+        detail = await svgResponse.text();
+      } catch (_) {
+        /* ignore */
+      }
+
+      const shortDetail = String(detail || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 200);
+
+      throw new Error(
+        shortDetail
+          ? `Unable to download Pro SVG (${svgResponse.status}): ${shortDetail}`
+          : `Unable to download Pro SVG (${svgResponse.status})`
+      );
     }
 
     const svg = await svgResponse.text();
@@ -355,7 +400,15 @@ async function getSecureProSvg(assetId) {
       !normalizedSvg ||
       !normalizedSvg.toLowerCase().startsWith("<svg")
     ) {
-      throw new Error("Invalid SVG asset");
+      const shortBody = normalizedSvg
+        .replace(/\s+/g, " ")
+        .slice(0, 200);
+
+      throw new Error(
+        shortBody
+          ? `Invalid SVG asset: ${shortBody}`
+          : "Invalid SVG asset"
+      );
     }
 
     proAssetCache.set(assetId, normalizedSvg);
@@ -450,9 +503,10 @@ async function hydrateProIconPreviews() {
       node.style.opacity = "1";
 
     } catch (error) {
+      /* ✅ Ye logs ab real backend error bhi dikhayenge */
       console.error(
         `Failed to load Pro asset ${assetId}:`,
-        error
+        error?.message || error
       );
 
       if (node.isConnected) {
@@ -1228,9 +1282,6 @@ function getActiveCode() {
 
 /* =========================================================
    OPEN ICON
-   ---------------------------------------------------------
-   FIX: catch block ab actual error.message surface karta
-   hai taake root cause visible ho.
    ========================================================= */
 
 async function openIcon(id) {
@@ -1302,7 +1353,6 @@ async function openIcon(id) {
 
       els.iconPreview.innerHTML = getProLockedPreview();
 
-      /* ✅ FIX: actual error message surface karo */
       els.svgCode.textContent =
         proAssetRateLimited
           ? PRO_ASSET_RATE_LIMIT_MESSAGE
