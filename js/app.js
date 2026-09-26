@@ -148,6 +148,14 @@ const BILLING_CHECKOUT_ENDPOINT =
 
 
 /* =========================================================
+   SECURE PRO ASSET API
+   ========================================================= */
+
+const PRO_ASSET_ENDPOINT =
+  "/api/assets/pro";
+
+
+/* =========================================================
    AUTH STATE
    ========================================================= */
 
@@ -187,6 +195,17 @@ let billingState = {
 
 
 /* =========================================================
+   PRO ASSET CACHE
+   ========================================================= */
+
+const proAssetCache =
+  new Map();
+
+const proAssetPromises =
+  new Map();
+
+
+/* =========================================================
    AUTH HELPERS
    ========================================================= */
 
@@ -194,6 +213,12 @@ function redirectToLogin() {
   window.location.replace(
     LOGIN_URL
   );
+}
+
+
+function resetProAssetCache() {
+  proAssetCache.clear();
+  proAssetPromises.clear();
 }
 
 
@@ -214,6 +239,8 @@ function resetBillingState() {
     subscription:
       null
   };
+
+  resetProAssetCache();
 }
 
 
@@ -332,7 +359,7 @@ function getPlanLabel() {
 
 
 /* =========================================================
-   ICON ACCESS HELPERS
+   ICON ACCESS
    ========================================================= */
 
 function isProIcon(
@@ -362,8 +389,8 @@ function getLockSvg() {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      width="13"
-      height="13"
+      width="14"
+      height="14"
       fill="none"
       stroke="currentColor"
       stroke-width="2"
@@ -395,29 +422,6 @@ function getProBadge(
     return "";
   }
 
-  if (
-    isProUser()
-  ) {
-    return `
-      <span
-        style="
-          display:inline-flex;
-          align-items:center;
-          gap:4px;
-          margin-left:6px;
-          font-size:10px;
-          line-height:1;
-          font-weight:600;
-          letter-spacing:.06em;
-          opacity:.72;
-          vertical-align:middle;
-        "
-      >
-        PRO
-      </span>
-    `;
-  }
-
   return `
     <span
       style="
@@ -433,10 +437,300 @@ function getProBadge(
         vertical-align:middle;
       "
     >
-      ${getLockSvg()}
+      ${
+        !isProUser()
+          ? getLockSvg()
+          : ""
+      }
       PRO
     </span>
   `;
+}
+
+
+/* =========================================================
+   SECURE PRO SVG LOADER
+   ========================================================= */
+
+async function getSecureProSvg(
+  assetId
+) {
+  if (
+    !assetId ||
+    !PRO_ASSET_IDS.has(
+      assetId
+    )
+  ) {
+    throw new Error(
+      "Invalid Pro asset"
+    );
+  }
+
+
+  if (
+    proAssetCache.has(
+      assetId
+    )
+  ) {
+    return proAssetCache.get(
+      assetId
+    );
+  }
+
+
+  if (
+    proAssetPromises.has(
+      assetId
+    )
+  ) {
+    return proAssetPromises.get(
+      assetId
+    );
+  }
+
+
+  const promise =
+    (async () => {
+      const response =
+        await fetch(
+          `${PRO_ASSET_ENDPOINT}?id=${encodeURIComponent(
+            assetId
+          )}`,
+          {
+            method:
+              "GET",
+
+            credentials:
+              "include",
+
+            cache:
+              "no-store",
+
+            headers: {
+              Accept:
+                "application/json"
+            }
+          }
+        );
+
+
+      const data =
+        await response
+          .json()
+          .catch(
+            () => ({})
+          );
+
+
+      if (
+        !response.ok ||
+        !data.success ||
+        !data.pro ||
+        !data.url
+      ) {
+        throw new Error(
+          data.error ||
+          "Unable to load Pro asset"
+        );
+      }
+
+
+      const svgResponse =
+        await fetch(
+          data.url,
+          {
+            method:
+              "GET",
+
+            cache:
+              "no-store",
+
+            headers: {
+              Accept:
+                "image/svg+xml,text/plain,*/*"
+            }
+          }
+        );
+
+
+      if (
+        !svgResponse.ok
+      ) {
+        throw new Error(
+          "Unable to download Pro SVG"
+        );
+      }
+
+
+      const svg =
+        await svgResponse.text();
+
+
+      const normalizedSvg =
+        String(
+          svg
+        ).trim();
+
+
+      if (
+        !normalizedSvg ||
+        !normalizedSvg
+          .toLowerCase()
+          .startsWith(
+            "<svg"
+          )
+      ) {
+        throw new Error(
+          "Invalid SVG asset"
+        );
+      }
+
+
+      proAssetCache.set(
+        assetId,
+        normalizedSvg
+      );
+
+
+      return normalizedSvg;
+    })();
+
+
+  proAssetPromises.set(
+    assetId,
+    promise
+  );
+
+
+  try {
+    return await promise;
+
+  } finally {
+    proAssetPromises.delete(
+      assetId
+    );
+  }
+}
+
+
+/* =========================================================
+   PRO ASSET PLACEHOLDERS
+   ========================================================= */
+
+function getProLoadingPreview() {
+  return `
+    <div
+      style="
+        width:30px;
+        height:30px;
+        border:1.5px solid currentColor;
+        border-radius:50%;
+        opacity:.28;
+      "
+      aria-hidden="true"
+    ></div>
+  `;
+}
+
+
+function getProLockedPreview() {
+  return `
+    <div
+      style="
+        width:34px;
+        height:34px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border:1px solid currentColor;
+        border-radius:999px;
+        opacity:.48;
+      "
+      aria-hidden="true"
+    >
+      ${getLockSvg()}
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   HYDRATE PRO ICON PREVIEWS
+   ========================================================= */
+
+async function hydrateProIconPreviews() {
+  if (
+    !isProUser()
+  ) {
+    return;
+  }
+
+
+  const nodes =
+    Array.from(
+      els.iconGrid.querySelectorAll(
+        "[data-pro-asset]"
+      )
+    );
+
+
+  if (
+    nodes.length === 0
+  ) {
+    return;
+  }
+
+
+  await Promise.all(
+    nodes.map(
+      async node => {
+        const assetId =
+          node.dataset.proAsset;
+
+        if (!assetId) {
+          return;
+        }
+
+
+        try {
+          const svg =
+            await getSecureProSvg(
+              assetId
+            );
+
+
+          if (
+            !node.isConnected
+          ) {
+            return;
+          }
+
+
+          node.innerHTML =
+            svg;
+
+          node.style.opacity =
+            "1";
+
+        } catch (error) {
+          console.error(
+            `Failed to load Pro asset ${assetId}:`,
+            error
+          );
+
+          if (
+            node.isConnected
+          ) {
+            node.innerHTML =
+              getProLoadingPreview();
+
+            node.style.opacity =
+              ".35";
+          }
+        }
+      }
+    )
+  );
 }
 
 
@@ -454,10 +748,6 @@ function updateProPlanUI() {
     return;
   }
 
-
-  /* -------------------------------------------------------
-     CHECKING
-     ------------------------------------------------------- */
 
   if (
     authenticated &&
@@ -491,10 +781,6 @@ function updateProPlanUI() {
     return;
   }
 
-
-  /* -------------------------------------------------------
-     PRO
-     ------------------------------------------------------- */
 
   if (
     isProUser()
@@ -531,10 +817,6 @@ function updateProPlanUI() {
   }
 
 
-  /* -------------------------------------------------------
-     FREE
-     ------------------------------------------------------- */
-
   els.proPlanBadge.textContent =
     "FREE";
 
@@ -560,6 +842,7 @@ function updateProPlanUI() {
     authenticated
       ? "View UAsset Pro"
       : "Login to UAsset Pro";
+
 
   if (
     els.proPlanBox
@@ -695,6 +978,14 @@ async function loadBillingStatus() {
     renderIcons(
       getSearchTerm()
     );
+
+
+    if (
+      isProUser()
+    ) {
+      hydrateProIconPreviews();
+    }
+
 
     return true;
 
@@ -846,7 +1137,7 @@ async function startProCheckout() {
 
 
 /* =========================================================
-   PREMIUM ACCESS
+   PREMIUM ACCESS API
    ========================================================= */
 
 function requirePro(
@@ -1020,6 +1311,7 @@ async function restoreSession() {
 
   try {
     return await restoringSession;
+
   } finally {
     restoringSession =
       null;
@@ -1169,8 +1461,30 @@ let activeCollection =
 let selectedIcon =
   null;
 
+let selectedIconSvg =
+  null;
+
 let activeCodeTab =
   "svg";
+
+
+/* =========================================================
+   PRO ICON IDS
+   ========================================================= */
+
+const PRO_ASSET_IDS =
+  new Set([
+    "calendar",
+    "history",
+    "edit",
+    "trash",
+    "download",
+    "upload",
+    "folder",
+    "heart",
+    "shield",
+    "info"
+  ]);
 
 
 /* =========================================================
@@ -1515,6 +1829,42 @@ function matchesIcon(
 
 
 /* =========================================================
+   ICON PREVIEW
+   ========================================================= */
+
+function getIconPreview(
+  icon
+) {
+  if (
+    isProIcon(icon)
+  ) {
+    if (
+      !isProUser()
+    ) {
+      return getProLockedPreview();
+    }
+
+
+    const cachedSvg =
+      proAssetCache.get(
+        icon.id
+      );
+
+
+    if (cachedSvg) {
+      return cachedSvg;
+    }
+
+
+    return getProLoadingPreview();
+  }
+
+
+  return icon.svg;
+}
+
+
+/* =========================================================
    ICON GRID
    ========================================================= */
 
@@ -1539,22 +1889,25 @@ function renderIcons(
             isProIcon(icon) &&
             !isProUser();
 
-          const lockOpacity =
+
+          const preview =
+            getIconPreview(
+              icon
+            );
+
+
+          const previewOpacity =
             locked
-              ? "opacity:.52;"
+              ? "opacity:.48;"
               : "";
 
-          const lockLabel =
-            locked
-              ? " · UAsset Pro required"
-              : "";
 
           return `
             <button
               type="button"
               class="icon-card"
               data-icon="${icon.id}"
-              aria-label="Open ${icon.name} icon${lockLabel}"
+              aria-label="Open ${icon.name}"
               style="position:relative;"
             >
 
@@ -1586,9 +1939,14 @@ function renderIcons(
 
               <div
                 class="icon-draw"
-                style="${lockOpacity}"
+                data-pro-asset="${
+                  isProIcon(icon)
+                    ? icon.id
+                    : ""
+                }"
+                style="${previewOpacity}"
               >
-                ${icon.svg}
+                ${preview}
               </div>
 
               <div>
@@ -1634,6 +1992,13 @@ function renderIcons(
         );
       }
     );
+
+
+  if (
+    isProUser()
+  ) {
+    hydrateProIconPreviews();
+  }
 }
 
 
@@ -1663,7 +2028,8 @@ function toComponentName(
 
 
 function getReactCode(
-  icon
+  icon,
+  svg
 ) {
   const componentName =
     toComponentName(
@@ -1672,7 +2038,7 @@ function getReactCode(
 
 
   return `const ${componentName} = () => (
-  ${icon.svg}
+  ${svg}
 );`;
 }
 
@@ -1682,9 +2048,29 @@ function getReactCode(
    ========================================================= */
 
 function getHtmlCode(
-  icon
+  svg
 ) {
-  return icon.svg;
+  return svg;
+}
+
+
+/* =========================================================
+   SELECTED SVG
+   ========================================================= */
+
+function getSelectedSvg() {
+  if (
+    !selectedIcon
+  ) {
+    return "";
+  }
+
+
+  return (
+    selectedIconSvg ||
+    selectedIcon.svg ||
+    ""
+  );
 }
 
 
@@ -1693,8 +2079,12 @@ function getHtmlCode(
    ========================================================= */
 
 function getActiveCode() {
+  const svg =
+    getSelectedSvg();
+
+
   if (
-    !selectedIcon
+    !svg
   ) {
     return "";
   }
@@ -1705,17 +2095,18 @@ function getActiveCode() {
   ) {
     case "react":
       return getReactCode(
-        selectedIcon
+        selectedIcon,
+        svg
       );
 
     case "html":
       return getHtmlCode(
-        selectedIcon
+        svg
       );
 
     case "svg":
     default:
-      return selectedIcon.svg;
+      return svg;
   }
 }
 
@@ -1724,7 +2115,7 @@ function getActiveCode() {
    OPEN ICON
    ========================================================= */
 
-function openIcon(
+async function openIcon(
   id
 ) {
   const icon =
@@ -1740,10 +2131,6 @@ function openIcon(
   }
 
 
-  /* -------------------------------------------------------
-     PRO ACCESS CHECK
-     ------------------------------------------------------- */
-
   if (
     !canAccessIcon(
       icon
@@ -1757,6 +2144,7 @@ function openIcon(
       return;
     }
 
+
     showToast(
       "UAsset Pro access required"
     );
@@ -1768,21 +2156,18 @@ function openIcon(
   selectedIcon =
     icon;
 
+  selectedIconSvg =
+    null;
+
   activeCodeTab =
     "svg";
-
-
-  els.iconPreview.innerHTML =
-    icon.svg;
 
 
   els.detailCategory.textContent =
     icon.category.toUpperCase();
 
-
   els.detailName.textContent =
     icon.name;
-
 
   els.detailDescription.textContent =
     icon.description;
@@ -1797,19 +2182,94 @@ function openIcon(
       .join("");
 
 
-  updateCodeTabs();
-
-  updateCodePanel();
-
-
   els.iconOverlay.classList.remove(
     "hidden"
   );
 
-
   document.body.classList.add(
     "modal-open"
   );
+
+
+  if (
+    isProIcon(icon)
+  ) {
+    els.iconPreview.innerHTML = `
+      <div
+        style="
+          width:42px;
+          height:42px;
+          border:1.5px solid currentColor;
+          border-radius:50%;
+          opacity:.25;
+        "
+        aria-hidden="true"
+      ></div>
+    `;
+
+
+    els.svgCode.textContent =
+      "Loading secure Pro asset...";
+
+
+    try {
+      const svg =
+        await getSecureProSvg(
+          icon.id
+        );
+
+
+      if (
+        selectedIcon?.id !==
+        icon.id
+      ) {
+        return;
+      }
+
+
+      selectedIconSvg =
+        svg;
+
+      els.iconPreview.innerHTML =
+        svg;
+
+      updateCodeTabs();
+      updateCodePanel();
+
+    } catch (error) {
+      console.error(
+        "Pro icon load failed:",
+        error
+      );
+
+      showToast(
+        error.message ||
+          "Unable to load Pro icon"
+      );
+
+      els.iconPreview.innerHTML =
+        getProLockedPreview();
+
+      els.svgCode.textContent =
+        "Unable to load secure Pro asset";
+    }
+
+
+    return;
+  }
+
+
+  selectedIconSvg =
+    icon.svg;
+
+
+  els.iconPreview.innerHTML =
+    icon.svg;
+
+
+  updateCodeTabs();
+
+  updateCodePanel();
 }
 
 
@@ -1914,6 +2374,24 @@ function closeOverlay(
 }
 
 
+document
+  .querySelectorAll(
+    "[data-close]"
+  )
+  .forEach(
+    button => {
+      button.addEventListener(
+        "click",
+        () => {
+          closeOverlay(
+            button.dataset.close
+          );
+        }
+      );
+    }
+  );
+
+
 /* =========================================================
    TOAST
    ========================================================= */
@@ -2016,7 +2494,13 @@ async function copyCurrentCode() {
     getActiveCode();
 
 
-  if (!code) {
+  if (
+    !code
+  ) {
+    showToast(
+      "Asset is still loading"
+    );
+
     return;
   }
 
@@ -2075,9 +2559,24 @@ function downloadSelectedSvg() {
   }
 
 
+  const svg =
+    getSelectedSvg();
+
+
+  if (
+    !svg
+  ) {
+    showToast(
+      "Asset is still loading"
+    );
+
+    return;
+  }
+
+
   const blob =
     new Blob(
-      [selectedIcon.svg],
+      [svg],
       {
         type:
           "image/svg+xml;charset=utf-8"
@@ -2112,6 +2611,7 @@ function downloadSelectedSvg() {
 
   link.click();
 
+
   link.remove();
 
 
@@ -2130,28 +2630,6 @@ els.downloadSvg.addEventListener(
   "click",
   downloadSelectedSvg
 );
-
-
-/* =========================================================
-   CLOSE BUTTONS
-   ========================================================= */
-
-document
-  .querySelectorAll(
-    "[data-close]"
-  )
-  .forEach(
-    button => {
-      button.addEventListener(
-        "click",
-        () => {
-          closeOverlay(
-            button.dataset.close
-          );
-        }
-      );
-    }
-  );
 
 
 /* =========================================================
