@@ -1,9 +1,10 @@
 /* =========================================================
-   UASSET PRO ASSET
+   UASSET PRO ASSET API
    Bean authentication
    UAsset Pro verification
    Rate limiting
    Private Supabase signed URL
+   Production security
    ========================================================= */
 
 const ACCOUNTS_SESSION_URL =
@@ -17,6 +18,9 @@ const RATE_LIMIT =
 
 const RATE_WINDOW_SECONDS =
   60;
+
+const SIGNED_URL_SECONDS =
+  600;
 
 
 /* =========================================================
@@ -38,7 +42,7 @@ const PRO_ASSETS = new Set([
 
 
 /* =========================================================
-   HELPERS
+   ENVIRONMENT
    ========================================================= */
 
 function getRequiredEnv(name) {
@@ -59,7 +63,7 @@ function getRequiredEnv(name) {
 
 
 /* =========================================================
-   GET BEAN USER
+   BEAN SESSION
    ========================================================= */
 
 async function getBeanUser(req) {
@@ -74,8 +78,7 @@ async function getBeanUser(req) {
     await fetch(
       ACCOUNTS_SESSION_URL,
       {
-        method:
-          "GET",
+        method: "GET",
 
         headers: {
           Accept:
@@ -126,13 +129,11 @@ async function checkRateLimit(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
 
-
   const response =
     await fetch(
       `${supabaseUrl}/rest/v1/rpc/uasset_rate_limit`,
       {
-        method:
-          "POST",
+        method: "POST",
 
         headers: {
           apikey:
@@ -165,14 +166,12 @@ async function checkRateLimit(
       }
     );
 
-
   const data =
     await response
       .json()
       .catch(
         () => null
       );
-
 
   if (
     !response.ok
@@ -187,13 +186,12 @@ async function checkRateLimit(
     );
   }
 
-
   return data === true;
 }
 
 
 /* =========================================================
-   CHECK UASSET PRO
+   GET PRO SUBSCRIPTION
    ========================================================= */
 
 async function getProSubscription(
@@ -221,10 +219,8 @@ async function getProSubscription(
     ).toLowerCase() ===
     "true";
 
-
   const query =
     new URLSearchParams();
-
 
   query.set(
     "select",
@@ -238,49 +234,41 @@ async function getProSubscription(
     ].join(",")
   );
 
-
   query.set(
     "bean_user_id",
     `eq.${beanUserId}`
   );
-
 
   query.set(
     "provider",
     "eq.lemonsqueezy"
   );
 
-
   query.set(
     "variant_id",
     `eq.${variantId}`
   );
-
 
   query.set(
     "test_mode",
     `eq.${testMode}`
   );
 
-
   query.set(
     "order",
     "updated_at.desc"
   );
-
 
   query.set(
     "limit",
     "1"
   );
 
-
   const response =
     await fetch(
       `${supabaseUrl}/rest/v1/uasset_subscriptions?${query.toString()}`,
       {
-        method:
-          "GET",
+        method: "GET",
 
         headers: {
           apikey:
@@ -298,14 +286,12 @@ async function getProSubscription(
       }
     );
 
-
   const data =
     await response
       .json()
       .catch(
         () => null
       );
-
 
   if (
     !response.ok
@@ -319,7 +305,6 @@ async function getProSubscription(
       "Subscription lookup failed"
     );
   }
-
 
   return Array.isArray(data)
     ? data[0] || null
@@ -338,6 +323,10 @@ function isProActive(
     return false;
   }
 
+  /*
+    Cancelled subscriptions remain active
+    until their ends_at date.
+  */
 
   if (
     subscription.cancelled ===
@@ -349,12 +338,10 @@ function isProActive(
       return false;
     }
 
-
     const endsAt =
       new Date(
         subscription.ends_at
       ).getTime();
-
 
     return (
       !Number.isNaN(
@@ -365,13 +352,11 @@ function isProActive(
     );
   }
 
-
   const status =
     String(
       subscription.status ||
         ""
     ).toLowerCase();
-
 
   if (
     status !== "active" &&
@@ -380,7 +365,6 @@ function isProActive(
     return false;
   }
 
-
   if (
     subscription.ends_at
   ) {
@@ -388,7 +372,6 @@ function isProActive(
       new Date(
         subscription.ends_at
       ).getTime();
-
 
     if (
       !Number.isNaN(
@@ -400,7 +383,6 @@ function isProActive(
       return false;
     }
   }
-
 
   return true;
 }
@@ -423,25 +405,14 @@ async function createSignedUrl(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
 
-
   const filePath =
     `${assetId}.svg`;
-
-
-  /*
-    Signed URL is valid for 10 minutes.
-  */
-
-  const expiresIn =
-    600;
-
 
   const response =
     await fetch(
       `${supabaseUrl}/storage/v1/object/sign/${BUCKET_NAME}/${encodeURIComponent(filePath)}`,
       {
-        method:
-          "POST",
+        method: "POST",
 
         headers: {
           apikey:
@@ -451,16 +422,22 @@ async function createSignedUrl(
             `Bearer ${serviceRoleKey}`,
 
           "Content-Type":
+            "application/json",
+
+          Accept:
             "application/json"
         },
 
         body:
           JSON.stringify({
-            expiresIn
-          })
+            expiresIn:
+              SIGNED_URL_SECONDS
+          }),
+
+        cache:
+          "no-store"
       }
     );
-
 
   const data =
     await response
@@ -468,7 +445,6 @@ async function createSignedUrl(
       .catch(
         () => null
       );
-
 
   if (
     !response.ok
@@ -483,14 +459,14 @@ async function createSignedUrl(
     );
   }
 
-
   const signedPath =
     data?.signedURL ||
     data?.signedUrl ||
     data?.signed_url;
 
-
-  if (!signedPath) {
+  if (
+    !signedPath
+  ) {
     console.error(
       "Supabase signed URL missing:",
       data
@@ -501,18 +477,24 @@ async function createSignedUrl(
     );
   }
 
-
   const signedUrl =
     signedPath.startsWith(
       "http"
     )
       ? signedPath
-      : `${supabaseUrl}/storage/v1${signedPath.startsWith("/") ? "" : "/"}${signedPath.replace(/^\/storage\/v1/, "")}`;
-
+      : `${supabaseUrl}/storage/v1${
+          signedPath.startsWith("/")
+            ? ""
+            : "/"
+        }${signedPath.replace(
+          /^\/storage\/v1/,
+          ""
+        )}`;
 
   return {
     signedUrl,
-    expiresIn
+    expiresIn:
+      SIGNED_URL_SECONDS
   };
 }
 
@@ -525,14 +507,29 @@ export default async function handler(
   req,
   res
 ) {
+  /*
+    Never allow browser/CDN caching of
+    authenticated Pro responses.
+  */
+
   res.setHeader(
     "Cache-Control",
-    "no-store"
+    "no-store, private"
   );
 
   res.setHeader(
     "X-Content-Type-Options",
     "nosniff"
+  );
+
+  res.setHeader(
+    "Referrer-Policy",
+    "no-referrer"
+  );
+
+  res.setHeader(
+    "X-Frame-Options",
+    "DENY"
   );
 
 
@@ -569,7 +566,6 @@ export default async function handler(
     )
       .trim()
       .toLowerCase();
-
 
   if (
     !PRO_ASSETS.has(
@@ -636,7 +632,6 @@ export default async function handler(
     `uasset:pro:${String(
       user.id
     )}`;
-
 
   let allowed;
 
@@ -742,7 +737,6 @@ export default async function handler(
       await createSignedUrl(
         assetId
       );
-
 
     return res
       .status(200)
