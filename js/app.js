@@ -1,6 +1,7 @@
 /* =========================================================
    UASSET — js/app.js
    Step 10: Production Hardening
+   + error.message surfaced in Pro icon modal
    ========================================================= */
 
 const els = {
@@ -108,8 +109,6 @@ const proAssetPromises = new Map();
 
 /* =========================================================
    PRO ASSET RATE-LIMIT STATE
-   ---------------------------------------------------------
-   Step 10: 429 par automatic retry nahi karni.
    ========================================================= */
 
 let proAssetRateLimited = false;
@@ -270,14 +269,6 @@ function getProBadge(icon) {
 
 /* =========================================================
    SECURE PRO SVG LOADER
-   ---------------------------------------------------------
-   Step 10:
-   - credentials: "include"
-   - cache: "no-store"
-   - 401 → session expired
-   - 403 → Pro required
-   - 429 → rate limited (no retry)
-   - 5xx → service unavailable
    ========================================================= */
 
 async function getSecureProSvg(assetId) {
@@ -285,12 +276,10 @@ async function getSecureProSvg(assetId) {
     throw new Error("Invalid Pro asset");
   }
 
-  /* Step 10: unauthorized state mein cache reuse nahi */
   if (!isProUser()) {
     throw new Error(PRO_ASSET_FORBIDDEN_MESSAGE);
   }
 
-  /* Step 10: 429 ke baad dobara automatic request nahi */
   if (proAssetRateLimited) {
     throw new Error(PRO_ASSET_RATE_LIMIT_MESSAGE);
   }
@@ -313,8 +302,6 @@ async function getSecureProSvg(assetId) {
         headers: { Accept: "application/json" }
       }
     );
-
-    /* ---- Step 10: HTTP status hardening ---- */
 
     if (response.status === 429) {
       proAssetRateLimited = true;
@@ -428,10 +415,6 @@ function getProLockedPreview() {
 
 /* =========================================================
    HYDRATE PRO ICON PREVIEWS
-   ---------------------------------------------------------
-   Step 10:
-   - Sequential processing (rate-limit friendly)
-   - 429 par loop break
    ========================================================= */
 
 async function hydrateProIconPreviews() {
@@ -545,12 +528,6 @@ function updateProPlanUI() {
 
 /* =========================================================
    LOAD BILLING STATUS
-   ---------------------------------------------------------
-   Step 10:
-   - credentials: "include"
-   - cache: "no-store"
-   - server se pro === true
-   - failure par cache reset
    ========================================================= */
 
 async function loadBillingStatus() {
@@ -618,10 +595,6 @@ async function loadBillingStatus() {
 
 /* =========================================================
    CREATE PRO CHECKOUT
-   ---------------------------------------------------------
-   Step 10:
-   - No Lemon Squeezy secret in frontend
-   - Server endpoint hi use hota hai
    ========================================================= */
 
 async function startProCheckout() {
@@ -1255,6 +1228,9 @@ function getActiveCode() {
 
 /* =========================================================
    OPEN ICON
+   ---------------------------------------------------------
+   FIX: catch block ab actual error.message surface karta
+   hai taake root cause visible ho.
    ========================================================= */
 
 async function openIcon(id) {
@@ -1325,9 +1301,15 @@ async function openIcon(id) {
       );
 
       els.iconPreview.innerHTML = getProLockedPreview();
-      els.svgCode.textContent = proAssetRateLimited
-        ? PRO_ASSET_RATE_LIMIT_MESSAGE
-        : "Unable to load secure Pro asset";
+
+      /* ✅ FIX: actual error message surface karo */
+      els.svgCode.textContent =
+        proAssetRateLimited
+          ? PRO_ASSET_RATE_LIMIT_MESSAGE
+          : (
+              error?.message ||
+              "Unable to load secure Pro asset"
+            );
     }
 
     return;
@@ -1444,10 +1426,6 @@ els.librarySearch.addEventListener("input", () => {
 
 /* =========================================================
    COPY CODE
-   ---------------------------------------------------------
-   Step 10:
-   - canAccessIcon(icon) check
-   - Pro SVG load hone tak copy nahi
    ========================================================= */
 
 async function copyCurrentCode() {
@@ -1485,10 +1463,6 @@ els.copySvg.addEventListener("click", copyCurrentCode);
 
 /* =========================================================
    DOWNLOAD SVG
-   ---------------------------------------------------------
-   Step 10:
-   - canAccessIcon(icon) check
-   - Pro SVG load hone tak download nahi
    ========================================================= */
 
 function downloadSelectedSvg() {
