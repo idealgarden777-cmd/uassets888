@@ -5,6 +5,7 @@
    Rate limiting
    Private Supabase signed URL
    Production security
+   Detailed asset error reporting
    ========================================================= */
 
 const ACCOUNTS_SESSION_URL =
@@ -63,6 +64,24 @@ function getRequiredEnv(name) {
 
 
 /* =========================================================
+   PUBLIC ERROR HELPER
+   ========================================================= */
+
+function createAssetError(
+  message,
+  code
+) {
+  const error =
+    new Error(message);
+
+  error.code =
+    code;
+
+  return error;
+}
+
+
+/* =========================================================
    BEAN SESSION
    ========================================================= */
 
@@ -78,7 +97,8 @@ async function getBeanUser(req) {
     await fetch(
       ACCOUNTS_SESSION_URL,
       {
-        method: "GET",
+        method:
+          "GET",
 
         headers: {
           Accept:
@@ -133,7 +153,8 @@ async function checkRateLimit(
     await fetch(
       `${supabaseUrl}/rest/v1/rpc/uasset_rate_limit`,
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           apikey:
@@ -178,7 +199,16 @@ async function checkRateLimit(
   ) {
     console.error(
       "UAsset rate limit check failed:",
-      data
+      {
+        status:
+          response.status,
+
+        statusText:
+          response.statusText,
+
+        response:
+          data
+      }
     );
 
     throw new Error(
@@ -222,6 +252,7 @@ async function getProSubscription(
   const query =
     new URLSearchParams();
 
+
   query.set(
     "select",
     [
@@ -234,41 +265,49 @@ async function getProSubscription(
     ].join(",")
   );
 
+
   query.set(
     "bean_user_id",
     `eq.${beanUserId}`
   );
+
 
   query.set(
     "provider",
     "eq.lemonsqueezy"
   );
 
+
   query.set(
     "variant_id",
     `eq.${variantId}`
   );
+
 
   query.set(
     "test_mode",
     `eq.${testMode}`
   );
 
+
   query.set(
     "order",
     "updated_at.desc"
   );
+
 
   query.set(
     "limit",
     "1"
   );
 
+
   const response =
     await fetch(
       `${supabaseUrl}/rest/v1/uasset_subscriptions?${query.toString()}`,
       {
-        method: "GET",
+        method:
+          "GET",
 
         headers: {
           apikey:
@@ -286,6 +325,7 @@ async function getProSubscription(
       }
     );
 
+
   const data =
     await response
       .json()
@@ -293,12 +333,22 @@ async function getProSubscription(
         () => null
       );
 
+
   if (
     !response.ok
   ) {
     console.error(
       "UAsset Pro subscription lookup failed:",
-      data
+      {
+        status:
+          response.status,
+
+        statusText:
+          response.statusText,
+
+        response:
+          data
+      }
     );
 
     throw new Error(
@@ -306,7 +356,10 @@ async function getProSubscription(
     );
   }
 
-  return Array.isArray(data)
+
+  return Array.isArray(
+    data
+  )
     ? data[0] || null
     : null;
 }
@@ -322,6 +375,7 @@ function isProActive(
   if (!subscription) {
     return false;
   }
+
 
   /*
     Cancelled subscriptions remain active
@@ -352,18 +406,23 @@ function isProActive(
     );
   }
 
+
   const status =
     String(
       subscription.status ||
         ""
     ).toLowerCase();
 
+
   if (
-    status !== "active" &&
-    status !== "on_trial"
+    status !==
+      "active" &&
+    status !==
+      "on_trial"
   ) {
     return false;
   }
+
 
   if (
     subscription.ends_at
@@ -383,6 +442,7 @@ function isProActive(
       return false;
     }
   }
+
 
   return true;
 }
@@ -405,14 +465,17 @@ async function createSignedUrl(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
 
+
   const filePath =
     `${assetId}.svg`;
+
 
   const response =
     await fetch(
       `${supabaseUrl}/storage/v1/object/sign/${BUCKET_NAME}/${encodeURIComponent(filePath)}`,
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           apikey:
@@ -439,6 +502,7 @@ async function createSignedUrl(
       }
     );
 
+
   const data =
     await response
       .json()
@@ -446,53 +510,121 @@ async function createSignedUrl(
         () => null
       );
 
+
+  /* =======================================================
+     STORAGE ERROR
+     ======================================================= */
+
   if (
     !response.ok
   ) {
     console.error(
       "Supabase signed URL creation failed:",
-      data
+      {
+        assetId,
+
+        status:
+          response.status,
+
+        statusText:
+          response.statusText,
+
+        response:
+          data
+      }
     );
 
-    throw new Error(
-      "Failed to create signed asset URL"
+
+    if (
+      response.status ===
+      404
+    ) {
+      throw createAssetError(
+        "Pro asset file not found in secure storage",
+        "ASSET_NOT_FOUND"
+      );
+    }
+
+
+    if (
+      response.status ===
+        401 ||
+      response.status ===
+        403
+    ) {
+      throw createAssetError(
+        "Pro asset storage authorization failed",
+        "ASSET_STORAGE_AUTH"
+      );
+    }
+
+
+    throw createAssetError(
+      `Secure Pro asset signing failed (${response.status})`,
+      "ASSET_SIGN_FAILED"
     );
   }
+
+
+  /* =======================================================
+     SIGNED URL RESPONSE
+     ======================================================= */
 
   const signedPath =
     data?.signedURL ||
     data?.signedUrl ||
     data?.signed_url;
 
+
   if (
     !signedPath
   ) {
     console.error(
       "Supabase signed URL missing:",
-      data
+      {
+        assetId,
+
+        response:
+          data
+      }
     );
 
-    throw new Error(
-      "Signed URL was not returned"
+
+    throw createAssetError(
+      "Secure Pro asset URL was not returned",
+      "ASSET_SIGN_URL_MISSING"
     );
   }
 
+
+  /* =======================================================
+     BUILD FINAL URL
+     ======================================================= */
+
   const signedUrl =
-    signedPath.startsWith(
+    String(
+      signedPath
+    ).startsWith(
       "http"
     )
       ? signedPath
       : `${supabaseUrl}/storage/v1${
-          signedPath.startsWith("/")
+          String(
+            signedPath
+          ).startsWith("/")
             ? ""
             : "/"
-        }${signedPath.replace(
+        }${String(
+          signedPath
+        ).replace(
           /^\/storage\/v1/,
           ""
         )}`;
 
+
   return {
     signedUrl,
+
     expiresIn:
       SIGNED_URL_SECONDS
   };
@@ -507,10 +639,9 @@ export default async function handler(
   req,
   res
 ) {
-  /*
-    Never allow browser/CDN caching of
-    authenticated Pro responses.
-  */
+  /* =======================================================
+     SECURITY HEADERS
+     ======================================================= */
 
   res.setHeader(
     "Cache-Control",
@@ -567,6 +698,7 @@ export default async function handler(
       .trim()
       .toLowerCase();
 
+
   if (
     !PRO_ASSETS.has(
       assetId
@@ -575,8 +707,14 @@ export default async function handler(
     return res
       .status(404)
       .json({
+        success:
+          false,
+
         error:
-          "Pro asset not found"
+          "Pro asset not found",
+
+        code:
+          "INVALID_ASSET"
       });
   }
 
@@ -586,6 +724,7 @@ export default async function handler(
      ======================================================= */
 
   let user;
+
 
   try {
     user =
@@ -602,8 +741,17 @@ export default async function handler(
     return res
       .status(502)
       .json({
+        success:
+          false,
+
+        authenticated:
+          false,
+
         error:
-          "Unable to verify Bean account"
+          "Unable to verify Bean account",
+
+        code:
+          "BEAN_SESSION_ERROR"
       });
   }
 
@@ -612,6 +760,9 @@ export default async function handler(
     return res
       .status(401)
       .json({
+        success:
+          false,
+
         authenticated:
           false,
 
@@ -619,7 +770,10 @@ export default async function handler(
           false,
 
         error:
-          "Login with Bean ID required"
+          "Login with Bean ID required",
+
+        code:
+          "AUTH_REQUIRED"
       });
   }
 
@@ -633,7 +787,9 @@ export default async function handler(
       user.id
     )}`;
 
+
   let allowed;
+
 
   try {
     allowed =
@@ -650,23 +806,9 @@ export default async function handler(
     return res
       .status(503)
       .json({
-        error:
-          "Asset service temporarily unavailable"
-      });
-  }
+        success:
+          false,
 
-
-  if (!allowed) {
-    res.setHeader(
-      "Retry-After",
-      String(
-        RATE_WINDOW_SECONDS
-      )
-    );
-
-    return res
-      .status(429)
-      .json({
         authenticated:
           true,
 
@@ -674,7 +816,42 @@ export default async function handler(
           false,
 
         error:
-          "Too many Pro asset requests. Please try again shortly."
+          "Asset service temporarily unavailable",
+
+        code:
+          "RATE_LIMIT_SERVICE_ERROR"
+      });
+  }
+
+
+  if (
+    !allowed
+  ) {
+    res.setHeader(
+      "Retry-After",
+      String(
+        RATE_WINDOW_SECONDS
+      )
+    );
+
+
+    return res
+      .status(429)
+      .json({
+        success:
+          false,
+
+        authenticated:
+          true,
+
+        pro:
+          false,
+
+        error:
+          "Too many Pro asset requests. Please try again shortly.",
+
+        code:
+          "RATE_LIMITED"
       });
   }
 
@@ -684,6 +861,7 @@ export default async function handler(
      ======================================================= */
 
   let subscription;
+
 
   try {
     subscription =
@@ -700,8 +878,20 @@ export default async function handler(
     return res
       .status(500)
       .json({
+        success:
+          false,
+
+        authenticated:
+          true,
+
+        pro:
+          false,
+
         error:
-          "Unable to verify UAsset Pro"
+          "Unable to verify UAsset Pro",
+
+        code:
+          "PRO_STATUS_ERROR"
       });
   }
 
@@ -716,6 +906,9 @@ export default async function handler(
     return res
       .status(403)
       .json({
+        success:
+          false,
+
         authenticated:
           true,
 
@@ -723,7 +916,10 @@ export default async function handler(
           false,
 
         error:
-          "UAsset Pro access required"
+          "UAsset Pro access required",
+
+        code:
+          "PRO_ACCESS_REQUIRED"
       });
   }
 
@@ -737,6 +933,7 @@ export default async function handler(
       await createSignedUrl(
         assetId
       );
+
 
     return res
       .status(200)
@@ -760,13 +957,45 @@ export default async function handler(
   } catch (error) {
     console.error(
       "UAsset Pro asset delivery failed:",
-      error
+      {
+        assetId,
+
+        code:
+          error?.code ||
+          "PRO_ASSET_DELIVERY_FAILED",
+
+        message:
+          error?.message ||
+          error
+      }
     );
 
+
+    const statusCode =
+      error?.code ===
+        "ASSET_NOT_FOUND"
+        ? 404
+        : 500;
+
+
     return res
-      .status(500)
+      .status(statusCode)
       .json({
+        success:
+          false,
+
+        pro:
+          true,
+
+        asset:
+          assetId,
+
+        code:
+          error?.code ||
+          "PRO_ASSET_DELIVERY_FAILED",
+
         error:
+          error?.message ||
           "Unable to load Pro asset"
       });
   }
