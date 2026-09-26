@@ -1,7 +1,9 @@
 /* =========================================================
    UASSET PRO ASSET
-   Verifies Bean + UAsset Pro and returns a short-lived
-   signed URL for one approved Pro SVG.
+   Bean authentication
+   UAsset Pro verification
+   Rate limiting
+   Private Supabase signed URL
    ========================================================= */
 
 const ACCOUNTS_SESSION_URL =
@@ -9,6 +11,12 @@ const ACCOUNTS_SESSION_URL =
 
 const BUCKET_NAME =
   "uasset-pro";
+
+const RATE_LIMIT =
+  60;
+
+const RATE_WINDOW_SECONDS =
+  60;
 
 
 /* =========================================================
@@ -98,6 +106,89 @@ async function getBeanUser(req) {
   }
 
   return data.user;
+}
+
+
+/* =========================================================
+   RATE LIMIT
+   ========================================================= */
+
+async function checkRateLimit(
+  rateKey
+) {
+  const supabaseUrl =
+    getRequiredEnv(
+      "SUPABASE_URL"
+    );
+
+  const serviceRoleKey =
+    getRequiredEnv(
+      "SUPABASE_SERVICE_ROLE_KEY"
+    );
+
+
+  const response =
+    await fetch(
+      `${supabaseUrl}/rest/v1/rpc/uasset_rate_limit`,
+      {
+        method:
+          "POST",
+
+        headers: {
+          apikey:
+            serviceRoleKey,
+
+          Authorization:
+            `Bearer ${serviceRoleKey}`,
+
+          "Content-Type":
+            "application/json",
+
+          Accept:
+            "application/json"
+        },
+
+        body:
+          JSON.stringify({
+            p_rate_key:
+              rateKey,
+
+            p_limit:
+              RATE_LIMIT,
+
+            p_window_seconds:
+              RATE_WINDOW_SECONDS
+          }),
+
+        cache:
+          "no-store"
+      }
+    );
+
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
+      );
+
+
+  if (
+    !response.ok
+  ) {
+    console.error(
+      "UAsset rate limit check failed:",
+      data
+    );
+
+    throw new Error(
+      "Rate limit service unavailable"
+    );
+  }
+
+
+  return data === true;
 }
 
 
@@ -216,7 +307,9 @@ async function getProSubscription(
       );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
     console.error(
       "UAsset Pro subscription lookup failed:",
       data
@@ -250,17 +343,23 @@ function isProActive(
     subscription.cancelled ===
     true
   ) {
-    if (!subscription.ends_at) {
+    if (
+      !subscription.ends_at
+    ) {
       return false;
     }
+
 
     const endsAt =
       new Date(
         subscription.ends_at
       ).getTime();
 
+
     return (
-      !Number.isNaN(endsAt) &&
+      !Number.isNaN(
+        endsAt
+      ) &&
       endsAt >
         Date.now()
     );
@@ -274,10 +373,36 @@ function isProActive(
     ).toLowerCase();
 
 
-  return (
-    status === "active" ||
-    status === "on_trial"
-  );
+  if (
+    status !== "active" &&
+    status !== "on_trial"
+  ) {
+    return false;
+  }
+
+
+  if (
+    subscription.ends_at
+  ) {
+    const endsAt =
+      new Date(
+        subscription.ends_at
+      ).getTime();
+
+
+    if (
+      !Number.isNaN(
+        endsAt
+      ) &&
+      endsAt <=
+        Date.now()
+    ) {
+      return false;
+    }
+  }
+
+
+  return true;
 }
 
 
@@ -298,12 +423,13 @@ async function createSignedUrl(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
 
+
   const filePath =
     `${assetId}.svg`;
 
+
   /*
-    10 minutes.
-    The browser only receives a temporary signed URL.
+    Signed URL is valid for 10 minutes.
   */
 
   const expiresIn =
@@ -344,7 +470,9 @@ async function createSignedUrl(
       );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
     console.error(
       "Supabase signed URL creation failed:",
       data
@@ -402,6 +530,15 @@ export default async function handler(
     "no-store"
   );
 
+  res.setHeader(
+    "X-Content-Type-Options",
+    "nosniff"
+  );
+
+
+  /* =======================================================
+     METHOD
+     ======================================================= */
 
   if (
     req.method !==
@@ -423,8 +560,6 @@ export default async function handler(
 
   /* =======================================================
      ASSET ID
-     Example:
-     /api/assets/pro?id=calendar
      ======================================================= */
 
   const assetId =
@@ -489,6 +624,62 @@ export default async function handler(
 
         error:
           "Login with Bean ID required"
+      });
+  }
+
+
+  /* =======================================================
+     RATE LIMIT
+     ======================================================= */
+
+  const rateKey =
+    `uasset:pro:${String(
+      user.id
+    )}`;
+
+
+  let allowed;
+
+  try {
+    allowed =
+      await checkRateLimit(
+        rateKey
+      );
+
+  } catch (error) {
+    console.error(
+      "UAsset rate limit error:",
+      error
+    );
+
+    return res
+      .status(503)
+      .json({
+        error:
+          "Asset service temporarily unavailable"
+      });
+  }
+
+
+  if (!allowed) {
+    res.setHeader(
+      "Retry-After",
+      String(
+        RATE_WINDOW_SECONDS
+      )
+    );
+
+    return res
+      .status(429)
+      .json({
+        authenticated:
+          true,
+
+        pro:
+          false,
+
+        error:
+          "Too many Pro asset requests. Please try again shortly."
       });
   }
 
