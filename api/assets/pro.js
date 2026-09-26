@@ -1,13 +1,32 @@
 /* =========================================================
-   UASSET PRO ASSET ACCESS
-   Server-side Pro authorization endpoint.
+   UASSET PRO ASSET
+   Verifies Bean + UAsset Pro and returns a short-lived
+   signed URL for one approved Pro SVG.
    ========================================================= */
 
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
-const SUPABASE_TABLE =
-  "uasset_subscriptions";
+const BUCKET_NAME =
+  "uasset-pro";
+
+
+/* =========================================================
+   ALLOWED PRO ASSETS
+   ========================================================= */
+
+const PRO_ASSETS = new Set([
+  "calendar",
+  "history",
+  "edit",
+  "trash",
+  "download",
+  "upload",
+  "folder",
+  "heart",
+  "shield",
+  "info"
+]);
 
 
 /* =========================================================
@@ -47,7 +66,8 @@ async function getBeanUser(req) {
     await fetch(
       ACCOUNTS_SESSION_URL,
       {
-        method: "GET",
+        method:
+          "GET",
 
         headers: {
           Accept:
@@ -82,7 +102,7 @@ async function getBeanUser(req) {
 
 
 /* =========================================================
-   GET PRO SUBSCRIPTION
+   CHECK UASSET PRO
    ========================================================= */
 
 async function getProSubscription(
@@ -166,7 +186,7 @@ async function getProSubscription(
 
   const response =
     await fetch(
-      `${supabaseUrl}/rest/v1/${SUPABASE_TABLE}?${query.toString()}`,
+      `${supabaseUrl}/rest/v1/uasset_subscriptions?${query.toString()}`,
       {
         method:
           "GET",
@@ -215,7 +235,7 @@ async function getProSubscription(
 
 
 /* =========================================================
-   CHECK ACTIVE PRO
+   ACTIVE PRO CHECK
    ========================================================= */
 
 function isProActive(
@@ -230,9 +250,7 @@ function isProActive(
     subscription.cancelled ===
     true
   ) {
-    if (
-      !subscription.ends_at
-    ) {
+    if (!subscription.ends_at) {
       return false;
     }
 
@@ -242,9 +260,7 @@ function isProActive(
       ).getTime();
 
     return (
-      !Number.isNaN(
-        endsAt
-      ) &&
+      !Number.isNaN(endsAt) &&
       endsAt >
         Date.now()
     );
@@ -262,6 +278,114 @@ function isProActive(
     status === "active" ||
     status === "on_trial"
   );
+}
+
+
+/* =========================================================
+   CREATE SIGNED URL
+   ========================================================= */
+
+async function createSignedUrl(
+  assetId
+) {
+  const supabaseUrl =
+    getRequiredEnv(
+      "SUPABASE_URL"
+    );
+
+  const serviceRoleKey =
+    getRequiredEnv(
+      "SUPABASE_SERVICE_ROLE_KEY"
+    );
+
+  const filePath =
+    `${assetId}.svg`;
+
+  /*
+    10 minutes.
+    The browser only receives a temporary signed URL.
+  */
+
+  const expiresIn =
+    600;
+
+
+  const response =
+    await fetch(
+      `${supabaseUrl}/storage/v1/object/sign/${BUCKET_NAME}/${encodeURIComponent(filePath)}`,
+      {
+        method:
+          "POST",
+
+        headers: {
+          apikey:
+            serviceRoleKey,
+
+          Authorization:
+            `Bearer ${serviceRoleKey}`,
+
+          "Content-Type":
+            "application/json"
+        },
+
+        body:
+          JSON.stringify({
+            expiresIn
+          })
+      }
+    );
+
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
+      );
+
+
+  if (!response.ok) {
+    console.error(
+      "Supabase signed URL creation failed:",
+      data
+    );
+
+    throw new Error(
+      "Failed to create signed asset URL"
+    );
+  }
+
+
+  const signedPath =
+    data?.signedURL ||
+    data?.signedUrl ||
+    data?.signed_url;
+
+
+  if (!signedPath) {
+    console.error(
+      "Supabase signed URL missing:",
+      data
+    );
+
+    throw new Error(
+      "Signed URL was not returned"
+    );
+  }
+
+
+  const signedUrl =
+    signedPath.startsWith(
+      "http"
+    )
+      ? signedPath
+      : `${supabaseUrl}/storage/v1${signedPath.startsWith("/") ? "" : "/"}${signedPath.replace(/^\/storage\/v1/, "")}`;
+
+
+  return {
+    signedUrl,
+    expiresIn
+  };
 }
 
 
@@ -298,7 +422,36 @@ export default async function handler(
 
 
   /* =======================================================
-     AUTH
+     ASSET ID
+     Example:
+     /api/assets/pro?id=calendar
+     ======================================================= */
+
+  const assetId =
+    String(
+      req.query?.id ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (
+    !PRO_ASSETS.has(
+      assetId
+    )
+  ) {
+    return res
+      .status(404)
+      .json({
+        error:
+          "Pro asset not found"
+      });
+  }
+
+
+  /* =======================================================
+     AUTHENTICATION
      ======================================================= */
 
   let user;
@@ -341,7 +494,7 @@ export default async function handler(
 
 
   /* =======================================================
-     PRO CHECK
+     PRO STATUS
      ======================================================= */
 
   let subscription;
@@ -354,7 +507,7 @@ export default async function handler(
 
   } catch (error) {
     console.error(
-      "Pro access check failed:",
+      "UAsset Pro check failed:",
       error
     );
 
@@ -373,24 +526,63 @@ export default async function handler(
     );
 
 
+  if (!pro) {
+    return res
+      .status(403)
+      .json({
+        authenticated:
+          true,
+
+        pro:
+          false,
+
+        error:
+          "UAsset Pro access required"
+      });
+  }
+
+
   /* =======================================================
-     RESPONSE
+     SIGNED ASSET URL
      ======================================================= */
 
-  return res
-    .status(200)
-    .json({
-      authenticated:
-        true,
+  try {
+    const result =
+      await createSignedUrl(
+        assetId
+      );
 
-      pro,
 
-      plan:
-        pro
-          ? "pro"
-          : "free",
+    return res
+      .status(200)
+      .json({
+        success:
+          true,
 
-      userId:
-        user.id
-    });
+        pro:
+          true,
+
+        asset:
+          assetId,
+
+        url:
+          result.signedUrl,
+
+        expiresIn:
+          result.expiresIn
+      });
+
+  } catch (error) {
+    console.error(
+      "UAsset Pro asset delivery failed:",
+      error
+    );
+
+    return res
+      .status(500)
+      .json({
+        error:
+          "Unable to load Pro asset"
+      });
+  }
 }
