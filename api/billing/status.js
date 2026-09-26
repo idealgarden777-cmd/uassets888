@@ -1,7 +1,9 @@
 /* =========================================================
-   UASSET / BILLING STATUS
-   Identity comes from central Bean Accounts.
-   Billing data belongs to UAsset.
+   UASSET / BILLING STATUS API
+   Bean authentication
+   Lemon Squeezy subscription status
+   Supabase billing data
+   Production security
    ========================================================= */
 
 const ACCOUNTS_SESSION_URL =
@@ -12,7 +14,7 @@ const SUPABASE_TABLE =
 
 
 /* =========================================================
-   HELPERS
+   ENVIRONMENT
    ========================================================= */
 
 function getRequiredEnv(name) {
@@ -33,7 +35,7 @@ function getRequiredEnv(name) {
 
 
 /* =========================================================
-   BEAN USER
+   BEAN SESSION
    ========================================================= */
 
 async function getBeanUser(req) {
@@ -83,7 +85,7 @@ async function getBeanUser(req) {
 
 
 /* =========================================================
-   CHECK ACTIVE SUBSCRIPTION
+   ACTIVE SUBSCRIPTION CHECK
    ========================================================= */
 
 function isSubscriptionActive(
@@ -104,8 +106,9 @@ function isSubscriptionActive(
 
 
   /* -------------------------------------------------------
-     Cancelled subscription:
-     access continues until ends_at.
+     CANCELLED SUBSCRIPTION
+
+     User keeps Pro access until ends_at.
      ------------------------------------------------------- */
 
   if (
@@ -139,7 +142,7 @@ function isSubscriptionActive(
 
 
   /* -------------------------------------------------------
-     Standard active states
+     ACTIVE / TRIAL
      ------------------------------------------------------- */
 
   if (
@@ -158,7 +161,8 @@ function isSubscriptionActive(
         !Number.isNaN(
           endsAt
         ) &&
-        endsAt <= now
+        endsAt <=
+          now
       ) {
         return false;
       }
@@ -169,7 +173,7 @@ function isSubscriptionActive(
 
 
   /* -------------------------------------------------------
-     All other states are not Pro.
+     EVERYTHING ELSE = NOT PRO
      ------------------------------------------------------- */
 
   return false;
@@ -321,6 +325,100 @@ async function getSubscription(
 
 
 /* =========================================================
+   PUBLIC BILLING RESPONSE
+   ========================================================= */
+
+function buildBillingResponse(
+  subscription,
+  variantId,
+  testMode
+) {
+  const active =
+    isSubscriptionActive(
+      subscription
+    );
+
+
+  if (!subscription) {
+    return {
+      success:
+        true,
+
+      authenticated:
+        true,
+
+      pro:
+        false,
+
+      plan:
+        "free",
+
+      planName:
+        "UAsset Free",
+
+      testMode,
+
+      subscription:
+        null
+    };
+  }
+
+
+  return {
+    success:
+      true,
+
+    authenticated:
+      true,
+
+    pro:
+      active,
+
+    plan:
+      active
+        ? "pro"
+        : "free",
+
+    planName:
+      active
+        ? "UAsset Pro"
+        : "UAsset Free",
+
+    testMode,
+
+    subscription: {
+      provider:
+        subscription.provider,
+
+      providerSubscriptionId:
+        subscription.provider_subscription_id,
+
+      productName:
+        subscription.product_name,
+
+      variantName:
+        subscription.variant_name,
+
+      variantId:
+        subscription.variant_id,
+
+      status:
+        subscription.status,
+
+      cancelled:
+        subscription.cancelled,
+
+      renewsAt:
+        subscription.renews_at,
+
+      endsAt:
+        subscription.ends_at
+    }
+  };
+}
+
+
+/* =========================================================
    HANDLER
    ========================================================= */
 
@@ -328,9 +426,28 @@ export default async function handler(
   req,
   res
 ) {
+  /* -------------------------------------------------------
+     SECURITY HEADERS
+     ------------------------------------------------------- */
+
   res.setHeader(
     "Cache-Control",
-    "no-store"
+    "no-store, private"
+  );
+
+  res.setHeader(
+    "X-Content-Type-Options",
+    "nosniff"
+  );
+
+  res.setHeader(
+    "Referrer-Policy",
+    "no-referrer"
+  );
+
+  res.setHeader(
+    "X-Frame-Options",
+    "DENY"
   );
 
 
@@ -347,10 +464,12 @@ export default async function handler(
       "GET"
     );
 
-    return res.status(405).json({
-      error:
-        "Method not allowed"
-    });
+    return res
+      .status(405)
+      .json({
+        error:
+          "Method not allowed"
+      });
   }
 
 
@@ -384,14 +503,19 @@ export default async function handler(
 
   } catch (error) {
     console.error(
-      "UAsset billing status configuration error:",
+      "UAsset billing configuration error:",
       error.message
     );
 
-    return res.status(500).json({
-      error:
-        "Billing configuration is incomplete"
-    });
+    return res
+      .status(500)
+      .json({
+        success:
+          false,
+
+        error:
+          "Billing configuration is incomplete"
+      });
   }
 
 
@@ -409,58 +533,53 @@ export default async function handler(
 
   } catch (error) {
     console.error(
-      "Bean session lookup failed:",
+      "Bean session verification failed:",
       error
     );
 
-    return res.status(502).json({
-      error:
-        "Unable to verify Bean account"
-    });
+    return res
+      .status(502)
+      .json({
+        success:
+          false,
+
+        error:
+          "Unable to verify Bean account"
+      });
   }
 
 
   /* =======================================================
-     LOGIN REQUIRED
+     NOT AUTHENTICATED
      ======================================================= */
 
   if (!user) {
-    return res.status(401).json({
-      authenticated:
-        false,
+    return res
+      .status(401)
+      .json({
+        success:
+          false,
 
-      pro:
-        false,
+        authenticated:
+          false,
 
-      plan:
-        "free",
+        pro:
+          false,
 
-      subscription:
-        null,
+        plan:
+          "free",
 
-      error:
-        "Please log in with Bean ID first"
-    });
+        planName:
+          "UAsset Free",
+
+        error:
+          "Login with Bean ID required"
+      });
   }
 
 
   /* =======================================================
-     USER ID
-     ======================================================= */
-
-  const beanUserId =
-    user.id;
-
-  if (!beanUserId) {
-    return res.status(500).json({
-      error:
-        "Bean user identity is missing"
-    });
-  }
-
-
-  /* =======================================================
-     DATABASE
+     GET SUBSCRIPTION
      ======================================================= */
 
   let subscription;
@@ -468,7 +587,7 @@ export default async function handler(
   try {
     subscription =
       await getSubscription(
-        beanUserId,
+        user.id,
         variantId,
         testMode
       );
@@ -479,84 +598,35 @@ export default async function handler(
       error
     );
 
-    return res.status(500).json({
-      error:
-        "Unable to load billing status"
-    });
+    return res
+      .status(500)
+      .json({
+        success:
+          false,
+
+        authenticated:
+          true,
+
+        pro:
+          false,
+
+        error:
+          "Unable to read billing status"
+      });
   }
-
-
-  /* =======================================================
-     NO SUBSCRIPTION
-     ======================================================= */
-
-  if (!subscription) {
-    return res.status(200).json({
-      authenticated:
-        true,
-
-      pro:
-        false,
-
-      plan:
-        "free",
-
-      testMode,
-
-      subscription:
-        null
-    });
-  }
-
-
-  /* =======================================================
-     PRO ACCESS
-     ======================================================= */
-
-  const pro =
-    isSubscriptionActive(
-      subscription
-    );
 
 
   /* =======================================================
      RESPONSE
      ======================================================= */
 
-  return res.status(200).json({
-    authenticated:
-      true,
-
-    pro,
-
-    plan:
-      pro
-        ? "pro"
-        : "free",
-
-    testMode,
-
-    subscription: {
-      id:
-        subscription.provider_subscription_id,
-
-      status:
-        subscription.status,
-
-      cancelled:
-        subscription.cancelled,
-
-      renewsAt:
-        subscription.renews_at,
-
-      endsAt:
-        subscription.ends_at,
-
-      productName:
-        subscription.product_name,
-
-      variantName:
-        subscription.variant_name
-    }
-  });
+  return res
+    .status(200)
+    .json(
+      buildBillingResponse(
+        subscription,
+        variantId,
+        testMode
+      )
+    );
 }
