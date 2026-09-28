@@ -1,1434 +1,985 @@
-<!doctype html>
-<html lang="en">
-
-<head>
-
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="description"
-    content="UAsset Admin Dashboard"
-  >
-
-  <title>UAsset Admin</title>
+/* =========================================================
+   UASSET ADMIN — ADMIN.JS
+   Step 2: New Icon Manager
+   ========================================================= */
 
 
-  <!-- =====================================================
-       FONTS
-       ===================================================== -->
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
 
-  <link
-    rel="preconnect"
-    href="https://fonts.googleapis.com"
-  >
+const newIconButton =
+  document.getElementById("newIconButton");
 
-  <link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
-  >
+const manageIconsButton =
+  document.getElementById("manageIconsButton");
 
-  <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap"
-    rel="stylesheet"
-  >
+const quickNewIcon =
+  document.getElementById("quickNewIcon");
 
+const quickUpload =
+  document.getElementById("quickUpload");
 
-  <!-- =====================================================
-       ADMIN CSS
-       ===================================================== -->
+const quickCollection =
+  document.getElementById("quickCollection");
 
-  <link
-    rel="stylesheet"
-    href="/admin/admin.css"
-  >
+const quickCategory =
+  document.getElementById("quickCategory");
 
-</head>
+const newCollectionButton =
+  document.getElementById("newCollectionButton");
 
 
-<body>
+const newIconModal =
+  document.getElementById("newIconModal");
+
+const closeNewIcon =
+  document.getElementById("closeNewIcon");
+
+const cancelNewIcon =
+  document.getElementById("cancelNewIcon");
+
+const saveNewIcon =
+  document.getElementById("saveNewIcon");
 
 
-  <!-- =====================================================
-       APP SHELL
-       ===================================================== -->
+const iconName =
+  document.getElementById("iconName");
 
-  <div class="admin-shell">
+const iconId =
+  document.getElementById("iconId");
+
+const iconCategory =
+  document.getElementById("iconCategory");
+
+const iconTags =
+  document.getElementById("iconTags");
+
+const iconDescription =
+  document.getElementById("iconDescription");
+
+const iconSvg =
+  document.getElementById("iconSvg");
 
 
-    <!-- ===================================================
-         SIDEBAR
-         =================================================== -->
+const iconLivePreview =
+  document.getElementById("iconLivePreview");
 
-    <aside class="admin-sidebar">
+const previewName =
+  document.getElementById("previewName");
+
+const previewId =
+  document.getElementById("previewId");
+
+const previewPlan =
+  document.getElementById("previewPlan");
 
 
-      <!-- BRAND -->
+/* =========================================================
+   STATE
+   ========================================================= */
 
-      <a
-        href="/"
-        class="admin-brand"
-        aria-label="UAsset home"
+let selectedPlan =
+  "free";
+
+
+/* =========================================================
+   INJECT MODAL CSS
+   ========================================================= */
+
+function injectModalStyles() {
+  if (
+    document.getElementById(
+      "uassetAdminModalStyles"
+    )
+  ) {
+    return;
+  }
+
+  const style =
+    document.createElement("style");
+
+  style.id =
+    "uassetAdminModalStyles";
+
+  style.textContent = `
+    .admin-modal-backdrop {
+      position: fixed;
+      inset: 0;
+
+      z-index: 100;
+
+      display: none;
+      align-items: center;
+      justify-content: center;
+
+      padding: 24px;
+
+      background: rgba(0, 0, 0, 0.28);
+
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .admin-modal-backdrop.open {
+      display: flex;
+    }
+
+    .admin-modal {
+      width: min(1080px, 100%);
+      max-height: calc(100vh - 48px);
+
+      overflow: auto;
+
+      border: 1px solid var(--line);
+
+      border-radius: 22px;
+
+      background: var(--surface);
+
+      box-shadow:
+        0 30px 90px rgba(0, 0, 0, 0.16);
+    }
+
+    .admin-modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+
+      gap: 20px;
+
+      padding: 22px;
+
+      border-bottom: 1px solid var(--line);
+    }
+
+    .admin-modal-body {
+      display: grid;
+
+      grid-template-columns:
+        minmax(0, 1fr)
+        minmax(280px, 0.72fr);
+
+      gap: 22px;
+
+      padding: 22px;
+    }
+
+    .admin-modal-close {
+      width: 36px;
+      height: 36px;
+
+      flex: 0 0 auto;
+
+      display: grid;
+      place-items: center;
+
+      border: 1px solid var(--line);
+
+      border-radius: 50%;
+
+      background: var(--surface);
+
+      color: var(--text);
+
+      font-size: 20px;
+      line-height: 1;
+
+      cursor: pointer;
+
+      transition:
+        background .15s ease,
+        border-color .15s ease,
+        transform .15s ease;
+    }
+
+    .admin-modal-close:hover {
+      background: var(--surface-soft);
+      border-color: var(--line-strong);
+      transform: translateY(-1px);
+    }
+
+    .admin-modal-backdrop .admin-field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .admin-modal-backdrop .admin-segmented {
+      width: max-content;
+    }
+
+    .admin-modal-backdrop .admin-input,
+    .admin-modal-backdrop .admin-textarea {
+      font-family: var(--sans);
+    }
+
+    .admin-modal-backdrop #iconSvg {
+      min-height: 210px;
+
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .admin-modal-backdrop .admin-icon-preview {
+      min-height: 280px;
+    }
+
+    .admin-modal-backdrop
+    .admin-icon-preview
+    svg {
+      width: 72px;
+      height: 72px;
+    }
+
+    .admin-modal-backdrop
+    .admin-icon-preview
+    .preview-placeholder {
+      color: var(--muted);
+
+      font-size: 11px;
+
+      text-align: center;
+    }
+
+    body.admin-modal-open {
+      overflow: hidden;
+    }
+
+    @media (max-width: 760px) {
+      .admin-modal-backdrop {
+        padding: 12px;
+      }
+
+      .admin-modal {
+        max-height: calc(100vh - 24px);
+
+        border-radius: 18px;
+      }
+
+      .admin-modal-head,
+      .admin-modal-body {
+        padding: 16px;
+      }
+
+      .admin-modal-body {
+        grid-template-columns: 1fr;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+
+/* =========================================================
+   OPEN MODAL
+   ========================================================= */
+
+function openNewIconModal() {
+  if (!newIconModal) return;
+
+  resetNewIconForm();
+
+  newIconModal.classList.add("open");
+
+  newIconModal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  document.body.classList.add(
+    "admin-modal-open"
+  );
+
+  setTimeout(() => {
+    iconName?.focus();
+  }, 50);
+}
+
+
+/* =========================================================
+   CLOSE MODAL
+   ========================================================= */
+
+function closeNewIconModal() {
+  if (!newIconModal) return;
+
+  newIconModal.classList.remove(
+    "open"
+  );
+
+  newIconModal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  document.body.classList.remove(
+    "admin-modal-open"
+  );
+}
+
+
+/* =========================================================
+   RESET FORM
+   ========================================================= */
+
+function resetNewIconForm() {
+  if (iconName) {
+    iconName.value = "";
+  }
+
+  if (iconId) {
+    iconId.value = "";
+  }
+
+  if (iconCategory) {
+    iconCategory.value = "";
+  }
+
+  if (iconTags) {
+    iconTags.value = "";
+  }
+
+  if (iconDescription) {
+    iconDescription.value = "";
+  }
+
+  if (iconSvg) {
+    iconSvg.value = "";
+  }
+
+  selectedPlan =
+    "free";
+
+  updatePlanButtons();
+  updateLivePreview();
+}
+
+
+/* =========================================================
+   PLAN BUTTONS
+   ========================================================= */
+
+function updatePlanButtons() {
+  document
+    .querySelectorAll(
+      "[data-plan]"
+    )
+    .forEach(button => {
+
+      const active =
+        button.dataset.plan ===
+        selectedPlan;
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+    });
+
+  if (previewPlan) {
+    previewPlan.textContent =
+      selectedPlan.toUpperCase();
+
+    previewPlan.className =
+      selectedPlan === "pro"
+        ? "admin-badge pro"
+        : "admin-badge free";
+  }
+}
+
+
+document
+  .querySelectorAll(
+    "[data-plan]"
+  )
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        selectedPlan =
+          button.dataset.plan === "pro"
+            ? "pro"
+            : "free";
+
+        updatePlanButtons();
+      }
+    );
+
+  });
+
+
+/* =========================================================
+   GENERATE DEFAULT ID
+   ========================================================= */
+
+function makeIconId(value) {
+  return String(
+    value || ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(value) {
+  return String(
+    value || ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+}
+
+
+/* =========================================================
+   LIVE SUMMARY
+   ========================================================= */
+
+function updateSummary() {
+  const name =
+    iconName?.value.trim();
+
+  const id =
+    iconId?.value.trim();
+
+  if (previewName) {
+    previewName.textContent =
+      name ||
+      "New Icon";
+  }
+
+  if (previewId) {
+    previewId.textContent =
+      id ||
+      "new-icon";
+  }
+
+  updatePlanButtons();
+}
+
+
+/* =========================================================
+   LIVE SVG PREVIEW
+   ========================================================= */
+
+function updateLivePreview() {
+  if (!iconLivePreview) return;
+
+  const svg =
+    iconSvg?.value.trim();
+
+  if (!svg) {
+
+    iconLivePreview.innerHTML = `
+      <span class="preview-placeholder">
+        SVG preview
+      </span>
+    `;
+
+    updateSummary();
+
+    return;
+  }
+
+
+  /* -------------------------------------------------------
+     Basic SVG validation
+     ------------------------------------------------------- */
+
+  const normalized =
+    svg.toLowerCase();
+
+  if (
+    !normalized.startsWith(
+      "<svg"
+    ) ||
+    !normalized.includes(
+      "</svg>"
+    )
+  ) {
+
+    iconLivePreview.innerHTML = `
+      <span
+        class="preview-placeholder"
+        style="color:#777871;"
       >
+        Invalid SVG markup
+      </span>
+    `;
 
-        <span class="admin-brand-mark">
-          U
-        </span>
+    updateSummary();
 
-        <span>
-          UAsset
-        </span>
+    return;
+  }
 
-      </a>
 
+  /* -------------------------------------------------------
+     Render SVG
+     ------------------------------------------------------- */
 
-      <!-- NAV LABEL -->
+  iconLivePreview.innerHTML =
+    svg;
 
-      <div class="admin-nav-label">
-        ADMIN
-      </div>
 
+  const renderedSvg =
+    iconLivePreview.querySelector(
+      "svg"
+    );
 
-      <!-- NAVIGATION -->
 
-      <nav
-        class="admin-nav"
-        aria-label="Admin navigation"
-      >
+  if (!renderedSvg) {
 
+    iconLivePreview.innerHTML = `
+      <span class="preview-placeholder">
+        Invalid SVG
+      </span>
+    `;
 
-        <a
-          href="#dashboard"
-          class="admin-nav-link active"
-        >
+    updateSummary();
 
-          <span
-            class="admin-nav-icon"
-            aria-hidden="true"
-          >
-            ◈
-          </span>
+    return;
+  }
 
-          <span>
-            Dashboard
-          </span>
 
-        </a>
+  renderedSvg.setAttribute(
+    "aria-hidden",
+    "true"
+  );
 
+  renderedSvg.style.width =
+    "72px";
 
-        <a
-          href="#icons"
-          class="admin-nav-link"
-        >
+  renderedSvg.style.height =
+    "72px";
 
-          <span
-            class="admin-nav-icon"
-            aria-hidden="true"
-          >
-            ◇
-          </span>
+  renderedSvg.style.color =
+    "#111111";
 
-          <span>
-            Icons
-          </span>
+  updateSummary();
+}
 
-        </a>
 
+/* =========================================================
+   AUTO ID FROM NAME
+   ========================================================= */
 
-        <a
-          href="#collections"
-          class="admin-nav-link"
-        >
+let idWasManuallyEdited =
+  false;
 
-          <span
-            class="admin-nav-icon"
-            aria-hidden="true"
-          >
-            ▦
-          </span>
 
-          <span>
-            Collections
-          </span>
+if (iconId) {
+  iconId.addEventListener(
+    "input",
+    () => {
+      idWasManuallyEdited = true;
 
-        </a>
+      updateSummary();
+    }
+  );
+}
 
 
-        <a
-          href="#categories"
-          class="admin-nav-link"
-        >
+if (iconName) {
+  iconName.addEventListener(
+    "input",
+    () => {
 
-          <span
-            class="admin-nav-icon"
-            aria-hidden="true"
-          >
-            ◎
-          </span>
+      if (!idWasManuallyEdited) {
+        iconId.value =
+          makeIconId(
+            iconName.value
+          );
+      }
 
-          <span>
-            Categories
-          </span>
+      updateSummary();
+    }
+  );
+}
 
-        </a>
 
+/* =========================================================
+   OTHER LIVE FIELDS
+   ========================================================= */
 
-        <a
-          href="#uploads"
-          class="admin-nav-link"
-        >
+[
+  iconCategory,
+  iconTags,
+  iconDescription
+]
+  .filter(Boolean)
+  .forEach(field => {
+    field.addEventListener(
+      "input",
+      updateSummary
+    );
+  });
 
-          <span
-            class="admin-nav-icon"
-            aria-hidden="true"
-          >
-            ↑
-          </span>
 
-          <span>
-            Uploads
-          </span>
+if (iconSvg) {
+  iconSvg.addEventListener(
+    "input",
+    updateLivePreview
+  );
+}
 
-        </a>
 
+/* =========================================================
+   VALIDATE ICON
+   ========================================================= */
 
-        <a
-          href="#settings"
-          class="admin-nav-link"
-        >
+function validateNewIcon() {
 
-          <span
-            class="admin-nav-icon"
-            aria-hidden="true"
-          >
-            ⚙
-          </span>
+  const name =
+    iconName?.value.trim() || "";
 
-          <span>
-            Settings
-          </span>
+  const id =
+    iconId?.value.trim() || "";
 
-        </a>
+  const category =
+    iconCategory?.value.trim() || "";
 
+  const svg =
+    iconSvg?.value.trim() || "";
 
-      </nav>
 
+  if (!name) {
+    alert(
+      "Please enter an icon name."
+    );
 
-      <!-- SIDEBAR FOOTER -->
+    iconName?.focus();
 
-      <div class="admin-sidebar-footer">
+    return false;
+  }
 
-        <div class="admin-user-card">
 
-          <div class="admin-avatar">
-            SA
-          </div>
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    alert(
+      "Icon ID must contain only lowercase letters, numbers and hyphens."
+    );
 
-          <div class="admin-user-copy">
+    iconId?.focus();
 
-            <span class="admin-user-name">
-              UAsset Admin
-            </span>
+    return false;
+  }
 
-            <span class="admin-user-role">
-              Administrator
-            </span>
 
-          </div>
+  if (!category) {
+    alert(
+      "Please enter a category."
+    );
 
-        </div>
+    iconCategory?.focus();
 
-      </div>
+    return false;
+  }
 
 
-    </aside>
+  if (
+    !svg ||
+    !svg.toLowerCase().startsWith(
+      "<svg"
+    ) ||
+    !svg.toLowerCase().includes(
+      "</svg>"
+    )
+  ) {
+    alert(
+      "Please paste a valid complete SVG."
+    );
 
+    iconSvg?.focus();
 
-    <!-- ===================================================
-         MAIN
-         =================================================== -->
+    return false;
+  }
 
-    <main
-      class="admin-main"
-      id="dashboard"
-    >
 
+  return true;
+}
 
-      <!-- =================================================
-           TOP BAR
-           ================================================= -->
 
-      <div class="admin-topbar">
+/* =========================================================
+   PREPARE NEW ICON
+   ========================================================= */
 
+function prepareNewIcon() {
 
-        <div>
+  if (!validateNewIcon()) {
+    return;
+  }
 
-          <p class="eyebrow">
-            UASSET / ADMIN
-          </p>
 
-          <h1 class="admin-page-title">
-            Dashboard
-          </h1>
+  const payload = {
+    id:
+      iconId.value.trim(),
 
-          <p class="admin-page-subtitle">
-            Manage icons, premium assets, collections
-            and categories from one place.
-          </p>
+    name:
+      iconName.value.trim(),
 
-        </div>
+    category:
+      iconCategory.value.trim(),
 
+    tags:
+      iconTags.value
+        .split(",")
+        .map(tag =>
+          tag.trim()
+        )
+        .filter(Boolean),
 
-        <div class="admin-top-actions">
+    description:
+      iconDescription.value.trim(),
 
+    plan:
+      selectedPlan,
 
-          <a
-            href="/"
-            class="admin-button"
-          >
-            View UAsset
-          </a>
+    svg:
+      iconSvg.value.trim()
+  };
 
 
-          <button
-            type="button"
-            class="admin-button primary"
-            id="newIconButton"
-          >
-            + New Icon
-          </button>
+  console.log(
+    "UAsset new icon prepared:",
+    payload
+  );
 
 
-        </div>
+  alert(
+    `Icon "${payload.name}" is ready.\n\nNext step: save it to UAsset database and storage.`
+  );
+}
 
 
-      </div>
+/* =========================================================
+   BUTTON EVENTS
+   ========================================================= */
 
+if (newIconButton) {
+  newIconButton.addEventListener(
+    "click",
+    openNewIconModal
+  );
+}
 
-      <!-- =================================================
-           STATS
-           ================================================= -->
 
-      <section
-        class="admin-stats"
-        aria-label="UAsset statistics"
-      >
+if (quickNewIcon) {
+  quickNewIcon.addEventListener(
+    "click",
+    openNewIconModal
+  );
+}
 
 
-        <div class="admin-stat">
+if (closeNewIcon) {
+  closeNewIcon.addEventListener(
+    "click",
+    closeNewIconModal
+  );
+}
 
-          <div class="admin-stat-label">
-            TOTAL ICONS
-          </div>
 
-          <div
-            class="admin-stat-value"
-            id="totalIcons"
-          >
-            25
-          </div>
+if (cancelNewIcon) {
+  cancelNewIcon.addEventListener(
+    "click",
+    closeNewIconModal
+  );
+}
 
-          <div class="admin-stat-detail">
-            Current library
-          </div>
 
-        </div>
+if (saveNewIcon) {
+  saveNewIcon.addEventListener(
+    "click",
+    prepareNewIcon
+  );
+}
 
 
-        <div class="admin-stat">
+/* =========================================================
+   CLICK BACKDROP TO CLOSE
+   ========================================================= */
 
-          <div class="admin-stat-label">
-            FREE ICONS
-          </div>
+if (newIconModal) {
+  newIconModal.addEventListener(
+    "click",
+    event => {
 
-          <div
-            class="admin-stat-value"
-            id="freeIcons"
-          >
-            15
-          </div>
+      if (
+        event.target ===
+        newIconModal
+      ) {
+        closeNewIconModal();
+      }
 
-          <div class="admin-stat-detail">
-            Available to everyone
-          </div>
+    }
+  );
+}
 
-        </div>
 
+/* =========================================================
+   ESC KEY
+   ========================================================= */
 
-        <div class="admin-stat">
+document.addEventListener(
+  "keydown",
+  event => {
 
-          <div class="admin-stat-label">
-            PRO ICONS
-          </div>
+    if (
+      event.key === "Escape" &&
+      newIconModal?.classList.contains(
+        "open"
+      )
+    ) {
+      closeNewIconModal();
+    }
 
-          <div
-            class="admin-stat-value"
-            id="proIcons"
-          >
-            10
-          </div>
+  }
+);
 
-          <div class="admin-stat-detail">
-            Premium assets
-          </div>
 
-        </div>
+/* =========================================================
+   EXISTING NAVIGATION
+   ========================================================= */
 
+function scrollToSection(id) {
 
-        <div class="admin-stat">
+  const section =
+    document.getElementById(id);
 
-          <div class="admin-stat-label">
-            COLLECTIONS
-          </div>
+  if (!section) return;
 
-          <div
-            class="admin-stat-value"
-            id="totalCollections"
-          >
-            3
-          </div>
+  section.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
 
-          <div class="admin-stat-detail">
-            Curated sets
-          </div>
 
-        </div>
+if (manageIconsButton) {
+  manageIconsButton.addEventListener(
+    "click",
+    () => {
+      scrollToSection("icons");
+    }
+  );
+}
 
 
-      </section>
+if (quickUpload) {
+  quickUpload.addEventListener(
+    "click",
+    () => {
+      scrollToSection("uploads");
+    }
+  );
+}
 
 
-      <!-- =================================================
-           CONTENT GRID
-           ================================================= -->
+if (quickCollection) {
+  quickCollection.addEventListener(
+    "click",
+    () => {
+      scrollToSection("collections");
+    }
+  );
+}
 
-      <section class="admin-content-grid">
 
+if (quickCategory) {
+  quickCategory.addEventListener(
+    "click",
+    () => {
+      scrollToSection("categories");
+    }
+  );
+}
 
-        <!-- ICON LIBRARY -->
 
-        <div
-          class="admin-panel"
-          id="icons"
-        >
+if (newCollectionButton) {
+  newCollectionButton.addEventListener(
+    "click",
+    () => {
+      scrollToSection("collections");
+    }
+  );
+}
 
 
-          <div class="admin-panel-head">
+/* =========================================================
+   SIDEBAR ACTIVE STATE
+   ========================================================= */
 
+const navLinks =
+  document.querySelectorAll(
+    ".admin-nav-link"
+  );
 
-            <div>
 
-              <h2 class="admin-panel-title">
-                Icon Library
-              </h2>
+navLinks.forEach(link => {
 
-              <p class="admin-panel-subtitle">
-                Manage your current UAsset icon collection.
-              </p>
+  link.addEventListener(
+    "click",
+    () => {
 
-            </div>
+      navLinks.forEach(item => {
+        item.classList.remove(
+          "active"
+        );
+      });
 
+      link.classList.add(
+        "active"
+      );
 
-            <button
-              type="button"
-              class="admin-button"
-              id="manageIconsButton"
-            >
-              Manage
-            </button>
+    }
+  );
 
+});
 
-          </div>
 
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
 
-          <div class="admin-panel-body">
+injectModalStyles();
 
+updatePlanButtons();
 
-            <div class="admin-table-wrap">
+updateSummary();
 
-              <table class="admin-table">
+updateLivePreview();
 
-                <thead>
 
-                  <tr>
-
-                    <th>
-                      ICON
-                    </th>
-
-                    <th>
-                      CATEGORY
-                    </th>
-
-                    <th>
-                      PLAN
-                    </th>
-
-                    <th>
-                      STATUS
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-
-                <tbody>
-
-
-                  <tr>
-
-                    <td>
-                      Time
-                    </td>
-
-                    <td>
-                      Time
-                    </td>
-
-                    <td>
-                      <span class="admin-badge free">
-                        FREE
-                      </span>
-                    </td>
-
-                    <td>
-                      Active
-                    </td>
-
-                  </tr>
-
-
-                  <tr>
-
-                    <td>
-                      Calendar
-                    </td>
-
-                    <td>
-                      Time
-                    </td>
-
-                    <td>
-                      <span class="admin-badge pro">
-                        PRO
-                      </span>
-                    </td>
-
-                    <td>
-                      Active
-                    </td>
-
-                  </tr>
-
-
-                  <tr>
-
-                    <td>
-                      History
-                    </td>
-
-                    <td>
-                      Time
-                    </td>
-
-                    <td>
-                      <span class="admin-badge pro">
-                        PRO
-                      </span>
-                    </td>
-
-                    <td>
-                      Active
-                    </td>
-
-                  </tr>
-
-
-                  <tr>
-
-                    <td>
-                      Search
-                    </td>
-
-                    <td>
-                      Navigation
-                    </td>
-
-                    <td>
-                      <span class="admin-badge free">
-                        FREE
-                      </span>
-                    </td>
-
-                    <td>
-                      Active
-                    </td>
-
-                  </tr>
-
-
-                  <tr>
-
-                    <td>
-                      Edit
-                    </td>
-
-                    <td>
-                      Actions
-                    </td>
-
-                    <td>
-                      <span class="admin-badge pro">
-                        PRO
-                      </span>
-                    </td>
-
-                    <td>
-                      Active
-                    </td>
-
-                  </tr>
-
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-
-          </div>
-
-
-        </div>
-
-
-        <!-- QUICK ACTIONS -->
-
-        <div class="admin-panel">
-
-
-          <div class="admin-panel-head">
-
-            <div>
-
-              <h2 class="admin-panel-title">
-                Quick Actions
-              </h2>
-
-              <p class="admin-panel-subtitle">
-                Common administration tasks.
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div class="admin-panel-body">
-
-
-            <div class="admin-action-list">
-
-
-              <button
-                type="button"
-                class="admin-action"
-                id="quickNewIcon"
-              >
-
-                <span class="admin-action-icon">
-                  +
-                </span>
-
-                <span class="admin-action-copy">
-
-                  <span class="admin-action-title">
-                    Create new icon
-                  </span>
-
-                  <span class="admin-action-text">
-                    Add a new Free or Pro asset.
-                  </span>
-
-                </span>
-
-              </button>
-
-
-              <button
-                type="button"
-                class="admin-action"
-                id="quickUpload"
-              >
-
-                <span class="admin-action-icon">
-                  ↑
-                </span>
-
-                <span class="admin-action-copy">
-
-                  <span class="admin-action-title">
-                    Upload asset
-                  </span>
-
-                  <span class="admin-action-text">
-                    Upload an SVG to secure storage.
-                  </span>
-
-                </span>
-
-              </button>
-
-
-              <button
-                type="button"
-                class="admin-action"
-                id="quickCollection"
-              >
-
-                <span class="admin-action-icon">
-                  ▦
-                </span>
-
-                <span class="admin-action-copy">
-
-                  <span class="admin-action-title">
-                    Create collection
-                  </span>
-
-                  <span class="admin-action-text">
-                    Organize icons into curated sets.
-                  </span>
-
-                </span>
-
-              </button>
-
-
-              <button
-                type="button"
-                class="admin-action"
-                id="quickCategory"
-              >
-
-                <span class="admin-action-icon">
-                  ◎
-                </span>
-
-                <span class="admin-action-copy">
-
-                  <span class="admin-action-title">
-                    Manage categories
-                  </span>
-
-                  <span class="admin-action-text">
-                    Organize your icon library.
-                  </span>
-
-                </span>
-
-              </button>
-
-
-            </div>
-
-
-          </div>
-
-
-        </div>
-
-
-      </section>
-
-
-      <!-- =================================================
-           COLLECTIONS
-           ================================================= -->
-
-      <section
-        class="admin-panel"
-        id="collections"
-        style="margin-top:18px;"
-      >
-
-
-        <div class="admin-panel-head">
-
-
-          <div>
-
-            <h2 class="admin-panel-title">
-              Collections
-            </h2>
-
-            <p class="admin-panel-subtitle">
-              Curated groups available in UAsset.
-            </p>
-
-          </div>
-
-
-          <button
-            type="button"
-            class="admin-button"
-            id="newCollectionButton"
-          >
-            + New Collection
-          </button>
-
-
-        </div>
-
-
-        <div class="admin-panel-body">
-
-
-          <div class="admin-content-grid">
-
-
-            <div class="admin-empty">
-
-              <div class="admin-empty-inner">
-
-                <div class="admin-empty-mark">
-                  ◌
-                </div>
-
-                <h3 class="admin-empty-title">
-                  Collection manager
-                </h3>
-
-                <p class="admin-empty-text">
-                  Collections will become editable here
-                  once the database layer is connected.
-                </p>
-
-              </div>
-
-            </div>
-
-
-            <div
-              class="admin-empty"
-              id="categories"
-            >
-
-              <div class="admin-empty-inner">
-
-                <div class="admin-empty-mark">
-                  ◎
-                </div>
-
-                <h3 class="admin-empty-title">
-                  Category manager
-                </h3>
-
-                <p class="admin-empty-text">
-                  Categories will be managed from the
-                  same admin interface.
-                </p>
-
-              </div>
-
-            </div>
-
-
-          </div>
-
-
-        </div>
-
-
-      </section>
-
-
-      <!-- =================================================
-           UPLOADS
-           ================================================= -->
-
-      <section
-        class="admin-panel"
-        id="uploads"
-        style="margin-top:18px;"
-      >
-
-
-        <div class="admin-panel-head">
-
-          <div>
-
-            <h2 class="admin-panel-title">
-              Uploads
-            </h2>
-
-            <p class="admin-panel-subtitle">
-              Secure SVG asset management.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="admin-panel-body">
-
-
-          <div class="admin-empty">
-
-
-            <div class="admin-empty-inner">
-
-
-              <div class="admin-empty-mark">
-                ↑
-              </div>
-
-
-              <h3 class="admin-empty-title">
-                Upload manager
-              </h3>
-
-
-              <p class="admin-empty-text">
-                Upload, replace and organize premium
-                SVG assets from this area.
-              </p>
-
-
-            </div>
-
-
-          </div>
-
-
-        </div>
-
-
-      </section>
-
-
-      <!-- =================================================
-           SETTINGS
-           ================================================= -->
-
-      <section
-        class="admin-panel"
-        id="settings"
-        style="margin-top:18px;"
-      >
-
-
-        <div class="admin-panel-head">
-
-          <div>
-
-            <h2 class="admin-panel-title">
-              Settings
-            </h2>
-
-            <p class="admin-panel-subtitle">
-              UAsset administration and system controls.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="admin-panel-body">
-
-
-          <div class="admin-empty">
-
-
-            <div class="admin-empty-inner">
-
-
-              <div class="admin-empty-mark">
-                ⚙
-              </div>
-
-
-              <h3 class="admin-empty-title">
-                Admin settings
-              </h3>
-
-
-              <p class="admin-empty-text">
-                Administrative controls will be connected
-                after the secure backend is added.
-              </p>
-
-
-            </div>
-
-
-          </div>
-
-
-        </div>
-
-
-      </section>
-
-
-    </main>
-
-  </div>
-
-
-  <!-- =====================================================
-       NEW ICON MODAL
-       ===================================================== -->
-
-  <div
-    class="admin-modal-backdrop"
-    id="newIconModal"
-    aria-hidden="true"
-  >
-
-    <div
-      class="admin-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="newIconTitle"
-    >
-
-
-      <!-- MODAL HEADER -->
-
-      <div class="admin-modal-head">
-
-        <div>
-
-          <p class="eyebrow">
-            UASSET / ICON MANAGER
-          </p>
-
-          <h2
-            class="admin-panel-title"
-            id="newIconTitle"
-          >
-            Create New Icon
-          </h2>
-
-          <p class="admin-panel-subtitle">
-            Create and prepare a new UAsset asset.
-          </p>
-
-        </div>
-
-
-        <button
-          type="button"
-          class="admin-modal-close"
-          id="closeNewIcon"
-          aria-label="Close"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <!-- MODAL BODY -->
-
-      <div class="admin-modal-body">
-
-
-        <!-- LEFT / FORM -->
-
-        <div class="admin-form">
-
-
-          <!-- NAME -->
-
-          <div class="admin-field">
-
-            <label
-              class="admin-label"
-              for="iconName"
-            >
-              Icon Name
-            </label>
-
-            <input
-              class="admin-input"
-              id="iconName"
-              type="text"
-              placeholder="Example: Idea"
-              autocomplete="off"
-            >
-
-          </div>
-
-
-          <!-- ID -->
-
-          <div class="admin-field">
-
-            <label
-              class="admin-label"
-              for="iconId"
-            >
-              Icon ID
-            </label>
-
-            <input
-              class="admin-input"
-              id="iconId"
-              type="text"
-              placeholder="Example: idea"
-              autocomplete="off"
-            >
-
-            <span class="admin-help">
-              Lowercase ID used by the asset system.
-            </span>
-
-          </div>
-
-
-          <!-- CATEGORY + TAGS -->
-
-          <div class="admin-form-row">
-
-
-            <div class="admin-field">
-
-              <label
-                class="admin-label"
-                for="iconCategory"
-              >
-                Category
-              </label>
-
-              <input
-                class="admin-input"
-                id="iconCategory"
-                type="text"
-                placeholder="System"
-                autocomplete="off"
-              >
-
-            </div>
-
-
-            <div class="admin-field">
-
-              <label
-                class="admin-label"
-                for="iconTags"
-              >
-                Tags
-              </label>
-
-              <input
-                class="admin-input"
-                id="iconTags"
-                type="text"
-                placeholder="idea, creative"
-                autocomplete="off"
-              >
-
-            </div>
-
-
-          </div>
-
-
-          <!-- DESCRIPTION -->
-
-          <div class="admin-field">
-
-            <label
-              class="admin-label"
-              for="iconDescription"
-            >
-              Description
-            </label>
-
-            <textarea
-              class="admin-textarea"
-              id="iconDescription"
-              style="
-                min-height:90px;
-                font-family:Inter,sans-serif;
-                resize:vertical;
-              "
-              placeholder="Describe this icon..."
-            ></textarea>
-
-          </div>
-
-
-          <!-- PLAN -->
-
-          <div class="admin-field">
-
-            <span class="admin-label">
-              Access Plan
-            </span>
-
-            <div
-              class="admin-segmented"
-              id="iconPlan"
-            >
-
-              <button
-                type="button"
-                class="admin-segment active"
-                data-plan="free"
-              >
-                FREE
-              </button>
-
-              <button
-                type="button"
-                class="admin-segment"
-                data-plan="pro"
-              >
-                PRO
-              </button>
-
-            </div>
-
-          </div>
-
-
-          <!-- SVG -->
-
-          <div class="admin-field">
-
-            <label
-              class="admin-label"
-              for="iconSvg"
-            >
-              SVG Code
-            </label>
-
-            <textarea
-              class="admin-textarea"
-              id="iconSvg"
-              spellcheck="false"
-              placeholder="<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; ...></svg>"
-            ></textarea>
-
-            <span class="admin-help">
-              Paste the complete 24×24 SVG here.
-            </span>
-
-          </div>
-
-
-          <!-- ACTIONS -->
-
-          <div
-            style="
-              display:flex;
-              justify-content:flex-end;
-              gap:9px;
-              padding-top:4px;
-            "
-          >
-
-            <button
-              type="button"
-              class="admin-button"
-              id="cancelNewIcon"
-            >
-              Cancel
-            </button>
-
-
-            <button
-              type="button"
-              class="admin-button primary"
-              id="saveNewIcon"
-            >
-              Prepare Icon
-            </button>
-
-          </div>
-
-
-        </div>
-
-
-        <!-- RIGHT / PREVIEW -->
-
-        <div class="admin-form">
-
-
-          <div class="admin-field">
-
-            <span class="admin-label">
-              Live Preview
-            </span>
-
-
-            <div
-              class="admin-icon-preview"
-              id="iconLivePreview"
-            >
-
-              <span
-                style="
-                  color:#777871;
-                  font-size:11px;
-                "
-              >
-                SVG preview
-              </span>
-
-            </div>
-
-
-          </div>
-
-
-          <div class="admin-field">
-
-            <span class="admin-label">
-              Asset Summary
-            </span>
-
-
-            <div
-              style="
-                display:flex;
-                flex-direction:column;
-                gap:10px;
-                padding:15px;
-                border:1px solid var(--line);
-                border-radius:var(--radius-md);
-                background:var(--surface-soft);
-              "
-            >
-
-              <div>
-
-                <span
-                  style="
-                    display:block;
-                    color:var(--muted);
-                    font-size:9px;
-                    margin-bottom:4px;
-                    font-family:var(--mono);
-                  "
-                >
-                  NAME
-                </span>
-
-                <strong
-                  id="previewName"
-                  style="font-size:12px;"
-                >
-                  New Icon
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span
-                  style="
-                    display:block;
-                    color:var(--muted);
-                    font-size:9px;
-                    margin-bottom:4px;
-                    font-family:var(--mono);
-                  "
-                >
-                  ID
-                </span>
-
-                <strong
-                  id="previewId"
-                  style="
-                    font-size:11px;
-                    font-family:var(--mono);
-                  "
-                >
-                  new-icon
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span
-                  style="
-                    display:block;
-                    color:var(--muted);
-                    font-size:9px;
-                    margin-bottom:4px;
-                    font-family:var(--mono);
-                  "
-                >
-                  PLAN
-                </span>
-
-                <span
-                  class="admin-badge free"
-                  id="previewPlan"
-                >
-                  FREE
-                </span>
-
-              </div>
-
-
-            </div>
-
-
-          </div>
-
-
-          <div class="admin-field">
-
-            <span class="admin-label">
-              Asset Standard
-            </span>
-
-            <span class="admin-help">
-              24×24 viewBox · 1.75–2px stroke ·
-              currentColor · no background · no gradients.
-            </span>
-
-          </div>
-
-
-        </div>
-
-
-      </div>
-
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       ADMIN JS
-       ===================================================== -->
-
-  <script
-    src="/admin/admin.js"
-  ></script>
-
-
-</body>
-
-</html>
+console.log(
+  "UAsset Admin — New Icon Manager loaded."
+);
