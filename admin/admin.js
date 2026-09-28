@@ -1,6 +1,8 @@
 /* =========================================================
    UASSET ADMIN — ADMIN.JS
-   Step 2: New Icon Manager
+   Step 3: Real Icon Save
+   Bean authentication via secure backend
+   Supabase database + storage handled server-side
    ========================================================= */
 
 
@@ -79,8 +81,10 @@ const previewPlan =
    STATE
    ========================================================= */
 
-let selectedPlan =
-  "free";
+let selectedPlan = "free";
+
+let idWasManuallyEdited =
+  false;
 
 
 /* =========================================================
@@ -88,6 +92,7 @@ let selectedPlan =
    ========================================================= */
 
 function injectModalStyles() {
+
   if (
     document.getElementById(
       "uassetAdminModalStyles"
@@ -96,17 +101,19 @@ function injectModalStyles() {
     return;
   }
 
+
   const style =
     document.createElement("style");
 
+
   style.id =
     "uassetAdminModalStyles";
+
 
   style.textContent = `
     .admin-modal-backdrop {
       position: fixed;
       inset: 0;
-
       z-index: 100;
 
       display: none;
@@ -132,7 +139,6 @@ function injectModalStyles() {
       overflow: auto;
 
       border: 1px solid var(--line);
-
       border-radius: 22px;
 
       background: var(--surface);
@@ -243,18 +249,24 @@ function injectModalStyles() {
       text-align: center;
     }
 
+    .admin-modal-backdrop button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
     body.admin-modal-open {
       overflow: hidden;
     }
 
     @media (max-width: 760px) {
+
       .admin-modal-backdrop {
         padding: 12px;
       }
 
       .admin-modal {
         max-height: calc(100vh - 24px);
-
         border-radius: 18px;
       }
 
@@ -269,7 +281,10 @@ function injectModalStyles() {
     }
   `;
 
-  document.head.appendChild(style);
+
+  document.head.appendChild(
+    style
+  );
 }
 
 
@@ -278,23 +293,35 @@ function injectModalStyles() {
    ========================================================= */
 
 function openNewIconModal() {
-  if (!newIconModal) return;
+
+  if (!newIconModal) {
+    return;
+  }
+
 
   resetNewIconForm();
 
-  newIconModal.classList.add("open");
+
+  newIconModal.classList.add(
+    "open"
+  );
+
 
   newIconModal.setAttribute(
     "aria-hidden",
     "false"
   );
 
+
   document.body.classList.add(
     "admin-modal-open"
   );
 
+
   setTimeout(() => {
+
     iconName?.focus();
+
   }, 50);
 }
 
@@ -304,16 +331,22 @@ function openNewIconModal() {
    ========================================================= */
 
 function closeNewIconModal() {
-  if (!newIconModal) return;
+
+  if (!newIconModal) {
+    return;
+  }
+
 
   newIconModal.classList.remove(
     "open"
   );
 
+
   newIconModal.setAttribute(
     "aria-hidden",
     "true"
   );
+
 
   document.body.classList.remove(
     "admin-modal-open"
@@ -326,32 +359,44 @@ function closeNewIconModal() {
    ========================================================= */
 
 function resetNewIconForm() {
+
   if (iconName) {
     iconName.value = "";
   }
+
 
   if (iconId) {
     iconId.value = "";
   }
 
+
   if (iconCategory) {
     iconCategory.value = "";
   }
+
 
   if (iconTags) {
     iconTags.value = "";
   }
 
+
   if (iconDescription) {
     iconDescription.value = "";
   }
+
 
   if (iconSvg) {
     iconSvg.value = "";
   }
 
+
   selectedPlan =
     "free";
+
+
+  idWasManuallyEdited =
+    false;
+
 
   updatePlanButtons();
   updateLivePreview();
@@ -363,6 +408,7 @@ function resetNewIconForm() {
    ========================================================= */
 
 function updatePlanButtons() {
+
   document
     .querySelectorAll(
       "[data-plan]"
@@ -373,6 +419,7 @@ function updatePlanButtons() {
         button.dataset.plan ===
         selectedPlan;
 
+
       button.classList.toggle(
         "active",
         active
@@ -380,9 +427,12 @@ function updatePlanButtons() {
 
     });
 
+
   if (previewPlan) {
+
     previewPlan.textContent =
       selectedPlan.toUpperCase();
+
 
     previewPlan.className =
       selectedPlan === "pro"
@@ -403,11 +453,14 @@ document
       () => {
 
         selectedPlan =
-          button.dataset.plan === "pro"
+          button.dataset.plan ===
+          "pro"
             ? "pro"
             : "free";
 
+
         updatePlanButtons();
+
       }
     );
 
@@ -419,15 +472,28 @@ document
    ========================================================= */
 
 function makeIconId(value) {
+
   return String(
     value || ""
   )
     .trim()
     .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
+    .replace(
+      /&/g,
+      "and"
+    )
+    .replace(
+      /[^a-z0-9]+/g,
+      "-"
+    )
+    .replace(
+      /^-+|-+$/g,
+      ""
+    )
+    .slice(
+      0,
+      60
+    );
 }
 
 
@@ -436,6 +502,7 @@ function makeIconId(value) {
    ========================================================= */
 
 function escapeHtml(value) {
+
   return String(
     value || ""
   )
@@ -467,23 +534,30 @@ function escapeHtml(value) {
    ========================================================= */
 
 function updateSummary() {
+
   const name =
     iconName?.value.trim();
+
 
   const id =
     iconId?.value.trim();
 
+
   if (previewName) {
+
     previewName.textContent =
       name ||
       "New Icon";
   }
 
+
   if (previewId) {
+
     previewId.textContent =
       id ||
       "new-icon";
   }
+
 
   updatePlanButtons();
 }
@@ -494,10 +568,15 @@ function updateSummary() {
    ========================================================= */
 
 function updateLivePreview() {
-  if (!iconLivePreview) return;
+
+  if (!iconLivePreview) {
+    return;
+  }
+
 
   const svg =
     iconSvg?.value.trim();
+
 
   if (!svg) {
 
@@ -506,6 +585,7 @@ function updateLivePreview() {
         SVG preview
       </span>
     `;
+
 
     updateSummary();
 
@@ -519,6 +599,7 @@ function updateLivePreview() {
 
   const normalized =
     svg.toLowerCase();
+
 
   if (
     !normalized.startsWith(
@@ -537,6 +618,7 @@ function updateLivePreview() {
         Invalid SVG markup
       </span>
     `;
+
 
     updateSummary();
 
@@ -566,6 +648,7 @@ function updateLivePreview() {
       </span>
     `;
 
+
     updateSummary();
 
     return;
@@ -577,14 +660,18 @@ function updateLivePreview() {
     "true"
   );
 
+
   renderedSvg.style.width =
     "72px";
+
 
   renderedSvg.style.height =
     "72px";
 
+
   renderedSvg.style.color =
     "#111111";
+
 
   updateSummary();
 }
@@ -594,35 +681,43 @@ function updateLivePreview() {
    AUTO ID FROM NAME
    ========================================================= */
 
-let idWasManuallyEdited =
-  false;
-
-
 if (iconId) {
+
   iconId.addEventListener(
     "input",
     () => {
-      idWasManuallyEdited = true;
+
+      idWasManuallyEdited =
+        true;
+
 
       updateSummary();
+
     }
   );
 }
 
 
 if (iconName) {
+
   iconName.addEventListener(
     "input",
     () => {
 
-      if (!idWasManuallyEdited) {
+      if (
+        !idWasManuallyEdited &&
+        iconId
+      ) {
+
         iconId.value =
           makeIconId(
             iconName.value
           );
       }
 
+
       updateSummary();
+
     }
   );
 }
@@ -638,15 +733,20 @@ if (iconName) {
   iconDescription
 ]
   .filter(Boolean)
-  .forEach(field => {
-    field.addEventListener(
-      "input",
-      updateSummary
-    );
-  });
+  .forEach(
+    field => {
+
+      field.addEventListener(
+        "input",
+        updateSummary
+      );
+
+    }
+  );
 
 
 if (iconSvg) {
+
   iconSvg.addEventListener(
     "input",
     updateLivePreview
@@ -661,22 +761,31 @@ if (iconSvg) {
 function validateNewIcon() {
 
   const name =
-    iconName?.value.trim() || "";
+    iconName?.value.trim() ||
+    "";
+
 
   const id =
-    iconId?.value.trim() || "";
+    iconId?.value.trim() ||
+    "";
+
 
   const category =
-    iconCategory?.value.trim() || "";
+    iconCategory?.value.trim() ||
+    "";
+
 
   const svg =
-    iconSvg?.value.trim() || "";
+    iconSvg?.value.trim() ||
+    "";
 
 
   if (!name) {
+
     alert(
       "Please enter an icon name."
     );
+
 
     iconName?.focus();
 
@@ -684,10 +793,16 @@ function validateNewIcon() {
   }
 
 
-  if (!/^[a-z0-9-]+$/.test(id)) {
+  if (
+    !/^[a-z0-9-]+$/.test(
+      id
+    )
+  ) {
+
     alert(
       "Icon ID must contain only lowercase letters, numbers and hyphens."
     );
+
 
     iconId?.focus();
 
@@ -696,9 +811,11 @@ function validateNewIcon() {
 
 
   if (!category) {
+
     alert(
       "Please enter a category."
     );
+
 
     iconCategory?.focus();
 
@@ -715,9 +832,11 @@ function validateNewIcon() {
       "</svg>"
     )
   ) {
+
     alert(
       "Please paste a valid complete SVG."
     );
+
 
     iconSvg?.focus();
 
@@ -730,17 +849,20 @@ function validateNewIcon() {
 
 
 /* =========================================================
-   PREPARE NEW ICON
+   REAL SAVE — DATABASE + STORAGE
    ========================================================= */
 
-function prepareNewIcon() {
+async function prepareNewIcon() {
 
-  if (!validateNewIcon()) {
+  if (
+    !validateNewIcon()
+  ) {
     return;
   }
 
 
   const payload = {
+
     id:
       iconId.value.trim(),
 
@@ -753,8 +875,9 @@ function prepareNewIcon() {
     tags:
       iconTags.value
         .split(",")
-        .map(tag =>
-          tag.trim()
+        .map(
+          tag =>
+            tag.trim()
         )
         .filter(Boolean),
 
@@ -766,18 +889,165 @@ function prepareNewIcon() {
 
     svg:
       iconSvg.value.trim()
+
   };
 
 
-  console.log(
-    "UAsset new icon prepared:",
-    payload
-  );
+  /* =======================================================
+     SAVE BUTTON STATE
+     ======================================================= */
+
+  const originalText =
+    saveNewIcon?.textContent ||
+    "Save Icon";
 
 
-  alert(
-    `Icon "${payload.name}" is ready.\n\nNext step: save it to UAsset database and storage.`
-  );
+  if (saveNewIcon) {
+
+    saveNewIcon.disabled =
+      true;
+
+
+    saveNewIcon.textContent =
+      "Saving...";
+  }
+
+
+  /* =======================================================
+     API REQUEST
+     ======================================================= */
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/admin/icons/create",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json"
+          },
+
+          credentials:
+            "include",
+
+          body:
+            JSON.stringify(
+              payload
+            )
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+
+    /* =====================================================
+       API ERROR
+       ===================================================== */
+
+    if (
+      !response.ok
+    ) {
+
+      console.error(
+        "UAsset icon save failed:",
+        {
+          status:
+            response.status,
+
+          response:
+            data
+        }
+      );
+
+
+      let message =
+        data?.error ||
+        "Unable to save icon.";
+
+
+      if (
+        data?.code
+      ) {
+
+        message +=
+          `\n\nCode: ${data.code}`;
+      }
+
+
+      throw new Error(
+        message
+      );
+    }
+
+
+    /* =====================================================
+       SUCCESS
+       ===================================================== */
+
+    console.log(
+      "UAsset icon saved:",
+      data
+    );
+
+
+    alert(
+      `Icon "${payload.name}" saved successfully!`
+    );
+
+
+    /* =====================================================
+       CLOSE MODAL
+       ===================================================== */
+
+    closeNewIconModal();
+
+
+    /* =====================================================
+       RESET
+       ===================================================== */
+
+    resetNewIconForm();
+
+
+  } catch (error) {
+
+    console.error(
+      "UAsset admin save error:",
+      error
+    );
+
+
+    alert(
+      error?.message ||
+      "Unable to save icon."
+    );
+
+
+  } finally {
+
+    if (saveNewIcon) {
+
+      saveNewIcon.disabled =
+        false;
+
+
+      saveNewIcon.textContent =
+        originalText;
+    }
+  }
 }
 
 
@@ -786,6 +1056,7 @@ function prepareNewIcon() {
    ========================================================= */
 
 if (newIconButton) {
+
   newIconButton.addEventListener(
     "click",
     openNewIconModal
@@ -794,6 +1065,7 @@ if (newIconButton) {
 
 
 if (quickNewIcon) {
+
   quickNewIcon.addEventListener(
     "click",
     openNewIconModal
@@ -802,6 +1074,7 @@ if (quickNewIcon) {
 
 
 if (closeNewIcon) {
+
   closeNewIcon.addEventListener(
     "click",
     closeNewIconModal
@@ -810,6 +1083,7 @@ if (closeNewIcon) {
 
 
 if (cancelNewIcon) {
+
   cancelNewIcon.addEventListener(
     "click",
     closeNewIconModal
@@ -818,6 +1092,7 @@ if (cancelNewIcon) {
 
 
 if (saveNewIcon) {
+
   saveNewIcon.addEventListener(
     "click",
     prepareNewIcon
@@ -830,6 +1105,7 @@ if (saveNewIcon) {
    ========================================================= */
 
 if (newIconModal) {
+
   newIconModal.addEventListener(
     "click",
     event => {
@@ -838,6 +1114,7 @@ if (newIconModal) {
         event.target ===
         newIconModal
       ) {
+
         closeNewIconModal();
       }
 
@@ -860,6 +1137,7 @@ document.addEventListener(
         "open"
       )
     ) {
+
       closeNewIconModal();
     }
 
@@ -874,62 +1152,96 @@ document.addEventListener(
 function scrollToSection(id) {
 
   const section =
-    document.getElementById(id);
+    document.getElementById(
+      id
+    );
 
-  if (!section) return;
+
+  if (!section) {
+    return;
+  }
+
 
   section.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
+    behavior:
+      "smooth",
+
+    block:
+      "start"
   });
 }
 
 
 if (manageIconsButton) {
+
   manageIconsButton.addEventListener(
     "click",
     () => {
-      scrollToSection("icons");
+
+      scrollToSection(
+        "icons"
+      );
+
     }
   );
 }
 
 
 if (quickUpload) {
+
   quickUpload.addEventListener(
     "click",
     () => {
-      scrollToSection("uploads");
+
+      scrollToSection(
+        "uploads"
+      );
+
     }
   );
 }
 
 
 if (quickCollection) {
+
   quickCollection.addEventListener(
     "click",
     () => {
-      scrollToSection("collections");
+
+      scrollToSection(
+        "collections"
+      );
+
     }
   );
 }
 
 
 if (quickCategory) {
+
   quickCategory.addEventListener(
     "click",
     () => {
-      scrollToSection("categories");
+
+      scrollToSection(
+        "categories"
+      );
+
     }
   );
 }
 
 
 if (newCollectionButton) {
+
   newCollectionButton.addEventListener(
     "click",
     () => {
-      scrollToSection("collections");
+
+      scrollToSection(
+        "collections"
+      );
+
     }
   );
 }
@@ -945,26 +1257,33 @@ const navLinks =
   );
 
 
-navLinks.forEach(link => {
+navLinks.forEach(
+  link => {
 
-  link.addEventListener(
-    "click",
-    () => {
+    link.addEventListener(
+      "click",
+      () => {
 
-      navLinks.forEach(item => {
-        item.classList.remove(
+        navLinks.forEach(
+          item => {
+
+            item.classList.remove(
+              "active"
+            );
+
+          }
+        );
+
+
+        link.classList.add(
           "active"
         );
-      });
 
-      link.classList.add(
-        "active"
-      );
+      }
+    );
 
-    }
-  );
-
-});
+  }
+);
 
 
 /* =========================================================
@@ -981,5 +1300,5 @@ updateLivePreview();
 
 
 console.log(
-  "UAsset Admin — New Icon Manager loaded."
+  "UAsset Admin — Real Icon Save loaded."
 );
