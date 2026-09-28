@@ -22,7 +22,10 @@
        FONTS
        ===================================================== -->
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
 
   <link
     rel="preconnect"
@@ -99,8 +102,6 @@
       >
 
 
-        <!-- DASHBOARD -->
-
         <a
           href="#dashboard"
           class="admin-nav-link active"
@@ -119,8 +120,6 @@
 
         </a>
 
-
-        <!-- ICONS -->
 
         <a
           href="#icons"
@@ -141,8 +140,6 @@
         </a>
 
 
-        <!-- COLLECTIONS -->
-
         <a
           href="#collections"
           class="admin-nav-link"
@@ -161,8 +158,6 @@
 
         </a>
 
-
-        <!-- CATEGORIES -->
 
         <a
           href="#categories"
@@ -183,8 +178,6 @@
         </a>
 
 
-        <!-- UPLOADS -->
-
         <a
           href="#uploads"
           class="admin-nav-link"
@@ -204,8 +197,6 @@
         </a>
 
 
-        <!-- SETTINGS -->
-
         <a
           href="#settings"
           class="admin-nav-link"
@@ -224,12 +215,11 @@
 
         </a>
 
+
       </nav>
 
 
-      <!-- =================================================
-           SIDEBAR FOOTER
-           ================================================= -->
+      <!-- SIDEBAR FOOTER -->
 
       <div class="admin-sidebar-footer">
 
@@ -255,11 +245,12 @@
 
       </div>
 
+
     </aside>
 
 
     <!-- ===================================================
-         MAIN CONTENT
+         MAIN
          =================================================== -->
 
     <main
@@ -315,6 +306,7 @@
 
         </div>
 
+
       </div>
 
 
@@ -327,8 +319,6 @@
         aria-label="UAsset statistics"
       >
 
-
-        <!-- TOTAL -->
 
         <div class="admin-stat">
 
@@ -350,8 +340,6 @@
         </div>
 
 
-        <!-- FREE -->
-
         <div class="admin-stat">
 
           <div class="admin-stat-label">
@@ -372,8 +360,6 @@
         </div>
 
 
-        <!-- PRO -->
-
         <div class="admin-stat">
 
           <div class="admin-stat-label">
@@ -393,8 +379,6 @@
 
         </div>
 
-
-        <!-- COLLECTIONS -->
 
         <div class="admin-stat">
 
@@ -420,15 +404,13 @@
 
 
       <!-- =================================================
-           MAIN CONTENT GRID
+           CONTENT GRID
            ================================================= -->
 
       <section class="admin-content-grid">
 
 
-        <!-- =================================================
-             ICON LIBRARY
-             ================================================= -->
+        <!-- ICON LIBRARY -->
 
         <div
           class="admin-panel"
@@ -470,7 +452,6 @@
             <div class="admin-table-wrap">
 
               <table class="admin-table">
-
 
                 <thead>
 
@@ -628,15 +609,12 @@
         </div>
 
 
-        <!-- =================================================
-             QUICK ACTIONS
-             ================================================= -->
+        <!-- QUICK ACTIONS -->
 
         <div class="admin-panel">
 
 
           <div class="admin-panel-head">
-
 
             <div>
 
@@ -650,7 +628,6 @@
 
             </div>
 
-
           </div>
 
 
@@ -659,8 +636,6 @@
 
             <div class="admin-action-list">
 
-
-              <!-- NEW ICON -->
 
               <button
                 type="button"
@@ -687,8 +662,6 @@
               </button>
 
 
-              <!-- UPLOAD -->
-
               <button
                 type="button"
                 class="admin-action"
@@ -714,8 +687,6 @@
               </button>
 
 
-              <!-- COLLECTION -->
-
               <button
                 type="button"
                 class="admin-action"
@@ -740,8 +711,6 @@
 
               </button>
 
-
-              <!-- CATEGORY -->
 
               <button
                 type="button"
@@ -894,7 +863,6 @@
 
         <div class="admin-panel-head">
 
-
           <div>
 
             <h2 class="admin-panel-title">
@@ -906,7 +874,6 @@
             </p>
 
           </div>
-
 
         </div>
 
@@ -961,7 +928,6 @@
 
         <div class="admin-panel-head">
 
-
           <div>
 
             <h2 class="admin-panel-title">
@@ -973,7 +939,6 @@
             </p>
 
           </div>
-
 
         </div>
 
@@ -1017,6 +982,440 @@
 
     </main>
 
+  </div>
+
+
+  <!-- =====================================================
+       NEW ICON MODAL
+       ===================================================== -->
+
+  <div
+    class="admin-modal-backdrop"
+    id="newIconModal"
+    aria-hidden="true"
+  >
+
+    <div
+      class="admin-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="newIconTitle"
+    >
+
+
+      <!-- MODAL HEADER -->
+
+      <div class="admin-modal-head">
+
+        <div>
+
+          <p class="eyebrow">
+            UASSET / ICON MANAGER
+          </p>
+
+          <h2
+            class="admin-panel-title"
+            id="newIconTitle"
+          >
+            Create New Icon
+          </h2>
+
+          <p class="admin-panel-subtitle">
+            Create and prepare a new UAsset asset.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          id="closeNewIcon"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <!-- MODAL BODY -->
+
+      <div class="admin-modal-body">
+
+
+        <!-- LEFT / FORM -->
+
+        <div class="admin-form">
+
+
+          <!-- NAME -->
+
+          <div class="admin-field">
+
+            <label
+              class="admin-label"
+              for="iconName"
+            >
+              Icon Name
+            </label>
+
+            <input
+              class="admin-input"
+              id="iconName"
+              type="text"
+              placeholder="Example: Idea"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <!-- ID -->
+
+          <div class="admin-field">
+
+            <label
+              class="admin-label"
+              for="iconId"
+            >
+              Icon ID
+            </label>
+
+            <input
+              class="admin-input"
+              id="iconId"
+              type="text"
+              placeholder="Example: idea"
+              autocomplete="off"
+            >
+
+            <span class="admin-help">
+              Lowercase ID used by the asset system.
+            </span>
+
+          </div>
+
+
+          <!-- CATEGORY + TAGS -->
+
+          <div class="admin-form-row">
+
+
+            <div class="admin-field">
+
+              <label
+                class="admin-label"
+                for="iconCategory"
+              >
+                Category
+              </label>
+
+              <input
+                class="admin-input"
+                id="iconCategory"
+                type="text"
+                placeholder="System"
+                autocomplete="off"
+              >
+
+            </div>
+
+
+            <div class="admin-field">
+
+              <label
+                class="admin-label"
+                for="iconTags"
+              >
+                Tags
+              </label>
+
+              <input
+                class="admin-input"
+                id="iconTags"
+                type="text"
+                placeholder="idea, creative"
+                autocomplete="off"
+              >
+
+            </div>
+
+
+          </div>
+
+
+          <!-- DESCRIPTION -->
+
+          <div class="admin-field">
+
+            <label
+              class="admin-label"
+              for="iconDescription"
+            >
+              Description
+            </label>
+
+            <textarea
+              class="admin-textarea"
+              id="iconDescription"
+              style="
+                min-height:90px;
+                font-family:Inter,sans-serif;
+                resize:vertical;
+              "
+              placeholder="Describe this icon..."
+            ></textarea>
+
+          </div>
+
+
+          <!-- PLAN -->
+
+          <div class="admin-field">
+
+            <span class="admin-label">
+              Access Plan
+            </span>
+
+            <div
+              class="admin-segmented"
+              id="iconPlan"
+            >
+
+              <button
+                type="button"
+                class="admin-segment active"
+                data-plan="free"
+              >
+                FREE
+              </button>
+
+              <button
+                type="button"
+                class="admin-segment"
+                data-plan="pro"
+              >
+                PRO
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- SVG -->
+
+          <div class="admin-field">
+
+            <label
+              class="admin-label"
+              for="iconSvg"
+            >
+              SVG Code
+            </label>
+
+            <textarea
+              class="admin-textarea"
+              id="iconSvg"
+              spellcheck="false"
+              placeholder="<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; ...></svg>"
+            ></textarea>
+
+            <span class="admin-help">
+              Paste the complete 24×24 SVG here.
+            </span>
+
+          </div>
+
+
+          <!-- ACTIONS -->
+
+          <div
+            style="
+              display:flex;
+              justify-content:flex-end;
+              gap:9px;
+              padding-top:4px;
+            "
+          >
+
+            <button
+              type="button"
+              class="admin-button"
+              id="cancelNewIcon"
+            >
+              Cancel
+            </button>
+
+
+            <button
+              type="button"
+              class="admin-button primary"
+              id="saveNewIcon"
+            >
+              Prepare Icon
+            </button>
+
+          </div>
+
+
+        </div>
+
+
+        <!-- RIGHT / PREVIEW -->
+
+        <div class="admin-form">
+
+
+          <div class="admin-field">
+
+            <span class="admin-label">
+              Live Preview
+            </span>
+
+
+            <div
+              class="admin-icon-preview"
+              id="iconLivePreview"
+            >
+
+              <span
+                style="
+                  color:#777871;
+                  font-size:11px;
+                "
+              >
+                SVG preview
+              </span>
+
+            </div>
+
+
+          </div>
+
+
+          <div class="admin-field">
+
+            <span class="admin-label">
+              Asset Summary
+            </span>
+
+
+            <div
+              style="
+                display:flex;
+                flex-direction:column;
+                gap:10px;
+                padding:15px;
+                border:1px solid var(--line);
+                border-radius:var(--radius-md);
+                background:var(--surface-soft);
+              "
+            >
+
+              <div>
+
+                <span
+                  style="
+                    display:block;
+                    color:var(--muted);
+                    font-size:9px;
+                    margin-bottom:4px;
+                    font-family:var(--mono);
+                  "
+                >
+                  NAME
+                </span>
+
+                <strong
+                  id="previewName"
+                  style="font-size:12px;"
+                >
+                  New Icon
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span
+                  style="
+                    display:block;
+                    color:var(--muted);
+                    font-size:9px;
+                    margin-bottom:4px;
+                    font-family:var(--mono);
+                  "
+                >
+                  ID
+                </span>
+
+                <strong
+                  id="previewId"
+                  style="
+                    font-size:11px;
+                    font-family:var(--mono);
+                  "
+                >
+                  new-icon
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span
+                  style="
+                    display:block;
+                    color:var(--muted);
+                    font-size:9px;
+                    margin-bottom:4px;
+                    font-family:var(--mono);
+                  "
+                >
+                  PLAN
+                </span>
+
+                <span
+                  class="admin-badge free"
+                  id="previewPlan"
+                >
+                  FREE
+                </span>
+
+              </div>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="admin-field">
+
+            <span class="admin-label">
+              Asset Standard
+            </span>
+
+            <span class="admin-help">
+              24×24 viewBox · 1.75–2px stroke ·
+              currentColor · no background · no gradients.
+            </span>
+
+          </div>
+
+
+        </div>
+
+
+      </div>
+
+
+    </div>
 
   </div>
 
