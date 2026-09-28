@@ -1,7 +1,16 @@
 /* =========================================================
    UASSET — js/app.js
-   Step 10: Production Hardening
-   + Real backend error surfacing (500/503 fix)
+   Step 11: Database-powered Icon Library
+   Production hardening
+   Bean authentication
+   Lemon Squeezy billing
+   Secure Pro assets
+   Dynamic Free assets from Supabase
+   ========================================================= */
+
+
+/* =========================================================
+   ELEMENTS
    ========================================================= */
 
 const els = {
@@ -38,25 +47,44 @@ const els = {
    UASSET AUTH
    ========================================================= */
 
-const ACCOUNTS_ORIGIN = "https://accounts.signaturesi.com";
-const LOGIN_URL = `${ACCOUNTS_ORIGIN}/?mode=login&app=uasset`;
-const SESSION_ENDPOINT = `${ACCOUNTS_ORIGIN}/api/auth/session`;
-const LOGOUT_ENDPOINT = `${ACCOUNTS_ORIGIN}/api/auth/logout`;
+const ACCOUNTS_ORIGIN =
+  "https://accounts.signaturesi.com";
+
+const LOGIN_URL =
+  `${ACCOUNTS_ORIGIN}/?mode=login&app=uasset`;
+
+const SESSION_ENDPOINT =
+  `${ACCOUNTS_ORIGIN}/api/auth/session`;
+
+const LOGOUT_ENDPOINT =
+  `${ACCOUNTS_ORIGIN}/api/auth/logout`;
 
 
 /* =========================================================
    UASSET BILLING
    ========================================================= */
 
-const BILLING_STATUS_ENDPOINT = "/api/billing/status";
-const BILLING_CHECKOUT_ENDPOINT = "/api/billing/create-checkout";
+const BILLING_STATUS_ENDPOINT =
+  "/api/billing/status";
+
+const BILLING_CHECKOUT_ENDPOINT =
+  "/api/billing/create-checkout";
+
+
+/* =========================================================
+   DATABASE ICON API
+   ========================================================= */
+
+const DATABASE_ICONS_ENDPOINT =
+  "/api/icons";
 
 
 /* =========================================================
    SECURE PRO ASSET API
    ========================================================= */
 
-const PRO_ASSET_ENDPOINT = "/api/assets/pro";
+const PRO_ASSET_ENDPOINT =
+  "/api/assets/pro";
 
 
 /* =========================================================
@@ -81,8 +109,11 @@ const PRO_ASSET_UNAVAILABLE_MESSAGE =
    ========================================================= */
 
 let authenticated = false;
+
 let currentUser = null;
+
 let restoringSession = null;
+
 let loggingOut = false;
 
 
@@ -103,16 +134,33 @@ let billingState = {
    PRO ASSET CACHE
    ========================================================= */
 
-const proAssetCache = new Map();
-const proAssetPromises = new Map();
+const proAssetCache =
+  new Map();
+
+const proAssetPromises =
+  new Map();
+
+
+/* =========================================================
+   FREE DATABASE ASSET CACHE
+   ========================================================= */
+
+const freeAssetCache =
+  new Map();
+
+const freeAssetPromises =
+  new Map();
 
 
 /* =========================================================
    PRO ASSET RATE-LIMIT STATE
    ========================================================= */
 
-let proAssetRateLimited = false;
-let proAssetErrorCode = null;
+let proAssetRateLimited =
+  false;
+
+let proAssetErrorCode =
+  null;
 
 
 /* =========================================================
@@ -120,19 +168,37 @@ let proAssetErrorCode = null;
    ========================================================= */
 
 function redirectToLogin() {
-  window.location.replace(LOGIN_URL);
+
+  window.location.replace(
+    LOGIN_URL
+  );
 }
 
 
 function resetProAssetCache() {
+
   proAssetCache.clear();
+
   proAssetPromises.clear();
-  proAssetRateLimited = false;
-  proAssetErrorCode = null;
+
+  proAssetRateLimited =
+    false;
+
+  proAssetErrorCode =
+    null;
+}
+
+
+function resetFreeAssetCache() {
+
+  freeAssetCache.clear();
+
+  freeAssetPromises.clear();
 }
 
 
 function resetBillingState() {
+
   billingState = {
     loaded: false,
     pro: false,
@@ -146,38 +212,82 @@ function resetBillingState() {
 
 
 function setAuthenticatedUser(user) {
-  if (!user || typeof user !== "object" || !user.id) {
-    authenticated = false;
-    currentUser = null;
+
+  if (
+    !user ||
+    typeof user !== "object" ||
+    !user.id
+  ) {
+
+    authenticated =
+      false;
+
+    currentUser =
+      null;
+
     resetBillingState();
+
     updateBeanButton();
+
     updateProPlanUI();
+
     return false;
   }
 
+
   currentUser = {
-    id: user.id || null,
-    username: user.username || "user",
-    displayName: user.displayName || user.username || "user",
-    beanId: user.beanId || null,
-    email: user.email || null
+
+    id:
+      user.id ||
+      null,
+
+    username:
+      user.username ||
+      "user",
+
+    displayName:
+      user.displayName ||
+      user.username ||
+      "user",
+
+    beanId:
+      user.beanId ||
+      null,
+
+    email:
+      user.email ||
+      null
   };
 
-  authenticated = true;
+
+  authenticated =
+    true;
+
+
   updateBeanButton();
+
   updateProPlanUI();
+
+
   return true;
 }
 
 
 function updateBeanButton() {
-  if (authenticated && currentUser?.beanId) {
+
+  if (
+    authenticated &&
+    currentUser?.beanId
+  ) {
+
     els.openBean.innerHTML = `
       <span class="bean-dot"></span>
       ${currentUser.beanId}
     `;
+
     return;
   }
+
 
   els.openBean.innerHTML = `
     <span class="bean-dot"></span>
@@ -191,18 +301,31 @@ function updateBeanButton() {
    ========================================================= */
 
 function getPlanType() {
-  if (!authenticated) return "free";
-  return billingState.pro ? "pro" : "free";
+
+  if (!authenticated) {
+    return "free";
+  }
+
+  return billingState.pro
+    ? "pro"
+    : "free";
 }
 
 
 function isProUser() {
-  return authenticated && billingState.pro === true;
+
+  return (
+    authenticated &&
+    billingState.pro === true
+  );
 }
 
 
 function getPlanLabel() {
-  return isProUser() ? "PRO" : "FREE";
+
+  return isProUser()
+    ? "PRO"
+    : "FREE";
 }
 
 
@@ -211,17 +334,29 @@ function getPlanLabel() {
    ========================================================= */
 
 function isProIcon(icon) {
+
   return icon?.pro === true;
 }
 
 
 function canAccessIcon(icon) {
-  if (!isProIcon(icon)) return true;
+
+  if (
+    !isProIcon(icon)
+  ) {
+    return true;
+  }
+
   return isProUser();
 }
 
 
+/* =========================================================
+   LOCK SVG
+   ========================================================= */
+
 function getLockSvg() {
+
   return `
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -235,15 +370,34 @@ function getLockSvg() {
       stroke-linejoin="round"
       aria-hidden="true"
     >
-      <rect x="5" y="10" width="14" height="10" rx="2" />
-      <path d="M8 10V7a4 4 0 018 0v3" />
+      <rect
+        x="5"
+        y="10"
+        width="14"
+        height="10"
+        rx="2"
+      />
+
+      <path
+        d="M8 10V7a4 4 0 018 0v3"
+      />
     </svg>
   `;
 }
 
 
+/* =========================================================
+   PRO BADGE
+   ========================================================= */
+
 function getProBadge(icon) {
-  if (!isProIcon(icon)) return "";
+
+  if (
+    !isProIcon(icon)
+  ) {
+    return "";
+  }
+
 
   return `
     <span
@@ -260,7 +414,12 @@ function getProBadge(icon) {
         vertical-align:middle;
       "
     >
-      ${!isProUser() ? getLockSvg() : ""}
+      ${
+        !isProUser()
+          ? getLockSvg()
+          : ""
+      }
+
       PRO
     </span>
   `;
@@ -269,167 +428,561 @@ function getProBadge(icon) {
 
 /* =========================================================
    SECURE PRO SVG LOADER
-   ---------------------------------------------------------
-   Step 10 + Fix:
-   - Response body PEHLE parse hoti hai
-   - 500/503 par bhi backend ka actual data.error surface
-     hota hai (generic message hide nahi karta)
    ========================================================= */
 
-async function getSecureProSvg(assetId) {
-  if (!assetId || !PRO_ASSET_IDS.has(assetId)) {
-    throw new Error("Invalid Pro asset");
-  }
+async function getSecureProSvg(
+  assetId
+) {
 
-  if (!isProUser()) {
-    throw new Error(PRO_ASSET_FORBIDDEN_MESSAGE);
-  }
+  if (
+    !assetId ||
+    !PRO_ASSET_IDS.has(
+      assetId
+    )
+  ) {
 
-  if (proAssetRateLimited) {
-    throw new Error(PRO_ASSET_RATE_LIMIT_MESSAGE);
-  }
-
-  if (proAssetCache.has(assetId)) {
-    return proAssetCache.get(assetId);
-  }
-
-  if (proAssetPromises.has(assetId)) {
-    return proAssetPromises.get(assetId);
-  }
-
-  const promise = (async () => {
-    const response = await fetch(
-      `${PRO_ASSET_ENDPOINT}?id=${encodeURIComponent(assetId)}`,
-      {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-        headers: { Accept: "application/json" }
-      }
+    throw new Error(
+      "Invalid Pro asset"
     );
+  }
 
-    /* ✅ FIX: Body pehle parse karo — 500 par bhi */
-    const data = await response.json().catch(() => ({}));
 
-    if (response.status === 429) {
-      proAssetRateLimited = true;
-      proAssetErrorCode = 429;
-      throw new Error(
-        data.error || PRO_ASSET_RATE_LIMIT_MESSAGE
-      );
-    }
+  if (
+    !isProUser()
+  ) {
 
-    if (response.status === 401) {
-      proAssetErrorCode = 401;
-      throw new Error(
-        data.error || PRO_ASSET_SESSION_MESSAGE
-      );
-    }
+    throw new Error(
+      PRO_ASSET_FORBIDDEN_MESSAGE
+    );
+  }
 
-    if (response.status === 403) {
-      proAssetErrorCode = 403;
-      throw new Error(
-        data.error || PRO_ASSET_FORBIDDEN_MESSAGE
-      );
-    }
 
-    /* ✅ FIX: 5xx par backend ka actual error message dikhao */
-    if (response.status >= 500) {
-      proAssetErrorCode = response.status;
+  if (
+    proAssetRateLimited
+  ) {
 
-      console.error(
-        "Pro asset server error:",
-        response.status,
-        data
-      );
+    throw new Error(
+      PRO_ASSET_RATE_LIMIT_MESSAGE
+    );
+  }
 
-      throw new Error(
-        data.error ||
+
+  if (
+    proAssetCache.has(
+      assetId
+    )
+  ) {
+
+    return proAssetCache.get(
+      assetId
+    );
+  }
+
+
+  if (
+    proAssetPromises.has(
+      assetId
+    )
+  ) {
+
+    return proAssetPromises.get(
+      assetId
+    );
+  }
+
+
+  const promise =
+    (async () => {
+
+      const response =
+        await fetch(
+          `${PRO_ASSET_ENDPOINT}?id=${encodeURIComponent(
+            assetId
+          )}`,
+          {
+            method:
+              "GET",
+
+            credentials:
+              "include",
+
+            cache:
+              "no-store",
+
+            headers: {
+              Accept:
+                "application/json"
+            }
+          }
+        );
+
+
+      const data =
+        await response
+          .json()
+          .catch(
+            () => ({})
+          );
+
+
+      if (
+        response.status ===
+        429
+      ) {
+
+        proAssetRateLimited =
+          true;
+
+        proAssetErrorCode =
+          429;
+
+
+        throw new Error(
+          data.error ||
+          PRO_ASSET_RATE_LIMIT_MESSAGE
+        );
+      }
+
+
+      if (
+        response.status ===
+        401
+      ) {
+
+        proAssetErrorCode =
+          401;
+
+
+        throw new Error(
+          data.error ||
+          PRO_ASSET_SESSION_MESSAGE
+        );
+      }
+
+
+      if (
+        response.status ===
+        403
+      ) {
+
+        proAssetErrorCode =
+          403;
+
+
+        throw new Error(
+          data.error ||
+          PRO_ASSET_FORBIDDEN_MESSAGE
+        );
+      }
+
+
+      if (
+        response.status >=
+        500
+      ) {
+
+        proAssetErrorCode =
+          response.status;
+
+
+        console.error(
+          "Pro asset server error:",
+          response.status,
+          data
+        );
+
+
+        throw new Error(
+          data.error ||
           data.message ||
           `${PRO_ASSET_UNAVAILABLE_MESSAGE} (${response.status})`
-      );
-    }
+        );
+      }
 
-    if (!response.ok || !data.success || !data.pro || !data.url) {
-      throw new Error(
-        data.error ||
+
+      if (
+        !response.ok ||
+        !data.success ||
+        !data.pro ||
+        !data.url
+      ) {
+
+        throw new Error(
+          data.error ||
           `Unable to load Pro asset (${response.status})`
-      );
-    }
-
-    const svgResponse = await fetch(data.url, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        Accept: "image/svg+xml,text/plain,*/*"
-      }
-    });
-
-    if (svgResponse.status === 429) {
-      proAssetRateLimited = true;
-      proAssetErrorCode = 429;
-      throw new Error(PRO_ASSET_RATE_LIMIT_MESSAGE);
-    }
-
-    /* ✅ FIX: signed URL fetch fail par bhi detail dikhao */
-    if (!svgResponse.ok) {
-      let detail = "";
-
-      try {
-        detail = await svgResponse.text();
-      } catch (_) {
-        /* ignore */
+        );
       }
 
-      const shortDetail = String(detail || "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 200);
 
-      throw new Error(
-        shortDetail
-          ? `Unable to download Pro SVG (${svgResponse.status}): ${shortDetail}`
-          : `Unable to download Pro SVG (${svgResponse.status})`
+      const svgResponse =
+        await fetch(
+          data.url,
+          {
+            method:
+              "GET",
+
+            cache:
+              "no-store",
+
+            headers: {
+              Accept:
+                "image/svg+xml,text/plain,*/*"
+            }
+          }
+        );
+
+
+      if (
+        svgResponse.status ===
+        429
+      ) {
+
+        proAssetRateLimited =
+          true;
+
+        proAssetErrorCode =
+          429;
+
+
+        throw new Error(
+          PRO_ASSET_RATE_LIMIT_MESSAGE
+        );
+      }
+
+
+      if (
+        !svgResponse.ok
+      ) {
+
+        let detail =
+          "";
+
+
+        try {
+
+          detail =
+            await svgResponse.text();
+
+        } catch (_) {
+
+          /* ignore */
+        }
+
+
+        const shortDetail =
+          String(
+            detail ||
+              ""
+          )
+            .replace(
+              /\s+/g,
+              " "
+            )
+            .trim()
+            .slice(
+              0,
+              200
+            );
+
+
+        throw new Error(
+          shortDetail
+            ? `Unable to download Pro SVG (${svgResponse.status}): ${shortDetail}`
+            : `Unable to download Pro SVG (${svgResponse.status})`
+        );
+      }
+
+
+      const svg =
+        await svgResponse.text();
+
+
+      const normalizedSvg =
+        String(
+          svg
+        ).trim();
+
+
+      if (
+        !normalizedSvg ||
+        !normalizedSvg
+          .toLowerCase()
+          .startsWith(
+            "<svg"
+          )
+      ) {
+
+        const shortBody =
+          normalizedSvg
+            .replace(
+              /\s+/g,
+              " "
+            )
+            .slice(
+              0,
+              200
+            );
+
+
+        throw new Error(
+          shortBody
+            ? `Invalid SVG asset: ${shortBody}`
+            : "Invalid SVG asset"
+        );
+      }
+
+
+      proAssetCache.set(
+        assetId,
+        normalizedSvg
       );
-    }
 
-    const svg = await svgResponse.text();
-    const normalizedSvg = String(svg).trim();
 
-    if (
-      !normalizedSvg ||
-      !normalizedSvg.toLowerCase().startsWith("<svg")
-    ) {
-      const shortBody = normalizedSvg
-        .replace(/\s+/g, " ")
-        .slice(0, 200);
+      return normalizedSvg;
 
-      throw new Error(
-        shortBody
-          ? `Invalid SVG asset: ${shortBody}`
-          : "Invalid SVG asset"
-      );
-    }
+    })();
 
-    proAssetCache.set(assetId, normalizedSvg);
-    return normalizedSvg;
-  })();
 
-  proAssetPromises.set(assetId, promise);
+  proAssetPromises.set(
+    assetId,
+    promise
+  );
+
 
   try {
+
     return await promise;
+
   } finally {
-    proAssetPromises.delete(assetId);
+
+    proAssetPromises.delete(
+      assetId
+    );
   }
 }
 
 
 /* =========================================================
-   PRO ASSET PLACEHOLDERS
+   FREE DATABASE SVG LOADER
+   ========================================================= */
+
+async function getFreeSvg(
+  icon
+) {
+
+  if (
+    !icon
+  ) {
+
+    throw new Error(
+      "Invalid free asset"
+    );
+  }
+
+
+  if (
+    icon.svg
+  ) {
+
+    return icon.svg;
+  }
+
+
+  const assetId =
+    String(
+      icon.id ||
+        ""
+    ).trim();
+
+
+  const svgUrl =
+    String(
+      icon.svgUrl ||
+        ""
+    ).trim();
+
+
+  if (
+    !assetId ||
+    !svgUrl
+  ) {
+
+    throw new Error(
+      "Free asset URL is missing"
+    );
+  }
+
+
+  if (
+    freeAssetCache.has(
+      assetId
+    )
+  ) {
+
+    return freeAssetCache.get(
+      assetId
+    );
+  }
+
+
+  if (
+    freeAssetPromises.has(
+      assetId
+    )
+  ) {
+
+    return freeAssetPromises.get(
+      assetId
+    );
+  }
+
+
+  const promise =
+    (async () => {
+
+      const response =
+        await fetch(
+          svgUrl,
+          {
+            method:
+              "GET",
+
+            cache:
+              "no-store",
+
+            headers: {
+              Accept:
+                "image/svg+xml,text/plain,*/*"
+            }
+          }
+        );
+
+
+      if (
+        !response.ok
+      ) {
+
+        let detail =
+          "";
+
+
+        try {
+
+          detail =
+            await response.text();
+
+        } catch (_) {
+
+          /* ignore */
+        }
+
+
+        const shortDetail =
+          String(
+            detail ||
+              ""
+          )
+            .replace(
+              /\s+/g,
+              " "
+            )
+            .trim()
+            .slice(
+              0,
+              200
+            );
+
+
+        throw new Error(
+          shortDetail
+            ? `Unable to download Free SVG (${response.status}): ${shortDetail}`
+            : `Unable to download Free SVG (${response.status})`
+        );
+      }
+
+
+      const svg =
+        await response.text();
+
+
+      const normalizedSvg =
+        String(
+          svg
+        ).trim();
+
+
+      if (
+        !normalizedSvg ||
+        !normalizedSvg
+          .toLowerCase()
+          .startsWith(
+            "<svg"
+          )
+      ) {
+
+        throw new Error(
+          "Invalid Free SVG asset"
+        );
+      }
+
+
+      freeAssetCache.set(
+        assetId,
+        normalizedSvg
+      );
+
+
+      return normalizedSvg;
+
+    })();
+
+
+  freeAssetPromises.set(
+    assetId,
+    promise
+  );
+
+
+  try {
+
+    return await promise;
+
+  } finally {
+
+    freeAssetPromises.delete(
+      assetId
+    );
+  }
+}
+
+
+/* =========================================================
+   FREE LOADING PREVIEW
+   ========================================================= */
+
+function getFreeLoadingPreview() {
+
+  return `
+    <div
+      style="
+        width:30px;
+        height:30px;
+        border:1.5px solid currentColor;
+        border-radius:50%;
+        opacity:.18;
+      "
+      aria-hidden="true"
+    ></div>
+  `;
+}
+
+
+/* =========================================================
+   PRO LOADING PREVIEW
    ========================================================= */
 
 function getProLoadingPreview() {
+
   return `
     <div
       style="
@@ -445,7 +998,12 @@ function getProLoadingPreview() {
 }
 
 
+/* =========================================================
+   PRO LOCKED PREVIEW
+   ========================================================= */
+
 function getProLockedPreview() {
+
   return `
     <div
       style="
@@ -471,47 +1029,244 @@ function getProLockedPreview() {
    ========================================================= */
 
 async function hydrateProIconPreviews() {
-  if (!isProUser()) return;
-  if (proAssetRateLimited) return;
 
-  const nodes = Array.from(
-    els.iconGrid.querySelectorAll("[data-pro-asset]")
-  );
+  if (
+    !isProUser()
+  ) {
+    return;
+  }
 
-  if (nodes.length === 0) return;
 
-  for (const node of nodes) {
-    if (proAssetRateLimited) break;
+  if (
+    proAssetRateLimited
+  ) {
+    return;
+  }
 
-    const assetId = node.dataset.proAsset;
-    if (!assetId) continue;
 
-    if (proAssetCache.has(assetId)) {
-      if (node.isConnected) {
-        node.innerHTML = proAssetCache.get(assetId);
-        node.style.opacity = "1";
-      }
+  const nodes =
+    Array.from(
+      els.iconGrid.querySelectorAll(
+        "[data-pro-asset]"
+      )
+    );
+
+
+  if (
+    nodes.length ===
+    0
+  ) {
+    return;
+  }
+
+
+  for (
+    const node of nodes
+  ) {
+
+    if (
+      proAssetRateLimited
+    ) {
+      break;
+    }
+
+
+    const assetId =
+      node.dataset.proAsset;
+
+
+    if (
+      !assetId
+    ) {
       continue;
     }
 
+
+    if (
+      proAssetCache.has(
+        assetId
+      )
+    ) {
+
+      if (
+        node.isConnected
+      ) {
+
+        node.innerHTML =
+          proAssetCache.get(
+            assetId
+          );
+
+        node.style.opacity =
+          "1";
+      }
+
+
+      continue;
+    }
+
+
     try {
-      const svg = await getSecureProSvg(assetId);
 
-      if (!node.isConnected) continue;
+      const svg =
+        await getSecureProSvg(
+          assetId
+        );
 
-      node.innerHTML = svg;
-      node.style.opacity = "1";
+
+      if (
+        !node.isConnected
+      ) {
+        continue;
+      }
+
+
+      node.innerHTML =
+        svg;
+
+      node.style.opacity =
+        "1";
 
     } catch (error) {
-      /* ✅ Ye logs ab real backend error bhi dikhayenge */
+
       console.error(
         `Failed to load Pro asset ${assetId}:`,
-        error?.message || error
+        error?.message ||
+          error
       );
 
-      if (node.isConnected) {
-        node.innerHTML = getProLoadingPreview();
-        node.style.opacity = ".35";
+
+      if (
+        node.isConnected
+      ) {
+
+        node.innerHTML =
+          getProLoadingPreview();
+
+        node.style.opacity =
+          ".35";
+      }
+    }
+  }
+}
+
+
+/* =========================================================
+   HYDRATE FREE DATABASE ICON PREVIEWS
+   ========================================================= */
+
+async function hydrateFreeIconPreviews() {
+
+  const nodes =
+    Array.from(
+      els.iconGrid.querySelectorAll(
+        "[data-free-asset]"
+      )
+    );
+
+
+  if (
+    nodes.length ===
+    0
+  ) {
+    return;
+  }
+
+
+  for (
+    const node of nodes
+  ) {
+
+    const assetId =
+      node.dataset.freeAsset;
+
+
+    if (
+      !assetId
+    ) {
+      continue;
+    }
+
+
+    const icon =
+      ICONS.find(
+        item =>
+          item.id ===
+          assetId
+      );
+
+
+    if (
+      !icon ||
+      !icon.svgUrl
+    ) {
+      continue;
+    }
+
+
+    if (
+      freeAssetCache.has(
+        assetId
+      )
+    ) {
+
+      if (
+        node.isConnected
+      ) {
+
+        node.innerHTML =
+          freeAssetCache.get(
+            assetId
+          );
+
+        node.style.opacity =
+          "1";
+      }
+
+
+      continue;
+    }
+
+
+    try {
+
+      const svg =
+        await getFreeSvg(
+          icon
+        );
+
+
+      if (
+        !node.isConnected
+      ) {
+        continue;
+      }
+
+
+      node.innerHTML =
+        svg;
+
+      node.style.opacity =
+        "1";
+
+    } catch (error) {
+
+      console.error(
+        `Failed to load Free asset ${assetId}:`,
+        error?.message ||
+          error
+      );
+
+
+      if (
+        node.isConnected
+      ) {
+
+        node.innerHTML =
+          getFreeLoadingPreview();
+
+        node.style.opacity =
+          ".35";
       }
     }
   }
@@ -523,59 +1278,142 @@ async function hydrateProIconPreviews() {
    ========================================================= */
 
 function updateProPlanUI() {
+
   if (
     !els.proPlanBadge ||
     !els.proPlanStatus ||
     !els.proPlanDescription ||
     !els.proButton
   ) {
+
     return;
   }
 
-  if (authenticated && !billingState.loaded) {
-    els.proPlanBadge.textContent = "PLAN";
-    els.proPlanBadge.classList.remove("free", "pro");
-    els.proPlanStatus.textContent = "Checking current plan...";
+
+  if (
+    authenticated &&
+    !billingState.loaded
+  ) {
+
+    els.proPlanBadge.textContent =
+      "PLAN";
+
+
+    els.proPlanBadge.classList.remove(
+      "free",
+      "pro"
+    );
+
+
+    els.proPlanStatus.textContent =
+      "Checking current plan...";
+
+
     els.proPlanDescription.textContent =
       "Checking your UAsset subscription.";
-    els.proButton.textContent = "View UAsset Pro";
 
-    if (els.proPlanBox) {
-      els.proPlanBox.classList.remove("pro-active");
+
+    els.proButton.textContent =
+      "View UAsset Pro";
+
+
+    if (
+      els.proPlanBox
+    ) {
+
+      els.proPlanBox.classList.remove(
+        "pro-active"
+      );
     }
+
+
     return;
   }
 
-  if (isProUser()) {
-    els.proPlanBadge.textContent = "PRO";
-    els.proPlanBadge.classList.remove("free");
-    els.proPlanBadge.classList.add("pro");
-    els.proPlanStatus.textContent = "Current plan: UAsset Pro";
+
+  if (
+    isProUser()
+  ) {
+
+    els.proPlanBadge.textContent =
+      "PRO";
+
+
+    els.proPlanBadge.classList.remove(
+      "free"
+    );
+
+
+    els.proPlanBadge.classList.add(
+      "pro"
+    );
+
+
+    els.proPlanStatus.textContent =
+      "Current plan: UAsset Pro";
+
+
     els.proPlanDescription.textContent =
       "Your UAsset Pro subscription is active.";
-    els.proButton.textContent = "UAsset Pro Active";
 
-    if (els.proPlanBox) {
-      els.proPlanBox.classList.add("pro-active");
+
+    els.proButton.textContent =
+      "UAsset Pro Active";
+
+
+    if (
+      els.proPlanBox
+    ) {
+
+      els.proPlanBox.classList.add(
+        "pro-active"
+      );
     }
+
+
     return;
   }
 
-  els.proPlanBadge.textContent = "FREE";
-  els.proPlanBadge.classList.remove("pro");
-  els.proPlanBadge.classList.add("free");
-  els.proPlanStatus.textContent = authenticated
-    ? "Current plan: Free"
-    : "Login to see your current plan";
-  els.proPlanDescription.textContent = authenticated
-    ? "Upgrade to UAsset Pro for premium SVG icon access."
-    : "Sign in with Bean ID to connect your UAsset plan.";
-  els.proButton.textContent = authenticated
-    ? "View UAsset Pro"
-    : "Login to UAsset Pro";
 
-  if (els.proPlanBox) {
-    els.proPlanBox.classList.remove("pro-active");
+  els.proPlanBadge.textContent =
+    "FREE";
+
+
+  els.proPlanBadge.classList.remove(
+    "pro"
+  );
+
+
+  els.proPlanBadge.classList.add(
+    "free"
+  );
+
+
+  els.proPlanStatus.textContent =
+    authenticated
+      ? "Current plan: Free"
+      : "Login to see your current plan";
+
+
+  els.proPlanDescription.textContent =
+    authenticated
+      ? "Upgrade to UAsset Pro for premium SVG icon access."
+      : "Sign in with Bean ID to connect your UAsset plan.";
+
+
+  els.proButton.textContent =
+    authenticated
+      ? "View UAsset Pro"
+      : "Login to UAsset Pro";
+
+
+  if (
+    els.proPlanBox
+  ) {
+
+    els.proPlanBox.classList.remove(
+      "pro-active"
+    );
   }
 }
 
@@ -585,63 +1423,164 @@ function updateProPlanUI() {
    ========================================================= */
 
 async function loadBillingStatus() {
-  if (!authenticated || !currentUser?.id) {
+
+  if (
+    !authenticated ||
+    !currentUser?.id
+  ) {
+
     resetBillingState();
+
     updateProPlanUI();
-    renderIcons(getSearchTerm());
+
+    renderIcons(
+      getSearchTerm()
+    );
+
     return false;
   }
 
+
   try {
-    const response = await fetch(BILLING_STATUS_ENDPOINT, {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      headers: { Accept: "application/json" }
-    });
 
-    const data = await response.json().catch(() => ({}));
+    const response =
+      await fetch(
+        BILLING_STATUS_ENDPOINT,
+        {
+          method:
+            "GET",
 
-    if (response.status === 401) {
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+
+    if (
+      response.status ===
+      401
+    ) {
+
       resetBillingState();
-      billingState.loaded = true;
+
+      billingState.loaded =
+        true;
+
       updateProPlanUI();
-      renderIcons(getSearchTerm());
+
+      renderIcons(
+        getSearchTerm()
+      );
+
       return false;
     }
 
-    if (!response.ok || data.authenticated !== true) {
-      console.error("UAsset billing status error:", data);
+
+    if (
+      !response.ok ||
+      data.authenticated !==
+        true
+    ) {
+
+      console.error(
+        "UAsset billing status error:",
+        data
+      );
+
+
       resetBillingState();
-      billingState.loaded = true;
+
+      billingState.loaded =
+        true;
+
       updateProPlanUI();
-      renderIcons(getSearchTerm());
+
+      renderIcons(
+        getSearchTerm()
+      );
+
       return false;
     }
+
 
     billingState = {
-      loaded: true,
-      pro: data.pro === true,
-      plan: data.plan === "pro" ? "pro" : "free",
-      testMode: data.testMode === true,
-      subscription: data.subscription || null
+
+      loaded:
+        true,
+
+      pro:
+        data.pro ===
+        true,
+
+      plan:
+        data.plan ===
+        "pro"
+          ? "pro"
+          : "free",
+
+      testMode:
+        data.testMode ===
+        true,
+
+      subscription:
+        data.subscription ||
+        null
     };
 
-    updateProPlanUI();
-    renderIcons(getSearchTerm());
 
-    if (isProUser()) {
+    updateProPlanUI();
+
+    renderIcons(
+      getSearchTerm()
+    );
+
+
+    if (
+      isProUser()
+    ) {
+
       hydrateProIconPreviews();
     }
+
 
     return true;
 
   } catch (error) {
-    console.error("UAsset billing status failed:", error);
+
+    console.error(
+      "UAsset billing status failed:",
+      error
+    );
+
+
     resetBillingState();
-    billingState.loaded = true;
+
+    billingState.loaded =
+      true;
+
     updateProPlanUI();
-    renderIcons(getSearchTerm());
+
+    renderIcons(
+      getSearchTerm()
+    );
+
+
     return false;
   }
 }
@@ -652,56 +1591,137 @@ async function loadBillingStatus() {
    ========================================================= */
 
 async function startProCheckout() {
-  if (!authenticated) {
+
+  if (
+    !authenticated
+  ) {
+
     redirectToLogin();
+
     return;
   }
 
-  if (isProUser()) {
-    showToast("UAsset Pro is already active");
+
+  if (
+    isProUser()
+  ) {
+
+    showToast(
+      "UAsset Pro is already active"
+    );
+
     return;
   }
 
-  const originalText = els.proButton.textContent;
-  els.proButton.disabled = true;
-  els.proButton.textContent = "Opening checkout...";
+
+  const originalText =
+    els.proButton.textContent;
+
+
+  els.proButton.disabled =
+    true;
+
+
+  els.proButton.textContent =
+    "Opening checkout...";
+
 
   try {
-    const response = await fetch(BILLING_CHECKOUT_ENDPOINT, {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({})
-    });
 
-    const data = await response.json().catch(() => ({}));
+    const response =
+      await fetch(
+        BILLING_CHECKOUT_ENDPOINT,
+        {
+          method:
+            "POST",
 
-    if (response.status === 401) {
-      redirectToLogin();
-      return;
-    }
+          credentials:
+            "include",
 
-    if (!response.ok || !data.success || !data.checkoutUrl) {
-      console.error("UAsset checkout failed:", data);
-      showToast(
-        data.error || "Unable to create UAsset Pro checkout"
+          cache:
+            "no-store",
+
+          headers: {
+            Accept:
+              "application/json",
+
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({})
+        }
       );
+
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+
+    if (
+      response.status ===
+      401
+    ) {
+
+      redirectToLogin();
+
       return;
     }
 
-    window.location.assign(data.checkoutUrl);
+
+    if (
+      !response.ok ||
+      !data.success ||
+      !data.checkoutUrl
+    ) {
+
+      console.error(
+        "UAsset checkout failed:",
+        data
+      );
+
+
+      showToast(
+        data.error ||
+        "Unable to create UAsset Pro checkout"
+      );
+
+
+      return;
+    }
+
+
+    window.location.assign(
+      data.checkoutUrl
+    );
+
 
   } catch (error) {
-    console.error("UAsset checkout error:", error);
-    showToast("Unable to create UAsset Pro checkout");
+
+    console.error(
+      "UAsset checkout error:",
+      error
+    );
+
+
+    showToast(
+      "Unable to create UAsset Pro checkout"
+    );
+
 
   } finally {
-    els.proButton.disabled = false;
-    els.proButton.textContent = originalText;
+
+    els.proButton.disabled =
+      false;
+
+
+    els.proButton.textContent =
+      originalText;
   }
 }
 
@@ -710,32 +1730,66 @@ async function startProCheckout() {
    PREMIUM ACCESS API
    ========================================================= */
 
-function requirePro(callback) {
-  if (!authenticated) {
+function requirePro(
+  callback
+) {
+
+  if (
+    !authenticated
+  ) {
+
     redirectToLogin();
+
     return false;
   }
 
-  if (!isProUser()) {
-    showToast("UAsset Pro access required");
+
+  if (
+    !isProUser()
+  ) {
+
+    showToast(
+      "UAsset Pro access required"
+    );
+
     return false;
   }
 
-  if (typeof callback === "function") {
+
+  if (
+    typeof callback ===
+    "function"
+  ) {
+
     callback();
   }
+
 
   return true;
 }
 
 
-window.UAssetAccess = Object.freeze({
-  isAuthenticated: () => authenticated,
-  isPro: () => isProUser(),
-  getPlan: () => getPlanType(),
-  getPlanLabel: () => getPlanLabel(),
-  requirePro
-});
+window.UAssetAccess =
+  Object.freeze({
+
+    isAuthenticated:
+      () =>
+        authenticated,
+
+    isPro:
+      () =>
+        isProUser(),
+
+    getPlan:
+      () =>
+        getPlanType(),
+
+    getPlanLabel:
+      () =>
+        getPlanLabel(),
+
+    requirePro
+  });
 
 
 /* =========================================================
@@ -743,57 +1797,133 @@ window.UAssetAccess = Object.freeze({
    ========================================================= */
 
 async function performSessionRestore() {
+
   try {
-    const response = await fetch(SESSION_ENDPOINT, {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      headers: { Accept: "application/json" }
-    });
 
-    const data = await response.json().catch(() => ({}));
+    const response =
+      await fetch(
+        SESSION_ENDPOINT,
+        {
+          method:
+            "GET",
 
-    if (!response.ok || !data.authenticated || !data.user) {
-      authenticated = false;
-      currentUser = null;
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+
+    if (
+      !response.ok ||
+      !data.authenticated ||
+      !data.user
+    ) {
+
+      authenticated =
+        false;
+
+      currentUser =
+        null;
+
       resetBillingState();
+
       updateBeanButton();
+
       updateProPlanUI();
-      renderIcons(getSearchTerm());
+
+      renderIcons(
+        getSearchTerm()
+      );
+
+
       return false;
     }
 
-    if (!setAuthenticatedUser(data.user)) {
+
+    if (
+      !setAuthenticatedUser(
+        data.user
+      )
+    ) {
+
       return false;
     }
+
 
     await loadBillingStatus();
+
+
     return true;
 
+
   } catch (error) {
-    console.error("Bean session restore failed:", error);
-    authenticated = false;
-    currentUser = null;
+
+    console.error(
+      "Bean session restore failed:",
+      error
+    );
+
+
+    authenticated =
+      false;
+
+    currentUser =
+      null;
+
     resetBillingState();
+
     updateBeanButton();
+
     updateProPlanUI();
-    renderIcons(getSearchTerm());
+
+    renderIcons(
+      getSearchTerm()
+    );
+
+
     return false;
   }
 }
 
 
 async function restoreSession() {
-  if (restoringSession) {
+
+  if (
+    restoringSession
+  ) {
+
     return restoringSession;
   }
 
-  restoringSession = performSessionRestore();
+
+  restoringSession =
+    performSessionRestore();
+
 
   try {
+
     return await restoringSession;
+
   } finally {
-    restoringSession = null;
+
+    restoringSession =
+      null;
   }
 }
 
@@ -803,32 +1933,75 @@ async function restoreSession() {
    ========================================================= */
 
 async function logout() {
-  if (loggingOut || !authenticated) {
+
+  if (
+    loggingOut ||
+    !authenticated
+  ) {
+
     return false;
   }
 
-  loggingOut = true;
+
+  loggingOut =
+    true;
+
 
   try {
-    await fetch(LOGOUT_ENDPOINT, {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-      headers: { Accept: "application/json" }
-    });
+
+    await fetch(
+      LOGOUT_ENDPOINT,
+      {
+        method:
+          "POST",
+
+        credentials:
+          "include",
+
+        cache:
+          "no-store",
+
+        headers: {
+          Accept:
+            "application/json"
+        }
+      }
+    );
+
+
   } catch (error) {
-    console.warn("Bean logout failed:", error);
+
+    console.warn(
+      "Bean logout failed:",
+      error
+    );
   }
 
-  authenticated = false;
-  currentUser = null;
+
+  authenticated =
+    false;
+
+  currentUser =
+    null;
+
   resetBillingState();
+
   updateBeanButton();
+
   updateProPlanUI();
-  renderIcons(getSearchTerm());
-  loggingOut = false;
+
+  renderIcons(
+    getSearchTerm()
+  );
+
+
+  loggingOut =
+    false;
+
 
   redirectToLogin();
+
+
   return true;
 }
 
@@ -837,61 +2010,100 @@ async function logout() {
    PUBLIC AUTH API
    ========================================================= */
 
-window.UAssetAuth = Object.freeze({
-  restore: restoreSession,
-  login: redirectToLogin,
-  logout,
-  isAuthenticated: () => authenticated,
-  getUser: () =>
-    currentUser ? { ...currentUser } : null,
-  getAccountsOrigin: () => ACCOUNTS_ORIGIN,
-  getLoginUrl: () => LOGIN_URL
-});
+window.UAssetAuth =
+  Object.freeze({
+
+    restore:
+      restoreSession,
+
+    login:
+      redirectToLogin,
+
+    logout,
+
+    isAuthenticated:
+      () =>
+        authenticated,
+
+    getUser:
+      () =>
+        currentUser
+          ? {
+              ...currentUser
+            }
+          : null,
+
+    getAccountsOrigin:
+      () =>
+        ACCOUNTS_ORIGIN,
+
+    getLoginUrl:
+      () =>
+        LOGIN_URL
+  });
 
 
 /* =========================================================
    BEAN BUTTON
    ========================================================= */
 
-els.openBean.addEventListener("click", () => {
-  redirectToLogin();
-});
+els.openBean.addEventListener(
+  "click",
+  () => {
+
+    redirectToLogin();
+
+  }
+);
 
 
 /* =========================================================
    PRO BUTTON
    ========================================================= */
 
-els.proButton.addEventListener("click", startProCheckout);
+els.proButton.addEventListener(
+  "click",
+  startProCheckout
+);
 
 
 /* =========================================================
    ICON LIBRARY STATE
    ========================================================= */
 
-let activeCategory = "All";
-let activeCollection = null;
-let selectedIcon = null;
-let selectedIconSvg = null;
-let activeCodeTab = "svg";
+let activeCategory =
+  "All";
+
+let activeCollection =
+  null;
+
+let selectedIcon =
+  null;
+
+let selectedIconSvg =
+  null;
+
+let activeCodeTab =
+  "svg";
 
 
 /* =========================================================
    PRO ICON IDS
    ========================================================= */
 
-const PRO_ASSET_IDS = new Set([
-  "calendar",
-  "history",
-  "edit",
-  "trash",
-  "download",
-  "upload",
-  "folder",
-  "heart",
-  "shield",
-  "info"
-]);
+const PRO_ASSET_IDS =
+  new Set([
+    "calendar",
+    "history",
+    "edit",
+    "trash",
+    "download",
+    "upload",
+    "folder",
+    "heart",
+    "shield",
+    "info"
+  ]);
 
 
 /* =========================================================
@@ -899,28 +2111,281 @@ const PRO_ASSET_IDS = new Set([
    ========================================================= */
 
 const collections = [
+
   {
-    id: "essential-ui",
-    name: "Essential UI",
-    categories: ["Navigation", "Actions", "System"]
+    id:
+      "essential-ui",
+
+    name:
+      "Essential UI",
+
+    categories: [
+      "Navigation",
+      "Actions",
+      "System"
+    ]
   },
+
   {
-    id: "time-calendar",
-    name: "Time & Calendar",
-    categories: ["Time"]
+    id:
+      "time-calendar",
+
+    name:
+      "Time & Calendar",
+
+    categories: [
+      "Time"
+    ]
   },
+
   {
-    id: "files-product",
-    name: "Files & Product",
-    categories: ["Files", "Security", "Communication"]
+    id:
+      "files-product",
+
+    name:
+      "Files & Product",
+
+    categories: [
+      "Files",
+      "Security",
+      "Communication"
+    ]
   }
+
 ];
 
 
-const categories = [
+/* =========================================================
+   CATEGORIES
+   ========================================================= */
+
+let categories = [
+
   "All",
-  ...new Set(ICONS.map(icon => icon.category))
+
+  ...new Set(
+    ICONS.map(
+      icon =>
+        icon.category
+    )
+  )
+
 ];
+
+
+/* =========================================================
+   LOAD DATABASE ICONS
+   ---------------------------------------------------------
+   Existing static icons stay untouched.
+   New IDs from Supabase are appended.
+   ========================================================= */
+
+async function loadDatabaseIcons() {
+
+  try {
+
+    const response =
+      await fetch(
+        DATABASE_ICONS_ENDPOINT,
+        {
+          method:
+            "GET",
+
+          cache:
+            "no-store",
+
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+
+    if (
+      !response.ok ||
+      data.success !==
+        true
+    ) {
+
+      console.error(
+        "UAsset database icons failed:",
+        {
+          status:
+            response.status,
+
+          response:
+            data
+        }
+      );
+
+
+      return;
+    }
+
+
+    const databaseIcons =
+      Array.isArray(
+        data.icons
+      )
+        ? data.icons
+        : [];
+
+
+    databaseIcons.forEach(
+      databaseIcon => {
+
+        if (
+          !databaseIcon?.id
+        ) {
+
+          return;
+        }
+
+
+        const existingIndex =
+          ICONS.findIndex(
+            icon =>
+              icon.id ===
+              databaseIcon.id
+          );
+
+
+        /*
+          Important:
+
+          Existing icons from js/icons.js
+          are preserved.
+
+          Only NEW database IDs are
+          appended to the library.
+        */
+
+        if (
+          existingIndex >=
+          0
+        ) {
+
+          return;
+        }
+
+
+        const normalizedIcon = {
+
+          id:
+            databaseIcon.id,
+
+          name:
+            databaseIcon.name ||
+            databaseIcon.id,
+
+          category:
+            databaseIcon.category ||
+            "System",
+
+          tags:
+            Array.isArray(
+              databaseIcon.tags
+            )
+              ? databaseIcon.tags
+              : [],
+
+          description:
+            databaseIcon.description ||
+            "",
+
+          pro:
+            databaseIcon.pro ===
+            true,
+
+          plan:
+            databaseIcon.pro ===
+            true
+              ? "pro"
+              : "free",
+
+          svg:
+            databaseIcon.pro ===
+            true
+              ? null
+              : null,
+
+          svgUrl:
+            databaseIcon.svgUrl ||
+            null,
+
+          isActive:
+            databaseIcon.isActive !==
+            false
+        };
+
+
+        ICONS.push(
+          normalizedIcon
+        );
+
+      }
+    );
+
+
+    /* -----------------------------------------------------
+       Rebuild categories
+       ----------------------------------------------------- */
+
+    categories = [
+
+      "All",
+
+      ...new Set(
+        ICONS
+          .filter(
+            icon =>
+              icon.isActive !==
+              false
+          )
+          .map(
+            icon =>
+              icon.category
+          )
+      )
+
+    ];
+
+
+    /* -----------------------------------------------------
+       Refresh UI
+       ----------------------------------------------------- */
+
+    renderFilters();
+
+    renderCollectionContext();
+
+    renderIcons(
+      getSearchTerm()
+    );
+
+
+    console.log(
+      `UAsset: ${databaseIcons.length} database icon(s) loaded.`
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "UAsset database icon loading failed:",
+      error
+    );
+  }
+}
 
 
 /* =========================================================
@@ -928,7 +2393,12 @@ const categories = [
    ========================================================= */
 
 function getSearchTerm() {
-  return els.librarySearch.value.trim().toLowerCase();
+
+  return els.librarySearch
+    .value
+    .trim()
+    .toLowerCase();
+
 }
 
 
@@ -937,33 +2407,60 @@ function getSearchTerm() {
    ========================================================= */
 
 function renderFilters() {
-  els.filters.innerHTML = categories
-    .map(
-      category => `
-        <button
-          type="button"
-          class="filter ${
-            category === activeCategory ? "active" : ""
-          }"
-          data-category="${category}"
-        >
-          ${category}
-        </button>
-      `
-    )
-    .join("");
+
+  els.filters.innerHTML =
+    categories
+      .map(
+        category => `
+
+          <button
+            type="button"
+            class="filter ${
+              category ===
+              activeCategory
+                ? "active"
+                : ""
+            }"
+            data-category="${category}"
+          >
+            ${category}
+          </button>
+
+        `
+      )
+      .join("");
+
 
   els.filters
-    .querySelectorAll("[data-category]")
-    .forEach(button => {
-      button.addEventListener("click", () => {
-        activeCategory = button.dataset.category;
-        activeCollection = null;
-        renderFilters();
-        renderCollectionContext();
-        renderIcons(getSearchTerm());
-      });
-    });
+    .querySelectorAll(
+      "[data-category]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            activeCategory =
+              button.dataset.category;
+
+            activeCollection =
+              null;
+
+            renderFilters();
+
+            renderCollectionContext();
+
+            renderIcons(
+              getSearchTerm()
+            );
+
+          }
+        );
+
+      }
+    );
 }
 
 
@@ -972,12 +2469,22 @@ function renderFilters() {
    ========================================================= */
 
 function getActiveCollection() {
-  if (!activeCollection) return null;
+
+  if (
+    !activeCollection
+  ) {
+
+    return null;
+  }
+
 
   return (
     collections.find(
-      collection => collection.id === activeCollection
-    ) || null
+      collection =>
+        collection.id ===
+        activeCollection
+    ) ||
+    null
   );
 }
 
@@ -987,26 +2494,50 @@ function getActiveCollection() {
    ========================================================= */
 
 function renderCollectionContext() {
-  const collection = getActiveCollection();
 
-  if (!collection) {
-    els.collectionContext.classList.add("hidden");
-    els.collectionContextName.textContent = "";
+  const collection =
+    getActiveCollection();
+
+
+  if (
+    !collection
+  ) {
+
+    els.collectionContext.classList.add(
+      "hidden"
+    );
+
+    els.collectionContextName.textContent =
+      "";
+
     return;
   }
 
-  const count = ICONS.filter(icon =>
-    collection.categories.includes(icon.category)
-  ).length;
+
+  const count =
+    ICONS.filter(
+      icon =>
+        collection.categories.includes(
+          icon.category
+        )
+    ).length;
+
 
   els.collectionContextName.textContent =
     collection.name +
     " · " +
     count +
     " " +
-    (count === 1 ? "icon" : "icons");
+    (
+      count === 1
+        ? "icon"
+        : "icons"
+    );
 
-  els.collectionContext.classList.remove("hidden");
+
+  els.collectionContext.classList.remove(
+    "hidden"
+  );
 }
 
 
@@ -1014,23 +2545,54 @@ function renderCollectionContext() {
    SELECT COLLECTION
    ========================================================= */
 
-function selectCollection(collectionId) {
-  const collection = collections.find(
-    item => item.id === collectionId
-  );
+function selectCollection(
+  collectionId
+) {
 
-  if (!collection) return;
+  const collection =
+    collections.find(
+      item =>
+        item.id ===
+        collectionId
+    );
 
-  activeCollection = collection.id;
-  activeCategory = "All";
+
+  if (
+    !collection
+  ) {
+
+    return;
+  }
+
+
+  activeCollection =
+    collection.id;
+
+
+  activeCategory =
+    "All";
+
 
   renderFilters();
+
   renderCollectionContext();
-  renderIcons(getSearchTerm());
+
+  renderIcons(
+    getSearchTerm()
+  );
+
 
   document
-    .getElementById("library")
-    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    .getElementById(
+      "library"
+    )
+    ?.scrollIntoView({
+      behavior:
+        "smooth",
+
+      block:
+        "start"
+    });
 }
 
 
@@ -1039,56 +2601,124 @@ function selectCollection(collectionId) {
    ========================================================= */
 
 document
-  .querySelectorAll("[data-collection]")
-  .forEach(card => {
-    card.addEventListener("click", () => {
-      selectCollection(card.dataset.collection);
-    });
-  });
+  .querySelectorAll(
+    "[data-collection]"
+  )
+  .forEach(
+    card => {
+
+      card.addEventListener(
+        "click",
+        () => {
+
+          selectCollection(
+            card.dataset.collection
+          );
+
+        }
+      );
+
+    }
+  );
 
 
 /* =========================================================
    CLEAR COLLECTION
    ========================================================= */
 
-els.clearCollection.addEventListener("click", () => {
-  activeCollection = null;
-  activeCategory = "All";
-  renderFilters();
-  renderCollectionContext();
-  renderIcons(getSearchTerm());
-});
+els.clearCollection.addEventListener(
+  "click",
+  () => {
+
+    activeCollection =
+      null;
+
+    activeCategory =
+      "All";
+
+    renderFilters();
+
+    renderCollectionContext();
+
+    renderIcons(
+      getSearchTerm()
+    );
+
+  }
+);
 
 
 /* =========================================================
    ICON MATCHING
    ========================================================= */
 
-function matchesIcon(icon, term) {
-  const collection = getActiveCollection();
+function matchesIcon(
+  icon,
+  term
+) {
 
-  if (collection) {
-    if (!collection.categories.includes(icon.category)) {
-      return false;
-    }
-  } else if (
-    activeCategory !== "All" &&
-    icon.category !== activeCategory
+  if (
+    icon.isActive ===
+    false
   ) {
+
     return false;
   }
 
-  if (!term) return true;
 
-  const searchableText = [
-    icon.name,
-    icon.category,
-    ...icon.tags
-  ]
-    .join(" ")
-    .toLowerCase();
+  const collection =
+    getActiveCollection();
 
-  return searchableText.includes(term);
+
+  if (
+    collection
+  ) {
+
+    if (
+      !collection.categories.includes(
+        icon.category
+      )
+    ) {
+
+      return false;
+    }
+
+  } else if (
+    activeCategory !==
+      "All" &&
+    icon.category !==
+      activeCategory
+  ) {
+
+    return false;
+  }
+
+
+  if (
+    !term
+  ) {
+
+    return true;
+  }
+
+
+  const searchableText =
+    [
+      icon.name,
+      icon.category,
+      ...(Array.isArray(
+        icon.tags
+      )
+        ? icon.tags
+        : [])
+    ]
+      .join(" ")
+      .toLowerCase();
+
+
+  return searchableText.includes(
+    term
+  );
 }
 
 
@@ -1096,20 +2726,83 @@ function matchesIcon(icon, term) {
    ICON PREVIEW
    ========================================================= */
 
-function getIconPreview(icon) {
-  if (isProIcon(icon)) {
-    if (!isProUser()) {
+function getIconPreview(
+  icon
+) {
+
+  /* -------------------------------------------------------
+     PRO ICON
+     ------------------------------------------------------- */
+
+  if (
+    isProIcon(icon)
+  ) {
+
+    if (
+      !isProUser()
+    ) {
+
       return getProLockedPreview();
     }
 
-    const cachedSvg = proAssetCache.get(icon.id);
 
-    if (cachedSvg) return cachedSvg;
+    const cachedSvg =
+      proAssetCache.get(
+        icon.id
+      );
+
+
+    if (
+      cachedSvg
+    ) {
+
+      return cachedSvg;
+    }
+
 
     return getProLoadingPreview();
   }
 
-  return icon.svg;
+
+  /* -------------------------------------------------------
+     STATIC FREE ICON
+     ------------------------------------------------------- */
+
+  if (
+    icon.svg
+  ) {
+
+    return icon.svg;
+  }
+
+
+  /* -------------------------------------------------------
+     DATABASE FREE ICON
+     ------------------------------------------------------- */
+
+  const cachedFreeSvg =
+    freeAssetCache.get(
+      icon.id
+    );
+
+
+  if (
+    cachedFreeSvg
+  ) {
+
+    return cachedFreeSvg;
+  }
+
+
+  if (
+    icon.svgUrl
+  ) {
+
+    return getFreeLoadingPreview();
+  }
+
+
+  return getFreeLoadingPreview();
 }
 
 
@@ -1117,92 +2810,172 @@ function getIconPreview(icon) {
    ICON GRID
    ========================================================= */
 
-function renderIcons(term = "") {
-  const visibleIcons = ICONS.filter(icon =>
-    matchesIcon(icon, term)
-  );
+function renderIcons(
+  term = ""
+) {
 
-  els.iconGrid.innerHTML = visibleIcons
-    .map(icon => {
-      const locked = isProIcon(icon) && !isProUser();
-      const preview = getIconPreview(icon);
-      const previewOpacity = locked ? "opacity:.48;" : "";
+  const visibleIcons =
+    ICONS.filter(
+      icon =>
+        matchesIcon(
+          icon,
+          term
+        )
+    );
 
-      return `
-        <button
-          type="button"
-          class="icon-card"
-          data-icon="${icon.id}"
-          aria-label="Open ${icon.name}"
-          style="position:relative;"
-        >
-          ${
+
+  els.iconGrid.innerHTML =
+    visibleIcons
+      .map(
+        icon => {
+
+          const locked =
+            isProIcon(icon) &&
+            !isProUser();
+
+
+          const preview =
+            getIconPreview(
+              icon
+            );
+
+
+          const previewOpacity =
             locked
-              ? `
-                <span
-                  aria-hidden="true"
-                  style="
-                    position:absolute;
-                    top:10px;
-                    right:10px;
-                    width:26px;
-                    height:26px;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    border:1px solid currentColor;
-                    border-radius:999px;
-                    opacity:.7;
-                    pointer-events:none;
-                  "
-                >
-                  ${getLockSvg()}
-                </span>
-              `
-              : ""
-          }
+              ? "opacity:.48;"
+              : "";
 
-          <div
-            class="icon-draw"
-            data-pro-asset="${
-              isProIcon(icon) ? icon.id : ""
-            }"
-            style="${previewOpacity}"
-          >
-            ${preview}
-          </div>
 
-          <div>
-            <div class="icon-title">
-              ${icon.name}
-              ${getProBadge(icon)}
-            </div>
+          return `
 
-            <div class="icon-category">
-              ${icon.category}
-            </div>
-          </div>
-        </button>
-      `;
-    })
-    .join("");
+            <button
+              type="button"
+              class="icon-card"
+              data-icon="${icon.id}"
+              aria-label="Open ${icon.name}"
+              style="position:relative;"
+            >
+
+              ${
+                locked
+                  ? `
+
+                    <span
+                      aria-hidden="true"
+                      style="
+                        position:absolute;
+                        top:10px;
+                        right:10px;
+                        width:26px;
+                        height:26px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        border:1px solid currentColor;
+                        border-radius:999px;
+                        opacity:.7;
+                        pointer-events:none;
+                      "
+                    >
+
+                      ${getLockSvg()}
+
+                    </span>
+
+                  `
+                  : ""
+              }
+
+
+              <div
+                class="icon-draw"
+
+                ${
+                  isProIcon(icon)
+                    ? `data-pro-asset="${icon.id}"`
+                    : ""
+                }
+
+                ${
+                  !isProIcon(icon) &&
+                  icon.svgUrl
+                    ? `data-free-asset="${icon.id}"`
+                    : ""
+                }
+
+                style="${previewOpacity}"
+              >
+
+                ${preview}
+
+              </div>
+
+
+              <div>
+
+                <div class="icon-title">
+
+                  ${icon.name}
+
+                  ${getProBadge(icon)}
+
+                </div>
+
+
+                <div class="icon-category">
+
+                  ${icon.category}
+
+                </div>
+
+              </div>
+
+            </button>
+
+          `;
+        }
+      )
+      .join("");
+
 
   els.emptyState.classList.toggle(
     "hidden",
-    visibleIcons.length !== 0
+    visibleIcons.length !==
+      0
   );
 
-  els.iconGrid
-    .querySelectorAll("[data-icon]")
-    .forEach(card => {
-      card.addEventListener("click", () => {
-        openIcon(card.dataset.icon);
-      });
-    });
 
-  if (isProUser()) {
+  els.iconGrid
+    .querySelectorAll(
+      "[data-icon]"
+    )
+    .forEach(
+      card => {
+
+        card.addEventListener(
+          "click",
+          () => {
+
+            openIcon(
+              card.dataset.icon
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  if (
+    isProUser()
+  ) {
+
     hydrateProIconPreviews();
   }
+
+
+  hydrateFreeIconPreviews();
 }
 
 
@@ -1210,22 +2983,45 @@ function renderIcons(term = "") {
    REACT CODE
    ========================================================= */
 
-function toComponentName(name) {
+function toComponentName(
+  name
+) {
+
   return name
-    .replace(/[^a-zA-Z0-9 ]/g, "")
+
+    .replace(
+      /[^a-zA-Z0-9 ]/g,
+      ""
+    )
+
     .split(" ")
-    .filter(Boolean)
+
+    .filter(
+      Boolean
+    )
+
     .map(
       word =>
-        word.charAt(0).toUpperCase() +
+        word
+          .charAt(0)
+          .toUpperCase() +
         word.slice(1)
     )
+
     .join("");
 }
 
 
-function getReactCode(icon, svg) {
-  const componentName = toComponentName(icon.name);
+function getReactCode(
+  icon,
+  svg
+) {
+
+  const componentName =
+    toComponentName(
+      icon.name
+    );
+
 
   return `const ${componentName} = () => (
   ${svg}
@@ -1237,7 +3033,10 @@ function getReactCode(icon, svg) {
    HTML CODE
    ========================================================= */
 
-function getHtmlCode(svg) {
+function getHtmlCode(
+  svg
+) {
+
   return svg;
 }
 
@@ -1247,7 +3046,14 @@ function getHtmlCode(svg) {
    ========================================================= */
 
 function getSelectedSvg() {
-  if (!selectedIcon) return "";
+
+  if (
+    !selectedIcon
+  ) {
+
+    return "";
+  }
+
 
   return (
     selectedIconSvg ||
@@ -1262,19 +3068,42 @@ function getSelectedSvg() {
    ========================================================= */
 
 function getActiveCode() {
-  const svg = getSelectedSvg();
 
-  if (!svg) return "";
+  const svg =
+    getSelectedSvg();
 
-  switch (activeCodeTab) {
+
+  if (
+    !svg
+  ) {
+
+    return "";
+  }
+
+
+  switch (
+    activeCodeTab
+  ) {
+
     case "react":
-      return getReactCode(selectedIcon, svg);
+
+      return getReactCode(
+        selectedIcon,
+        svg
+      );
+
 
     case "html":
-      return getHtmlCode(svg);
+
+      return getHtmlCode(
+        svg
+      );
+
 
     case "svg":
+
     default:
+
       return svg;
   }
 }
@@ -1284,40 +3113,111 @@ function getActiveCode() {
    OPEN ICON
    ========================================================= */
 
-async function openIcon(id) {
-  const icon = ICONS.find(item => item.id === id);
+async function openIcon(
+  id
+) {
 
-  if (!icon) return;
+  const icon =
+    ICONS.find(
+      item =>
+        item.id ===
+        id
+    );
 
-  if (!canAccessIcon(icon)) {
-    if (!authenticated) {
-      redirectToLogin();
-      return;
-    }
 
-    showToast("UAsset Pro access required");
+  if (
+    !icon
+  ) {
+
     return;
   }
 
-  selectedIcon = icon;
-  selectedIconSvg = null;
-  activeCodeTab = "svg";
+
+  if (
+    !canAccessIcon(
+      icon
+    )
+  ) {
+
+    if (
+      !authenticated
+    ) {
+
+      redirectToLogin();
+
+      return;
+    }
+
+
+    showToast(
+      "UAsset Pro access required"
+    );
+
+
+    return;
+  }
+
+
+  selectedIcon =
+    icon;
+
+
+  selectedIconSvg =
+    null;
+
+
+  activeCodeTab =
+    "svg";
+
 
   els.detailCategory.textContent =
-    icon.category.toUpperCase();
+    icon.category
+      .toUpperCase();
 
-  els.detailName.textContent = icon.name;
-  els.detailDescription.textContent = icon.description;
 
-  els.detailTags.innerHTML = icon.tags
-    .map(tag => `<span class="tag">${tag}</span>`)
-    .join("");
+  els.detailName.textContent =
+    icon.name;
 
-  els.iconOverlay.classList.remove("hidden");
-  document.body.classList.add("modal-open");
 
-  if (isProIcon(icon)) {
+  els.detailDescription.textContent =
+    icon.description;
+
+
+  els.detailTags.innerHTML =
+    (
+      Array.isArray(
+        icon.tags
+      )
+        ? icon.tags
+        : []
+    )
+      .map(
+        tag =>
+          `<span class="tag">${tag}</span>`
+      )
+      .join("");
+
+
+  els.iconOverlay.classList.remove(
+    "hidden"
+  );
+
+
+  document.body.classList.add(
+    "modal-open"
+  );
+
+
+  /* -------------------------------------------------------
+     PRO ICON
+     ------------------------------------------------------- */
+
+  if (
+    isProIcon(icon)
+  ) {
+
     els.iconPreview.innerHTML = `
+
       <div
         style="
           width:42px;
@@ -1328,30 +3228,61 @@ async function openIcon(id) {
         "
         aria-hidden="true"
       ></div>
+
     `;
+
 
     els.svgCode.textContent =
       "Loading secure Pro asset...";
 
+
     try {
-      const svg = await getSecureProSvg(icon.id);
 
-      if (selectedIcon?.id !== icon.id) return;
+      const svg =
+        await getSecureProSvg(
+          icon.id
+        );
 
-      selectedIconSvg = svg;
-      els.iconPreview.innerHTML = svg;
+
+      if (
+        selectedIcon?.id !==
+        icon.id
+      ) {
+
+        return;
+      }
+
+
+      selectedIconSvg =
+        svg;
+
+
+      els.iconPreview.innerHTML =
+        svg;
+
 
       updateCodeTabs();
+
       updateCodePanel();
 
-    } catch (error) {
-      console.error("Pro icon load failed:", error);
 
-      showToast(
-        error.message || "Unable to load Pro icon"
+    } catch (error) {
+
+      console.error(
+        "Pro icon load failed:",
+        error
       );
 
-      els.iconPreview.innerHTML = getProLockedPreview();
+
+      showToast(
+        error.message ||
+        "Unable to load Pro icon"
+      );
+
+
+      els.iconPreview.innerHTML =
+        getProLockedPreview();
+
 
       els.svgCode.textContent =
         proAssetRateLimited
@@ -1362,14 +3293,100 @@ async function openIcon(id) {
             );
     }
 
+
     return;
   }
 
-  selectedIconSvg = icon.svg;
-  els.iconPreview.innerHTML = icon.svg;
 
-  updateCodeTabs();
-  updateCodePanel();
+  /* -------------------------------------------------------
+     STATIC FREE ICON
+     ------------------------------------------------------- */
+
+  if (
+    icon.svg
+  ) {
+
+    selectedIconSvg =
+      icon.svg;
+
+
+    els.iconPreview.innerHTML =
+      icon.svg;
+
+
+    updateCodeTabs();
+
+    updateCodePanel();
+
+
+    return;
+  }
+
+
+  /* -------------------------------------------------------
+     DATABASE FREE ICON
+     ------------------------------------------------------- */
+
+  els.iconPreview.innerHTML =
+    getFreeLoadingPreview();
+
+
+  els.svgCode.textContent =
+    "Loading SVG...";
+
+
+  try {
+
+    const svg =
+      await getFreeSvg(
+        icon
+      );
+
+
+    if (
+      selectedIcon?.id !==
+      icon.id
+    ) {
+
+      return;
+    }
+
+
+    selectedIconSvg =
+      svg;
+
+
+    els.iconPreview.innerHTML =
+      svg;
+
+
+    updateCodeTabs();
+
+    updateCodePanel();
+
+
+  } catch (error) {
+
+    console.error(
+      "Free icon load failed:",
+      error
+    );
+
+
+    showToast(
+      error.message ||
+      "Unable to load icon"
+    );
+
+
+    els.iconPreview.innerHTML =
+      getFreeLoadingPreview();
+
+
+    els.svgCode.textContent =
+      error?.message ||
+      "Unable to load SVG";
+  }
 }
 
 
@@ -1378,79 +3395,173 @@ async function openIcon(id) {
    ========================================================= */
 
 function updateCodeTabs() {
+
   document
-    .querySelectorAll("[data-code-tab]")
-    .forEach(tab => {
-      tab.classList.toggle(
-        "active",
-        tab.dataset.codeTab === activeCodeTab
-      );
-    });
+    .querySelectorAll(
+      "[data-code-tab]"
+    )
+    .forEach(
+      tab => {
+
+        tab.classList.toggle(
+          "active",
+          tab.dataset.codeTab ===
+            activeCodeTab
+        );
+
+      }
+    );
 }
 
 
 function updateCodePanel() {
+
   const labels = {
-    svg: "SVG",
-    react: "React",
-    html: "HTML"
+
+    svg:
+      "SVG",
+
+    react:
+      "React",
+
+    html:
+      "HTML"
+
   };
 
-  els.codeLabel.textContent = labels[activeCodeTab];
-  els.svgCode.textContent = getActiveCode();
+
+  els.codeLabel.textContent =
+    labels[
+      activeCodeTab
+    ];
+
+
+  els.svgCode.textContent =
+    getActiveCode();
 }
 
 
 document
-  .querySelectorAll("[data-code-tab]")
-  .forEach(tab => {
-    tab.addEventListener("click", () => {
-      activeCodeTab = tab.dataset.codeTab;
-      updateCodeTabs();
-      updateCodePanel();
-    });
-  });
+  .querySelectorAll(
+    "[data-code-tab]"
+  )
+  .forEach(
+    tab => {
+
+      tab.addEventListener(
+        "click",
+        () => {
+
+          activeCodeTab =
+            tab.dataset.codeTab;
+
+
+          updateCodeTabs();
+
+          updateCodePanel();
+
+        }
+      );
+
+    }
+  );
 
 
 /* =========================================================
    CLOSE MODALS
    ========================================================= */
 
-function closeOverlay(id) {
-  const overlay = document.getElementById(id);
+function closeOverlay(
+  id
+) {
 
-  if (!overlay) return;
+  const overlay =
+    document.getElementById(
+      id
+    );
 
-  overlay.classList.add("hidden");
 
-  if (els.iconOverlay.classList.contains("hidden")) {
-    document.body.classList.remove("modal-open");
+  if (
+    !overlay
+  ) {
+
+    return;
+  }
+
+
+  overlay.classList.add(
+    "hidden"
+  );
+
+
+  if (
+    els.iconOverlay.classList.contains(
+      "hidden"
+    )
+  ) {
+
+    document.body.classList.remove(
+      "modal-open"
+    );
   }
 }
 
 
 document
-  .querySelectorAll("[data-close]")
-  .forEach(button => {
-    button.addEventListener("click", () => {
-      closeOverlay(button.dataset.close);
-    });
-  });
+  .querySelectorAll(
+    "[data-close]"
+  )
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          closeOverlay(
+            button.dataset.close
+          );
+
+        }
+      );
+
+    }
+  );
 
 
 /* =========================================================
    TOAST
    ========================================================= */
 
-function showToast(message) {
-  els.toast.textContent = message;
-  els.toast.classList.remove("hidden");
+function showToast(
+  message
+) {
 
-  clearTimeout(showToast.timer);
+  els.toast.textContent =
+    message;
 
-  showToast.timer = setTimeout(() => {
-    els.toast.classList.add("hidden");
-  }, 1800);
+
+  els.toast.classList.remove(
+    "hidden"
+  );
+
+
+  clearTimeout(
+    showToast.timer
+  );
+
+
+  showToast.timer =
+    setTimeout(
+      () => {
+
+        els.toast.classList.add(
+          "hidden"
+        );
+
+      },
+      1800
+    );
 }
 
 
@@ -1458,20 +3569,45 @@ function showToast(message) {
    SEARCH SYNC
    ========================================================= */
 
-function syncSearch(source, target) {
-  target.value = source.value;
-  renderIcons(getSearchTerm());
+function syncSearch(
+  source,
+  target
+) {
+
+  target.value =
+    source.value;
+
+
+  renderIcons(
+    getSearchTerm()
+  );
 }
 
 
-els.heroSearch.addEventListener("input", () => {
-  syncSearch(els.heroSearch, els.librarySearch);
-});
+els.heroSearch.addEventListener(
+  "input",
+  () => {
+
+    syncSearch(
+      els.heroSearch,
+      els.librarySearch
+    );
+
+  }
+);
 
 
-els.librarySearch.addEventListener("input", () => {
-  syncSearch(els.librarySearch, els.heroSearch);
-});
+els.librarySearch.addEventListener(
+  "input",
+  () => {
+
+    syncSearch(
+      els.librarySearch,
+      els.heroSearch
+    );
+
+  }
+);
 
 
 /* =========================================================
@@ -1479,36 +3615,80 @@ els.librarySearch.addEventListener("input", () => {
    ========================================================= */
 
 async function copyCurrentCode() {
-  if (!selectedIcon) return;
 
-  if (!canAccessIcon(selectedIcon)) {
-    showToast("UAsset Pro access required");
+  if (
+    !selectedIcon
+  ) {
+
     return;
   }
 
-  const code = getActiveCode();
 
-  if (!code) {
+  if (
+    !canAccessIcon(
+      selectedIcon
+    )
+  ) {
+
+    showToast(
+      "UAsset Pro access required"
+    );
+
+
+    return;
+  }
+
+
+  const code =
+    getActiveCode();
+
+
+  if (
+    !code
+  ) {
+
     showToast(
       proAssetRateLimited
         ? PRO_ASSET_RATE_LIMIT_MESSAGE
         : "Asset is still loading"
     );
+
+
     return;
   }
 
+
   try {
-    await navigator.clipboard.writeText(code);
-    showToast(`${activeCodeTab.toUpperCase()} copied`);
+
+    await navigator.clipboard.writeText(
+      code
+    );
+
+
+    showToast(
+      `${activeCodeTab.toUpperCase()} copied`
+    );
+
 
   } catch (error) {
-    console.error("Copy error:", error);
-    showToast("Copy failed");
+
+    console.error(
+      "Copy error:",
+      error
+    );
+
+
+    showToast(
+      "Copy failed"
+    );
   }
 }
 
 
-els.copySvg.addEventListener("click", copyCurrentCode);
+els.copySvg.addEventListener(
+  "click",
+  copyCurrentCode
+);
 
 
 /* =========================================================
@@ -1516,77 +3696,169 @@ els.copySvg.addEventListener("click", copyCurrentCode);
    ========================================================= */
 
 function downloadSelectedSvg() {
-  if (!selectedIcon) return;
 
-  if (!canAccessIcon(selectedIcon)) {
-    showToast("UAsset Pro access required");
+  if (
+    !selectedIcon
+  ) {
+
     return;
   }
 
-  const svg = getSelectedSvg();
 
-  if (!svg) {
+  if (
+    !canAccessIcon(
+      selectedIcon
+    )
+  ) {
+
+    showToast(
+      "UAsset Pro access required"
+    );
+
+
+    return;
+  }
+
+
+  const svg =
+    getSelectedSvg();
+
+
+  if (
+    !svg
+  ) {
+
     showToast(
       proAssetRateLimited
         ? PRO_ASSET_RATE_LIMIT_MESSAGE
         : "Asset is still loading"
     );
+
+
     return;
   }
 
-  const blob = new Blob([svg], {
-    type: "image/svg+xml;charset=utf-8"
-  });
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  const blob =
+    new Blob(
+      [
+        svg
+      ],
+      {
+        type:
+          "image/svg+xml;charset=utf-8"
+      }
+    );
 
-  link.href = url;
-  link.download = `${selectedIcon.id}.svg`;
 
-  document.body.appendChild(link);
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  const link =
+    document.createElement(
+      "a"
+    );
+
+
+  link.href =
+    url;
+
+
+  link.download =
+    `${selectedIcon.id}.svg`;
+
+
+  document.body.appendChild(
+    link
+  );
+
+
   link.click();
+
+
   link.remove();
 
-  URL.revokeObjectURL(url);
 
-  showToast("SVG downloaded");
+  URL.revokeObjectURL(
+    url
+  );
+
+
+  showToast(
+    "SVG downloaded"
+  );
 }
 
 
-els.downloadSvg.addEventListener("click", downloadSelectedSvg);
+els.downloadSvg.addEventListener(
+  "click",
+  downloadSelectedSvg
+);
 
 
 /* =========================================================
    CLICK OUTSIDE MODAL
    ========================================================= */
 
-document.addEventListener("click", event => {
-  if (event.target.classList.contains("overlay")) {
-    closeOverlay(event.target.id);
+document.addEventListener(
+  "click",
+  event => {
+
+    if (
+      event.target.classList.contains(
+        "overlay"
+      )
+    ) {
+
+      closeOverlay(
+        event.target.id
+      );
+    }
+
   }
-});
+);
 
 
 /* =========================================================
    KEYBOARD
    ========================================================= */
 
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    closeOverlay("iconOverlay");
-  }
+document.addEventListener(
+  "keydown",
+  event => {
 
-  if (
-    event.key === "/" &&
-    !["INPUT", "TEXTAREA"].includes(
-      document.activeElement.tagName
-    )
-  ) {
-    event.preventDefault();
-    els.heroSearch.focus();
+    if (
+      event.key ===
+      "Escape"
+    ) {
+
+      closeOverlay(
+        "iconOverlay"
+      );
+    }
+
+
+    if (
+      event.key ===
+        "/" &&
+      ![
+        "INPUT",
+        "TEXTAREA"
+      ].includes(
+        document.activeElement.tagName
+      )
+    ) {
+
+      event.preventDefault();
+
+      els.heroSearch.focus();
+    }
+
   }
-});
+);
 
 
 /* =========================================================
@@ -1594,8 +3866,34 @@ document.addEventListener("keydown", event => {
    ========================================================= */
 
 renderFilters();
+
 renderCollectionContext();
+
 renderIcons();
+
 updateBeanButton();
+
 updateProPlanUI();
+
+
+/* ---------------------------------------------------------
+   Load database icons after the static library is ready.
+   --------------------------------------------------------- */
+
+loadDatabaseIcons();
+
+
+/* ---------------------------------------------------------
+   Restore Bean session.
+   --------------------------------------------------------- */
+
 restoreSession();
+
+
+/* =========================================================
+   END
+   ========================================================= */
+
+console.log(
+  "UAsset — database-powered icon library loaded."
+);
