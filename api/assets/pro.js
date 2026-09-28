@@ -1,17 +1,20 @@
 /* =========================================================
    UASSET PRO ASSET API
    Bean authentication
-   UAsset Pro verification
+   Database-driven Pro asset verification
+   UAsset Pro subscription verification
    Rate limiting
    Private Supabase signed URL
    Production security
-   Detailed asset error reporting
    ========================================================= */
 
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
-const BUCKET_NAME =
+const SUPABASE_ICONS_TABLE =
+  "uasset_icons";
+
+const PRO_BUCKET_NAME =
   "uasset-pro";
 
 const RATE_LIMIT =
@@ -25,28 +28,11 @@ const SIGNED_URL_SECONDS =
 
 
 /* =========================================================
-   ALLOWED PRO ASSETS
-   ========================================================= */
-
-const PRO_ASSETS = new Set([
-  "calendar",
-  "history",
-  "edit",
-  "trash",
-  "download",
-  "upload",
-  "folder",
-  "heart",
-  "shield",
-  "info"
-]);
-
-
-/* =========================================================
-   ENVIRONMENT
+   REQUIRED ENVIRONMENT
    ========================================================= */
 
 function getRequiredEnv(name) {
+
   const value =
     process.env[name];
 
@@ -54,6 +40,7 @@ function getRequiredEnv(name) {
     !value ||
     !String(value).trim()
   ) {
+
     throw new Error(
       `${name} is missing`
     );
@@ -64,15 +51,18 @@ function getRequiredEnv(name) {
 
 
 /* =========================================================
-   PUBLIC ERROR HELPER
+   ASSET ERROR
    ========================================================= */
 
 function createAssetError(
   message,
   code
 ) {
+
   const error =
-    new Error(message);
+    new Error(
+      message
+    );
 
   error.code =
     code;
@@ -86,12 +76,14 @@ function createAssetError(
    ========================================================= */
 
 async function getBeanUser(req) {
+
   const cookie =
     req.headers.cookie;
 
   if (!cookie) {
     return null;
   }
+
 
   const response =
     await fetch(
@@ -113,6 +105,7 @@ async function getBeanUser(req) {
       }
     );
 
+
   const data =
     await response
       .json()
@@ -120,13 +113,16 @@ async function getBeanUser(req) {
         () => ({})
       );
 
+
   if (
     !response.ok ||
     !data.authenticated ||
     !data.user
   ) {
+
     return null;
   }
+
 
   return data.user;
 }
@@ -139,15 +135,18 @@ async function getBeanUser(req) {
 async function checkRateLimit(
   rateKey
 ) {
+
   const supabaseUrl =
     getRequiredEnv(
       "SUPABASE_URL"
     );
 
+
   const serviceRoleKey =
     getRequiredEnv(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
+
 
   const response =
     await fetch(
@@ -157,6 +156,7 @@ async function checkRateLimit(
           "POST",
 
         headers: {
+
           apikey:
             serviceRoleKey,
 
@@ -172,6 +172,7 @@ async function checkRateLimit(
 
         body:
           JSON.stringify({
+
             p_rate_key:
               rateKey,
 
@@ -180,12 +181,14 @@ async function checkRateLimit(
 
             p_window_seconds:
               RATE_WINDOW_SECONDS
+
           }),
 
         cache:
           "no-store"
       }
     );
+
 
   const data =
     await response
@@ -194,9 +197,11 @@ async function checkRateLimit(
         () => null
       );
 
+
   if (
     !response.ok
   ) {
+
     console.error(
       "UAsset rate limit check failed:",
       {
@@ -211,10 +216,12 @@ async function checkRateLimit(
       }
     );
 
+
     throw new Error(
       "Rate limit service unavailable"
     );
   }
+
 
   return data === true;
 }
@@ -227,20 +234,24 @@ async function checkRateLimit(
 async function getProSubscription(
   beanUserId
 ) {
+
   const supabaseUrl =
     getRequiredEnv(
       "SUPABASE_URL"
     );
+
 
   const serviceRoleKey =
     getRequiredEnv(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
 
+
   const variantId =
     getRequiredEnv(
       "LEMONSQUEEZY_VARIANT_ID"
     );
+
 
   const testMode =
     String(
@@ -248,6 +259,7 @@ async function getProSubscription(
         "true"
     ).toLowerCase() ===
     "true";
+
 
   const query =
     new URLSearchParams();
@@ -310,6 +322,7 @@ async function getProSubscription(
           "GET",
 
         headers: {
+
           apikey:
             serviceRoleKey,
 
@@ -318,6 +331,7 @@ async function getProSubscription(
 
           Accept:
             "application/json"
+
         },
 
         cache:
@@ -337,6 +351,7 @@ async function getProSubscription(
   if (
     !response.ok
   ) {
+
     console.error(
       "UAsset Pro subscription lookup failed:",
       {
@@ -350,6 +365,7 @@ async function getProSubscription(
           data
       }
     );
+
 
     throw new Error(
       "Subscription lookup failed"
@@ -372,6 +388,7 @@ async function getProSubscription(
 function isProActive(
   subscription
 ) {
+
   if (!subscription) {
     return false;
   }
@@ -386,16 +403,20 @@ function isProActive(
     subscription.cancelled ===
     true
   ) {
+
     if (
       !subscription.ends_at
     ) {
+
       return false;
     }
+
 
     const endsAt =
       new Date(
         subscription.ends_at
       ).getTime();
+
 
     return (
       !Number.isNaN(
@@ -420,6 +441,7 @@ function isProActive(
     status !==
       "on_trial"
   ) {
+
     return false;
   }
 
@@ -427,10 +449,12 @@ function isProActive(
   if (
     subscription.ends_at
   ) {
+
     const endsAt =
       new Date(
         subscription.ends_at
       ).getTime();
+
 
     if (
       !Number.isNaN(
@@ -439,6 +463,7 @@ function isProActive(
       endsAt <=
         Date.now()
     ) {
+
       return false;
     }
   }
@@ -449,16 +474,18 @@ function isProActive(
 
 
 /* =========================================================
-   CREATE SIGNED URL
+   GET PRO ASSET FROM DATABASE
    ========================================================= */
 
-async function createSignedUrl(
+async function getProAsset(
   assetId
 ) {
+
   const supabaseUrl =
     getRequiredEnv(
       "SUPABASE_URL"
     );
+
 
   const serviceRoleKey =
     getRequiredEnv(
@@ -466,18 +493,245 @@ async function createSignedUrl(
     );
 
 
-  const filePath =
-    `${assetId}.svg`;
+  const query =
+    new URLSearchParams();
+
+
+  query.set(
+    "select",
+    [
+      "id",
+      "name",
+      "plan",
+      "storage_bucket",
+      "storage_path",
+      "is_active"
+    ].join(",")
+  );
+
+
+  query.set(
+    "id",
+    `eq.${assetId}`
+  );
+
+
+  query.set(
+    "plan",
+    "eq.pro"
+  );
+
+
+  query.set(
+    "is_active",
+    "eq.true"
+  );
+
+
+  query.set(
+    "limit",
+    "1"
+  );
 
 
   const response =
     await fetch(
-      `${supabaseUrl}/storage/v1/object/sign/${BUCKET_NAME}/${encodeURIComponent(filePath)}`,
+      `${supabaseUrl}/rest/v1/${SUPABASE_ICONS_TABLE}?${query.toString()}`,
+      {
+        method:
+          "GET",
+
+        headers: {
+
+          apikey:
+            serviceRoleKey,
+
+          Authorization:
+            `Bearer ${serviceRoleKey}`,
+
+          Accept:
+            "application/json"
+
+        },
+
+        cache:
+          "no-store"
+      }
+    );
+
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
+      );
+
+
+  if (
+    !response.ok
+  ) {
+
+    console.error(
+      "UAsset Pro asset database lookup failed:",
+      {
+        assetId,
+
+        status:
+          response.status,
+
+        statusText:
+          response.statusText,
+
+        response:
+          data
+      }
+    );
+
+
+    throw createAssetError(
+      "Unable to verify Pro asset",
+      "ASSET_DATABASE_ERROR"
+    );
+  }
+
+
+  if (
+    !Array.isArray(data) ||
+    !data[0]
+  ) {
+
+    throw createAssetError(
+      "Pro asset not found",
+      "INVALID_ASSET"
+    );
+  }
+
+
+  const asset =
+    data[0];
+
+
+  /*
+    Defense in depth:
+    Pro assets must live in the private Pro bucket.
+  */
+
+  if (
+    asset.storage_bucket !==
+    PRO_BUCKET_NAME
+  ) {
+
+    console.error(
+      "UAsset Pro asset bucket mismatch:",
+      {
+        assetId,
+
+        storageBucket:
+          asset.storage_bucket,
+
+        expectedBucket:
+          PRO_BUCKET_NAME
+      }
+    );
+
+
+    throw createAssetError(
+      "Pro asset storage configuration is invalid",
+      "ASSET_BUCKET_INVALID"
+    );
+  }
+
+
+  if (
+    !asset.storage_path ||
+    !String(
+      asset.storage_path
+    ).trim()
+  ) {
+
+    console.error(
+      "UAsset Pro asset storage path missing:",
+      {
+        assetId
+      }
+    );
+
+
+    throw createAssetError(
+      "Pro asset storage path is missing",
+      "ASSET_PATH_MISSING"
+    );
+  }
+
+
+  return asset;
+}
+
+
+/* =========================================================
+   CREATE SIGNED URL
+   ========================================================= */
+
+async function createSignedUrl(
+  storageBucket,
+  storagePath
+) {
+
+  const supabaseUrl =
+    getRequiredEnv(
+      "SUPABASE_URL"
+    );
+
+
+  const serviceRoleKey =
+    getRequiredEnv(
+      "SUPABASE_SERVICE_ROLE_KEY"
+    );
+
+
+  /*
+    Preserve folder separators while encoding
+    each individual path segment.
+  */
+
+  const encodedBucket =
+    String(
+      storageBucket
+    )
+      .split("/")
+      .map(
+        part =>
+          encodeURIComponent(
+            part
+          )
+      )
+      .join("/");
+
+
+  const encodedPath =
+    String(
+      storagePath
+    )
+      .split("/")
+      .map(
+        part =>
+          encodeURIComponent(
+            part
+          )
+      )
+      .join("/");
+
+
+  const response =
+    await fetch(
+      `${supabaseUrl}/storage/v1/object/sign/${encodedBucket}/${encodedPath}`,
       {
         method:
           "POST",
 
         headers: {
+
           apikey:
             serviceRoleKey,
 
@@ -493,8 +747,10 @@ async function createSignedUrl(
 
         body:
           JSON.stringify({
+
             expiresIn:
               SIGNED_URL_SECONDS
+
           }),
 
         cache:
@@ -518,10 +774,13 @@ async function createSignedUrl(
   if (
     !response.ok
   ) {
+
     console.error(
       "Supabase signed URL creation failed:",
       {
-        assetId,
+        storageBucket,
+
+        storagePath,
 
         status:
           response.status,
@@ -539,6 +798,7 @@ async function createSignedUrl(
       response.status ===
       404
     ) {
+
       throw createAssetError(
         "Pro asset file not found in secure storage",
         "ASSET_NOT_FOUND"
@@ -552,6 +812,7 @@ async function createSignedUrl(
       response.status ===
         403
     ) {
+
       throw createAssetError(
         "Pro asset storage authorization failed",
         "ASSET_STORAGE_AUTH"
@@ -579,10 +840,13 @@ async function createSignedUrl(
   if (
     !signedPath
   ) {
+
     console.error(
       "Supabase signed URL missing:",
       {
-        assetId,
+        storageBucket,
+
+        storagePath,
 
         response:
           data
@@ -607,7 +871,9 @@ async function createSignedUrl(
     ).startsWith(
       "http"
     )
-      ? signedPath
+      ? String(
+          signedPath
+        )
       : `${supabaseUrl}/storage/v1${
           String(
             signedPath
@@ -623,10 +889,12 @@ async function createSignedUrl(
 
 
   return {
+
     signedUrl,
 
     expiresIn:
       SIGNED_URL_SECONDS
+
   };
 }
 
@@ -639,6 +907,7 @@ export default async function handler(
   req,
   res
 ) {
+
   /* =======================================================
      SECURITY HEADERS
      ======================================================= */
@@ -672,16 +941,20 @@ export default async function handler(
     req.method !==
     "GET"
   ) {
+
     res.setHeader(
       "Allow",
       "GET"
     );
 
+
     return res
       .status(405)
       .json({
+
         error:
           "Method not allowed"
+
       });
   }
 
@@ -700,13 +973,16 @@ export default async function handler(
 
 
   if (
-    !PRO_ASSETS.has(
+    !assetId ||
+    !/^[a-z0-9-]+$/.test(
       assetId
     )
   ) {
+
     return res
       .status(404)
       .json({
+
         success:
           false,
 
@@ -715,6 +991,7 @@ export default async function handler(
 
         code:
           "INVALID_ASSET"
+
       });
   }
 
@@ -727,20 +1004,24 @@ export default async function handler(
 
 
   try {
+
     user =
       await getBeanUser(
         req
       );
 
   } catch (error) {
+
     console.error(
       "Bean verification failed:",
       error
     );
 
+
     return res
       .status(502)
       .json({
+
         success:
           false,
 
@@ -752,14 +1033,17 @@ export default async function handler(
 
         code:
           "BEAN_SESSION_ERROR"
+
       });
   }
 
 
   if (!user) {
+
     return res
       .status(401)
       .json({
+
         success:
           false,
 
@@ -774,6 +1058,7 @@ export default async function handler(
 
         code:
           "AUTH_REQUIRED"
+
       });
   }
 
@@ -792,20 +1077,24 @@ export default async function handler(
 
 
   try {
+
     allowed =
       await checkRateLimit(
         rateKey
       );
 
   } catch (error) {
+
     console.error(
       "UAsset rate limit error:",
       error
     );
 
+
     return res
       .status(503)
       .json({
+
         success:
           false,
 
@@ -820,6 +1109,7 @@ export default async function handler(
 
         code:
           "RATE_LIMIT_SERVICE_ERROR"
+
       });
   }
 
@@ -827,6 +1117,7 @@ export default async function handler(
   if (
     !allowed
   ) {
+
     res.setHeader(
       "Retry-After",
       String(
@@ -838,6 +1129,7 @@ export default async function handler(
     return res
       .status(429)
       .json({
+
         success:
           false,
 
@@ -852,32 +1144,37 @@ export default async function handler(
 
         code:
           "RATE_LIMITED"
+
       });
   }
 
 
   /* =======================================================
-     PRO STATUS
+     PRO SUBSCRIPTION
      ======================================================= */
 
   let subscription;
 
 
   try {
+
     subscription =
       await getProSubscription(
         user.id
       );
 
   } catch (error) {
+
     console.error(
       "UAsset Pro check failed:",
       error
     );
 
+
     return res
       .status(500)
       .json({
+
         success:
           false,
 
@@ -892,6 +1189,7 @@ export default async function handler(
 
         code:
           "PRO_STATUS_ERROR"
+
       });
   }
 
@@ -903,9 +1201,11 @@ export default async function handler(
 
 
   if (!pro) {
+
     return res
       .status(403)
       .json({
+
         success:
           false,
 
@@ -920,26 +1220,75 @@ export default async function handler(
 
         code:
           "PRO_ACCESS_REQUIRED"
+
       });
   }
 
 
   /* =======================================================
-     SIGNED ASSET URL
+     DATABASE PRO ASSET
      ======================================================= */
 
+  let asset;
+
+
   try {
-    const result =
-      await createSignedUrl(
+
+    asset =
+      await getProAsset(
         assetId
       );
 
+  } catch (error) {
+
+    console.error(
+      "UAsset Pro asset verification failed:",
+      {
+        assetId,
+
+        code:
+          error?.code,
+
+        message:
+          error?.message
+      }
+    );
+
+
+    if (
+      error?.code ===
+      "INVALID_ASSET"
+    ) {
+
+      return res
+        .status(404)
+        .json({
+
+          success:
+            false,
+
+          pro:
+            true,
+
+          asset:
+            assetId,
+
+          error:
+            "Pro asset not found",
+
+          code:
+            "INVALID_ASSET"
+
+        });
+    }
+
 
     return res
-      .status(200)
+      .status(500)
       .json({
+
         success:
-          true,
+          false,
 
         pro:
           true,
@@ -947,18 +1296,67 @@ export default async function handler(
         asset:
           assetId,
 
+        error:
+          error?.message ||
+          "Unable to verify Pro asset",
+
+        code:
+          error?.code ||
+          "ASSET_VERIFICATION_FAILED"
+
+      });
+  }
+
+
+  /* =======================================================
+     SIGN PRIVATE ASSET
+     ======================================================= */
+
+  try {
+
+    const result =
+      await createSignedUrl(
+        asset.storage_bucket,
+        asset.storage_path
+      );
+
+
+    return res
+      .status(200)
+      .json({
+
+        success:
+          true,
+
+        pro:
+          true,
+
+        asset:
+          asset.id,
+
+        name:
+          asset.name,
+
         url:
           result.signedUrl,
 
         expiresIn:
           result.expiresIn
+
       });
 
   } catch (error) {
+
     console.error(
       "UAsset Pro asset delivery failed:",
       {
         assetId,
+
+        storageBucket:
+          asset.storage_bucket,
+
+        storagePath:
+          asset.storage_path,
 
         code:
           error?.code ||
@@ -981,6 +1379,7 @@ export default async function handler(
     return res
       .status(statusCode)
       .json({
+
         success:
           false,
 
@@ -997,6 +1396,7 @@ export default async function handler(
         error:
           error?.message ||
           "Unable to load Pro asset"
+
       });
   }
 }
