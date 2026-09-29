@@ -434,10 +434,29 @@ async function getSecureProSvg(
   assetId
 ) {
 
+  const normalizedAssetId =
+    String(
+      assetId || ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  /*
+    Client-side format validation only.
+
+    The backend is the authoritative source for:
+    - asset existence
+    - plan === pro
+    - active status
+    - private storage bucket
+    - subscription access
+  */
+
   if (
-    !assetId ||
-    !PRO_ASSET_IDS.has(
-      assetId
+    !normalizedAssetId ||
+    !/^[a-z0-9-]+$/.test(
+      normalizedAssetId
     )
   ) {
 
@@ -469,24 +488,24 @@ async function getSecureProSvg(
 
   if (
     proAssetCache.has(
-      assetId
+      normalizedAssetId
     )
   ) {
 
     return proAssetCache.get(
-      assetId
+      normalizedAssetId
     );
   }
 
 
   if (
     proAssetPromises.has(
-      assetId
+      normalizedAssetId
     )
   ) {
 
     return proAssetPromises.get(
-      assetId
+      normalizedAssetId
     );
   }
 
@@ -497,7 +516,7 @@ async function getSecureProSvg(
       const response =
         await fetch(
           `${PRO_ASSET_ENDPOINT}?id=${encodeURIComponent(
-            assetId
+            normalizedAssetId
           )}`,
           {
             method:
@@ -733,7 +752,7 @@ async function getSecureProSvg(
 
 
       proAssetCache.set(
-        assetId,
+        normalizedAssetId,
         normalizedSvg
       );
 
@@ -744,7 +763,7 @@ async function getSecureProSvg(
 
 
   proAssetPromises.set(
-    assetId,
+    normalizedAssetId,
     promise
   );
 
@@ -756,7 +775,7 @@ async function getSecureProSvg(
   } finally {
 
     proAssetPromises.delete(
-      assetId
+      normalizedAssetId
     );
   }
 }
@@ -2085,25 +2104,6 @@ let selectedIconSvg =
 
 let activeCodeTab =
   "svg";
-
-
-/* =========================================================
-   PRO ICON IDS
-   ========================================================= */
-
-const PRO_ASSET_IDS =
-  new Set([
-    "calendar",
-    "history",
-    "edit",
-    "trash",
-    "download",
-    "upload",
-    "folder",
-    "heart",
-    "shield",
-    "info"
-  ]);
 
 
 /* =========================================================
