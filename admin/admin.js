@@ -2,7 +2,6 @@
    UASSET ADMIN — ADMIN.JS
    Icon Manager + Collections Manager
    Bean authentication handled by backend
-   Live statistics
    ========================================================= */
 
 
@@ -30,6 +29,11 @@ const quickCategory =
 
 const newCollectionButton =
   document.getElementById("newCollectionButton");
+
+
+/* =========================================================
+   ICON MODAL
+   ========================================================= */
 
 const newIconModal =
   document.getElementById("newIconModal");
@@ -73,6 +77,11 @@ const previewId =
 const previewPlan =
   document.getElementById("previewPlan");
 
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
 const adminIconsBody =
   document.getElementById("adminIconsBody");
 
@@ -99,6 +108,13 @@ const ADMIN_ICONS_LIST_API =
 const ADMIN_ICONS_CREATE_API =
   "/api/admin/icons/create";
 
+const ADMIN_ICONS_UPDATE_API =
+  "/api/admin/icons/update";
+
+const ADMIN_ICONS_DELETE_API =
+  "/api/admin/icons/delete";
+
+
 const ADMIN_COLLECTIONS_LIST_API =
   "/api/admin/collections/list";
 
@@ -122,13 +138,13 @@ let selectedPlan =
 let idWasManuallyEdited =
   false;
 
+let editingIconId =
+  null;
+
 let adminIcons =
   [];
 
 let adminIconsLoading =
-  false;
-
-let adminIconsLoaded =
   false;
 
 let adminCollections =
@@ -142,7 +158,7 @@ let editingCollectionId =
 
 
 /* =========================================================
-   SECURITY / HELPERS
+   HELPERS
    ========================================================= */
 
 function escapeHtml(value) {
@@ -153,6 +169,18 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+
+function parseCommaList(value) {
+
+  return String(value || "")
+    .split(",")
+    .map(
+      item =>
+        item.trim()
+    )
+    .filter(Boolean);
 }
 
 
@@ -180,12 +208,15 @@ function makeCollectionId(value) {
 }
 
 
-function parseCommaList(value) {
+async function parseApiResponse(
+  response
+) {
 
-  return String(value || "")
-    .split(",")
-    .map(item => item.trim())
-    .filter(Boolean);
+  return response
+    .json()
+    .catch(
+      () => ({})
+    );
 }
 
 
@@ -203,11 +234,16 @@ function injectModalStyles() {
     return;
   }
 
+
   const style =
-    document.createElement("style");
+    document.createElement(
+      "style"
+    );
+
 
   style.id =
     "uassetAdminModalStyles";
+
 
   style.textContent = `
 
@@ -228,9 +264,11 @@ function injectModalStyles() {
       -webkit-backdrop-filter: blur(8px);
     }
 
+
     .admin-modal-backdrop.open {
       display: flex;
     }
+
 
     .admin-modal {
       width: min(1080px, 100%);
@@ -247,6 +285,7 @@ function injectModalStyles() {
         0 30px 90px rgba(0,0,0,.16);
     }
 
+
     .admin-modal-head {
       display: flex;
       align-items: flex-start;
@@ -259,6 +298,7 @@ function injectModalStyles() {
       border-bottom: 1px solid var(--line);
     }
 
+
     .admin-modal-body {
       display: grid;
 
@@ -270,6 +310,7 @@ function injectModalStyles() {
 
       padding: 22px;
     }
+
 
     .admin-modal-close {
       width: 36px;
@@ -297,11 +338,13 @@ function injectModalStyles() {
         transform .15s ease;
     }
 
+
     .admin-modal-close:hover {
       background: var(--surface-soft);
       border-color: var(--line-strong);
       transform: translateY(-1px);
     }
+
 
     .admin-modal-backdrop .admin-field {
       display: flex;
@@ -309,36 +352,26 @@ function injectModalStyles() {
       gap: 7px;
     }
 
-    .admin-modal-backdrop .admin-segmented {
-      width: max-content;
-    }
-
-    .admin-modal-backdrop .admin-input,
-    .admin-modal-backdrop .admin-textarea {
-      font-family: var(--sans);
-    }
 
     .admin-modal-backdrop #iconSvg {
       min-height: 210px;
+
       font-family: var(--mono);
       font-size: 11px;
       line-height: 1.6;
     }
 
+
     .admin-modal-backdrop .admin-icon-preview {
       min-height: 280px;
     }
+
 
     .admin-modal-backdrop .admin-icon-preview svg {
       width: 72px;
       height: 72px;
     }
 
-    .admin-modal-backdrop .preview-placeholder {
-      color: var(--muted);
-      font-size: 11px;
-      text-align: center;
-    }
 
     .admin-modal-backdrop button:disabled {
       opacity: .55;
@@ -346,13 +379,17 @@ function injectModalStyles() {
       transform: none !important;
     }
 
+
     .admin-live-icon-row {
-      transition: background .15s ease;
+      transition:
+        background .15s ease;
     }
+
 
     .admin-live-icon-row:hover {
       background: var(--surface-soft);
     }
+
 
     .admin-live-icon-preview {
       width: 34px;
@@ -363,10 +400,12 @@ function injectModalStyles() {
       justify-content: center;
     }
 
+
     .admin-live-icon-preview svg {
       width: 26px;
       height: 26px;
     }
+
 
     .admin-live-icon-meta {
       display: flex;
@@ -374,15 +413,18 @@ function injectModalStyles() {
       gap: 9px;
     }
 
+
     .admin-live-icon-copy {
       min-width: 0;
     }
+
 
     .admin-live-icon-name {
       font-size: 12px;
       font-weight: 600;
       line-height: 1.35;
     }
+
 
     .admin-live-icon-id {
       margin-top: 3px;
@@ -397,6 +439,7 @@ function injectModalStyles() {
       max-width: 220px;
     }
 
+
     .admin-status-dot {
       display: inline-block;
 
@@ -410,9 +453,46 @@ function injectModalStyles() {
       background: currentColor;
     }
 
-    body.admin-modal-open {
-      overflow: hidden;
+
+    .uasset-icon-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
     }
+
+
+    .uasset-icon-action {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+
+      padding: 6px 8px;
+
+      background: var(--surface);
+      color: var(--text);
+
+      font-size: 10px;
+
+      cursor: pointer;
+
+      transition:
+        background .15s ease,
+        border-color .15s ease,
+        transform .15s ease;
+    }
+
+
+    .uasset-icon-action:hover {
+      background: var(--surface-soft);
+      border-color: var(--line-strong);
+      transform: translateY(-1px);
+    }
+
+
+    .uasset-icon-action.danger:hover {
+      border-color: #b54b4b;
+    }
+
 
     .uasset-collection-manager {
       display: flex;
@@ -420,20 +500,22 @@ function injectModalStyles() {
       gap: 12px;
     }
 
+
     .uasset-collection-toolbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
+
       gap: 10px;
       flex-wrap: wrap;
-
-      margin-bottom: 4px;
     }
+
 
     .uasset-collection-toolbar-copy {
       color: var(--muted);
       font-size: 11px;
     }
+
 
     .uasset-collection-table-wrap {
       overflow-x: auto;
@@ -444,11 +526,13 @@ function injectModalStyles() {
       background: var(--surface);
     }
 
+
     .uasset-collection-table {
       width: 100%;
       border-collapse: collapse;
       min-width: 720px;
     }
+
 
     .uasset-collection-table th {
       padding: 11px 13px;
@@ -465,6 +549,7 @@ function injectModalStyles() {
       white-space: nowrap;
     }
 
+
     .uasset-collection-table td {
       padding: 13px;
 
@@ -475,13 +560,16 @@ function injectModalStyles() {
       vertical-align: middle;
     }
 
+
     .uasset-collection-table tr:last-child td {
       border-bottom: 0;
     }
 
+
     .uasset-collection-name {
       font-weight: 600;
     }
+
 
     .uasset-collection-id {
       margin-top: 3px;
@@ -492,11 +580,13 @@ function injectModalStyles() {
       font-size: 9px;
     }
 
+
     .uasset-collection-categories {
       display: flex;
       gap: 5px;
       flex-wrap: wrap;
     }
+
 
     .uasset-collection-chip {
       display: inline-flex;
@@ -513,12 +603,14 @@ function injectModalStyles() {
       color: var(--muted);
     }
 
+
     .uasset-collection-actions {
       display: flex;
       align-items: center;
       gap: 6px;
       flex-wrap: wrap;
     }
+
 
     .uasset-small-button {
       border: 1px solid var(--line);
@@ -539,29 +631,39 @@ function injectModalStyles() {
         transform .15s ease;
     }
 
+
     .uasset-small-button:hover {
       background: var(--surface-soft);
       border-color: var(--line-strong);
       transform: translateY(-1px);
     }
 
+
     .uasset-small-button.danger:hover {
       border-color: #b54b4b;
     }
 
+
     .uasset-collection-empty {
       padding: 30px;
+
       text-align: center;
+
       color: var(--muted);
+
       font-size: 11px;
     }
+
 
     .uasset-collection-form {
       display: flex;
       flex-direction: column;
+
       gap: 15px;
+
       padding: 22px;
     }
+
 
     .uasset-check-row {
       display: flex;
@@ -571,10 +673,17 @@ function injectModalStyles() {
       font-size: 11px;
     }
 
+
     .uasset-check-row input {
       width: 15px;
       height: 15px;
     }
+
+
+    body.admin-modal-open {
+      overflow: hidden;
+    }
+
 
     @media (max-width: 760px) {
 
@@ -582,23 +691,28 @@ function injectModalStyles() {
         padding: 12px;
       }
 
+
       .admin-modal {
         max-height: calc(100vh - 24px);
         border-radius: 18px;
       }
+
 
       .admin-modal-head,
       .admin-modal-body {
         padding: 16px;
       }
 
+
       .admin-modal-body {
         grid-template-columns: 1fr;
       }
 
+
       .admin-live-icon-id {
         max-width: 140px;
       }
+
 
       .uasset-collection-form {
         padding: 16px;
@@ -608,7 +722,10 @@ function injectModalStyles() {
 
   `;
 
-  document.head.appendChild(style);
+
+  document.head.appendChild(
+    style
+  );
 }
 
 
@@ -616,15 +733,97 @@ function injectModalStyles() {
    ICON MODAL
    ========================================================= */
 
+function setIconModalMode(
+  mode
+) {
+
+  const title =
+    document.getElementById(
+      "newIconTitle"
+    );
+
+  const subtitle =
+    document.querySelector(
+      "#newIconModal .admin-modal-head .admin-panel-subtitle"
+    );
+
+
+  if (
+    mode === "edit"
+  ) {
+
+    if (title) {
+      title.textContent =
+        "Edit Icon";
+    }
+
+    if (subtitle) {
+      subtitle.textContent =
+        "Update icon metadata and settings.";
+    }
+
+    if (saveNewIcon) {
+      saveNewIcon.textContent =
+        "Save Changes";
+    }
+
+    if (iconId) {
+      iconId.disabled = true;
+    }
+
+    if (iconSvg) {
+      iconSvg.placeholder =
+        "Leave blank to keep the current SVG.";
+    }
+
+    return;
+  }
+
+
+  if (title) {
+    title.textContent =
+      "Create New Icon";
+  }
+
+  if (subtitle) {
+    subtitle.textContent =
+      "Create and prepare a new UAsset asset.";
+  }
+
+  if (saveNewIcon) {
+    saveNewIcon.textContent =
+      "Prepare Icon";
+  }
+
+  if (iconId) {
+    iconId.disabled = false;
+  }
+
+  if (iconSvg) {
+    iconSvg.placeholder =
+      '<svg xmlns="http://www.w3.org/2000/svg" ...></svg>';
+  }
+}
+
+
 function openNewIconModal() {
 
   if (!newIconModal) {
     return;
   }
 
+  editingIconId =
+    null;
+
   resetNewIconForm();
 
-  newIconModal.classList.add("open");
+  setIconModalMode(
+    "create"
+  );
+
+  newIconModal.classList.add(
+    "open"
+  );
 
   newIconModal.setAttribute(
     "aria-hidden",
@@ -635,9 +834,12 @@ function openNewIconModal() {
     "admin-modal-open"
   );
 
-  setTimeout(() => {
-    iconName?.focus();
-  }, 50);
+  setTimeout(
+    () => {
+      iconName?.focus();
+    },
+    50
+  );
 }
 
 
@@ -647,7 +849,9 @@ function closeNewIconModal() {
     return;
   }
 
-  newIconModal.classList.remove("open");
+  newIconModal.classList.remove(
+    "open"
+  );
 
   newIconModal.setAttribute(
     "aria-hidden",
@@ -657,59 +861,88 @@ function closeNewIconModal() {
   document.body.classList.remove(
     "admin-modal-open"
   );
+
+  editingIconId =
+    null;
+
+  setIconModalMode(
+    "create"
+  );
 }
 
 
 function resetNewIconForm() {
 
   if (iconName) {
-    iconName.value = "";
+    iconName.value =
+      "";
   }
 
   if (iconId) {
-    iconId.value = "";
+    iconId.value =
+      "";
+    iconId.disabled =
+      false;
   }
 
   if (iconCategory) {
-    iconCategory.value = "";
+    iconCategory.value =
+      "";
   }
 
   if (iconTags) {
-    iconTags.value = "";
+    iconTags.value =
+      "";
   }
 
   if (iconDescription) {
-    iconDescription.value = "";
+    iconDescription.value =
+      "";
   }
 
   if (iconSvg) {
-    iconSvg.value = "";
+    iconSvg.value =
+      "";
+    iconSvg.placeholder =
+      '<svg xmlns="http://www.w3.org/2000/svg" ...></svg>';
   }
 
-  selectedPlan = "free";
+  selectedPlan =
+    "free";
 
-  idWasManuallyEdited = false;
+  idWasManuallyEdited =
+    false;
 
   updatePlanButtons();
+
   updateLivePreview();
 }
 
 
+/* =========================================================
+   PLAN BUTTONS
+   ========================================================= */
+
 function updatePlanButtons() {
 
   document
-    .querySelectorAll("[data-plan]")
-    .forEach(button => {
+    .querySelectorAll(
+      "[data-plan]"
+    )
+    .forEach(
+      button => {
 
-      const active =
-        button.dataset.plan ===
-        selectedPlan;
+        const active =
+          button.dataset.plan ===
+          selectedPlan;
 
-      button.classList.toggle(
-        "active",
-        active
-      );
-    });
+        button.classList.toggle(
+          "active",
+          active
+        );
+      }
+    );
+
 
   if (previewPlan) {
 
@@ -725,7 +958,7 @@ function updatePlanButtons() {
 
 
 /* =========================================================
-   ICON LIVE SUMMARY
+   ICON SUMMARY
    ========================================================= */
 
 function updateSummary() {
@@ -737,13 +970,17 @@ function updateSummary() {
     iconId?.value.trim();
 
   if (previewName) {
+
     previewName.textContent =
-      name || "New Icon";
+      name ||
+      "New Icon";
   }
 
   if (previewId) {
+
     previewId.textContent =
-      id || "new-icon";
+      id ||
+      "new-icon";
   }
 
   updatePlanButtons();
@@ -768,6 +1005,7 @@ function updateLivePreview() {
     `;
 
     updateSummary();
+
     return;
   }
 
@@ -775,20 +1013,22 @@ function updateLivePreview() {
     svg.toLowerCase();
 
   if (
-    !normalized.startsWith("<svg") ||
-    !normalized.includes("</svg>")
+    !normalized.startsWith(
+      "<svg"
+    ) ||
+    !normalized.includes(
+      "</svg>"
+    )
   ) {
 
     iconLivePreview.innerHTML = `
-      <span
-        class="preview-placeholder"
-        style="color:#777871;"
-      >
+      <span class="preview-placeholder">
         Invalid SVG markup
       </span>
     `;
 
     updateSummary();
+
     return;
   }
 
@@ -809,6 +1049,7 @@ function updateLivePreview() {
     `;
 
     updateSummary();
+
     return;
   }
 
@@ -857,6 +1098,7 @@ if (iconName) {
 
       if (
         !idWasManuallyEdited &&
+        !editingIconId &&
         iconId
       ) {
 
@@ -878,13 +1120,15 @@ if (iconName) {
   iconDescription
 ]
   .filter(Boolean)
-  .forEach(field => {
+  .forEach(
+    field => {
 
-    field.addEventListener(
-      "input",
-      updateSummary
-    );
-  });
+      field.addEventListener(
+        "input",
+        updateSummary
+      );
+    }
+  );
 
 
 if (iconSvg) {
@@ -897,42 +1141,47 @@ if (iconSvg) {
 
 
 document
-  .querySelectorAll("[data-plan]")
-  .forEach(button => {
+  .querySelectorAll(
+    "[data-plan]"
+  )
+  .forEach(
+    button => {
 
-    button.addEventListener(
-      "click",
-      () => {
+      button.addEventListener(
+        "click",
+        () => {
 
-        selectedPlan =
-          button.dataset.plan ===
-          "pro"
-            ? "pro"
-            : "free";
+          selectedPlan =
+            button.dataset.plan ===
+            "pro"
+              ? "pro"
+              : "free";
 
-        updatePlanButtons();
-      }
-    );
-  });
+          updatePlanButtons();
+        }
+      );
+    }
+  );
 
 
 /* =========================================================
    VALIDATE ICON
    ========================================================= */
 
-function validateNewIcon() {
+function validateIconForm() {
 
   const name =
-    iconName?.value.trim() || "";
+    iconName?.value.trim() ||
+    "";
 
   const id =
-    iconId?.value.trim() || "";
+    iconId?.value.trim() ||
+    "";
 
   const category =
-    iconCategory?.value.trim() || "";
+    iconCategory?.value.trim() ||
+    "";
 
-  const svg =
-    iconSvg?.value.trim() || "";
 
   if (!name) {
 
@@ -945,8 +1194,12 @@ function validateNewIcon() {
     return false;
   }
 
+
   if (
-    !/^[a-z0-9-]+$/.test(id)
+    !id ||
+    !/^[a-z0-9-]+$/.test(
+      id
+    )
   ) {
 
     alert(
@@ -957,6 +1210,7 @@ function validateNewIcon() {
 
     return false;
   }
+
 
   if (!category) {
 
@@ -969,66 +1223,102 @@ function validateNewIcon() {
     return false;
   }
 
-  if (
-    !svg ||
-    !svg.toLowerCase().startsWith("<svg") ||
-    !svg.toLowerCase().includes("</svg>")
-  ) {
-
-    alert(
-      "Please paste a valid complete SVG."
-    );
-
-    iconSvg?.focus();
-
-    return false;
-  }
 
   return true;
 }
 
 
-/* =========================================================
-   ICON STATS
-   ========================================================= */
-
-function updateDashboardStats(
-  stats
+function validateSvg(
+  value
 ) {
 
-  if (totalIcons) {
+  const svg =
+    String(
+      value || ""
+    ).trim();
 
-    totalIcons.textContent =
-      Number(
-        stats?.totalIcons ?? 0
-      );
-  }
 
-  if (freeIcons) {
-
-    freeIcons.textContent =
-      Number(
-        stats?.freeIcons ?? 0
-      );
-  }
-
-  if (proIcons) {
-
-    proIcons.textContent =
-      Number(
-        stats?.proIcons ?? 0
-      );
-  }
+  return (
+    svg.toLowerCase().startsWith(
+      "<svg"
+    ) &&
+    svg.toLowerCase().includes(
+      "</svg>"
+    )
+  );
 }
 
 
 /* =========================================================
-   ICON TABLE
+   ICON TABLE HEADER
+   ========================================================= */
+
+function ensureIconActionsHeader() {
+
+  if (!adminIconsBody) {
+    return;
+  }
+
+
+  const table =
+    adminIconsBody.closest(
+      "table"
+    );
+
+
+  if (!table) {
+    return;
+  }
+
+
+  const headerRow =
+    table.querySelector(
+      "thead tr"
+    );
+
+
+  if (!headerRow) {
+    return;
+  }
+
+
+  const existing =
+    headerRow.querySelector(
+      '[data-uasset-icon-actions-header="true"]'
+    );
+
+
+  if (existing) {
+    return;
+  }
+
+
+  const header =
+    document.createElement(
+      "th"
+    );
+
+
+  header.dataset.uassetIconActionsHeader =
+    "true";
+
+  header.textContent =
+    "ACTIONS";
+
+  headerRow.appendChild(
+    header
+  );
+}
+
+
+/* =========================================================
+   ICON PLACEHOLDER
    ========================================================= */
 
 function getAdminIconPlaceholder() {
 
   return `
+
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -1042,6 +1332,7 @@ function getAdminIconPlaceholder() {
       aria-hidden="true"
       style="opacity:.28;"
     >
+
       <rect
         x="5"
         y="5"
@@ -1050,11 +1341,19 @@ function getAdminIconPlaceholder() {
         rx="3"
       />
 
-      <path d="M8 12h8" />
+      <path
+        d="M8 12h8"
+      />
+
     </svg>
+
   `;
 }
 
+
+/* =========================================================
+   RENDER ICON TABLE
+   ========================================================= */
 
 function renderAdminIcons(
   icons
@@ -1064,15 +1363,24 @@ function renderAdminIcons(
     return;
   }
 
+
+  ensureIconActionsHeader();
+
+
   if (
-    !Array.isArray(icons) ||
-    icons.length === 0
+    !Array.isArray(
+      icons
+    ) ||
+    icons.length ===
+      0
   ) {
 
     adminIconsBody.innerHTML = `
+
       <tr>
+
         <td
-          colspan="4"
+          colspan="5"
           style="
             text-align:center;
             padding:28px;
@@ -1080,113 +1388,249 @@ function renderAdminIcons(
           "
         >
           No icons found.
+
         </td>
+
       </tr>
     `;
 
     return;
   }
 
+
   adminIconsBody.innerHTML =
     icons
-      .map(icon => {
+      .map(
+        icon => {
 
-        const safeName =
-          escapeHtml(icon.name);
+          const safeName =
+            escapeHtml(
+              icon.name
+            );
 
-        const safeId =
-          escapeHtml(icon.id);
+          const safeId =
+            escapeHtml(
+              icon.id
+            );
 
-        const safeCategory =
-          escapeHtml(icon.category);
+          const safeCategory =
+            escapeHtml(
+              icon.category
+            );
 
-        const plan =
-          icon.plan === "pro"
-            ? "pro"
-            : "free";
+          const plan =
+            icon.plan ===
+            "pro"
+              ? "pro"
+              : "free";
 
-        const isActive =
-          icon.isActive === true;
+          const isActive =
+            icon.isActive ===
+            true;
 
-        const statusColor =
-          isActive
-            ? "currentColor"
-            : "var(--muted)";
+          const statusColor =
+            isActive
+              ? "currentColor"
+              : "var(--muted)";
 
-        return `
-          <tr
-            class="admin-live-icon-row"
-          >
+          const idAttribute =
+            escapeHtml(
+              icon.id
+            );
 
-            <td>
 
-              <div
-                class="admin-live-icon-meta"
-              >
+          return `
 
-                <div
-                  class="admin-live-icon-preview"
-                  aria-hidden="true"
-                >
-                  ${getAdminIconPlaceholder()}
-                </div>
-
-                <div
-                  class="admin-live-icon-copy"
-                >
-
-                  <div
-                    class="admin-live-icon-name"
-                  >
-                    ${safeName}
-                  </div>
-
-                  <div
-                    class="admin-live-icon-id"
-                  >
-                    ${safeId}
-                  </div>
-
-                </div>
-
-              </div>
-
-            </td>
-
-            <td>
-              ${safeCategory}
-            </td>
-
-            <td>
-
-              <span
-                class="admin-badge ${plan}"
-              >
-                ${plan.toUpperCase()}
-              </span>
-
-            </td>
-
-            <td
-              style="color:${statusColor};"
+            <tr
+              class="admin-live-icon-row"
             >
 
-              <span
-                class="admin-status-dot"
-              ></span>
+              <td>
 
-              ${
-                isActive
-                  ? "Active"
-                  : "Hidden"
-              }
+                <div
+                  class="admin-live-icon-meta"
+                >
 
-            </td>
+                  <div
+                    class="admin-live-icon-preview"
+                    aria-hidden="true"
+                  >
+                    ${getAdminIconPlaceholder()}
+                  </div>
 
-          </tr>
-        `;
-      })
+                  <div
+                    class="admin-live-icon-copy"
+                  >
+
+                    <div
+                      class="admin-live-icon-name"
+                    >
+                      ${safeName}
+                    </div>
+
+                    <div
+                      class="admin-live-icon-id"
+                    >
+                      ${safeId}
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </td>
+
+
+              <td>
+                ${safeCategory}
+              </td>
+
+
+              <td>
+
+                <span
+                  class="admin-badge ${plan}"
+                >
+                  ${plan.toUpperCase()}
+                </span>
+
+              </td>
+
+
+              <td
+                style="
+                  color:${statusColor};
+                "
+              >
+
+                <span
+                  class="admin-status-dot"
+                ></span>
+
+                ${
+                  isActive
+                    ? "Active"
+                    : "Hidden"
+                }
+
+              </td>
+
+
+              <td>
+
+                <div
+                  class="uasset-icon-actions"
+                >
+
+                  <button
+                    type="button"
+                    class="uasset-icon-action"
+                    data-icon-edit="${idAttribute}"
+                  >
+                    Edit
+                  </button>
+
+
+                  <button
+                    type="button"
+                    class="uasset-icon-action"
+                    data-icon-toggle="${idAttribute}"
+                  >
+                    ${
+                      isActive
+                        ? "Hide"
+                        : "Unhide"
+                    }
+                  </button>
+
+
+                  <button
+                    type="button"
+                    class="uasset-icon-action danger"
+                    data-icon-delete="${idAttribute}"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </td>
+
+            </tr>
+          `;
+        }
+      )
       .join("");
+
+
+  attachIconActionEvents();
+}
+
+
+/* =========================================================
+   ICON ACTION EVENTS
+   ========================================================= */
+
+function attachIconActionEvents() {
+
+  document
+    .querySelectorAll(
+      "[data-icon-edit]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            openEditIconModal(
+              button.dataset.iconEdit
+            );
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-icon-toggle]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            toggleIcon(
+              button.dataset.iconToggle
+            );
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-icon-delete]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            deleteIcon(
+              button.dataset.iconDelete
+            );
+          }
+        );
+      }
+    );
 }
 
 
@@ -1196,18 +1640,27 @@ function renderAdminIcons(
 
 async function loadAdminIcons() {
 
-  if (adminIconsLoading) {
+  if (
+    adminIconsLoading
+  ) {
     return;
   }
 
-  adminIconsLoading = true;
 
-  if (adminIconsBody) {
+  adminIconsLoading =
+    true;
+
+
+  if (
+    adminIconsBody
+  ) {
 
     adminIconsBody.innerHTML = `
+
       <tr>
+
         <td
-          colspan="4"
+          colspan="5"
           style="
             text-align:center;
             padding:28px;
@@ -1216,9 +1669,11 @@ async function loadAdminIcons() {
         >
           Loading icons...
         </td>
+
       </tr>
     `;
   }
+
 
   try {
 
@@ -1226,23 +1681,34 @@ async function loadAdminIcons() {
       await fetch(
         ADMIN_ICONS_LIST_API,
         {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
+          method:
+            "GET",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
           headers: {
+
             Accept:
               "application/json"
+
           }
         }
       );
 
+
     const data =
-      await response
-        .json()
-        .catch(() => ({}));
+      await parseApiResponse(
+        response
+      );
+
 
     if (
-      response.status === 401
+      response.status ===
+      401
     ) {
 
       throw new Error(
@@ -1250,8 +1716,10 @@ async function loadAdminIcons() {
       );
     }
 
+
     if (
-      response.status === 403
+      response.status ===
+      403
     ) {
 
       throw new Error(
@@ -1259,20 +1727,12 @@ async function loadAdminIcons() {
       );
     }
 
+
     if (
       !response.ok ||
-      data.success !== true
+      data.success !==
+        true
     ) {
-
-      console.error(
-        "Admin icons API error:",
-        {
-          status:
-            response.status,
-          response:
-            data
-        }
-      );
 
       throw new Error(
         data.error ||
@@ -1280,20 +1740,25 @@ async function loadAdminIcons() {
       );
     }
 
+
     adminIcons =
-      Array.isArray(data.icons)
+      Array.isArray(
+        data.icons
+      )
         ? data.icons
         : [];
 
-    adminIconsLoaded = true;
 
     renderAdminIcons(
       adminIcons
     );
 
+
     updateDashboardStats(
-      data.stats || {}
+      data.stats ||
+      {}
     );
+
 
   } catch (error) {
 
@@ -1302,43 +1767,259 @@ async function loadAdminIcons() {
       error
     );
 
-    if (adminIconsBody) {
+
+    if (
+      adminIconsBody
+    ) {
 
       adminIconsBody.innerHTML = `
+
         <tr>
+
           <td
-            colspan="4"
+            colspan="5"
             style="
               text-align:center;
               padding:28px;
               color:var(--muted);
             "
           >
+
             ${escapeHtml(
               error?.message ||
               "Unable to load icons."
             )}
+
           </td>
+
         </tr>
       `;
     }
 
+
   } finally {
 
-    adminIconsLoading = false;
+    adminIconsLoading =
+      false;
   }
 }
 
 
 /* =========================================================
-   SAVE NEW ICON
+   DASHBOARD STATS
    ========================================================= */
 
-async function prepareNewIcon() {
+function updateDashboardStats(
+  stats
+) {
 
-  if (!validateNewIcon()) {
+  if (totalIcons) {
+
+    totalIcons.textContent =
+      Number(
+        stats?.totalIcons ??
+        0
+      );
+  }
+
+
+  if (freeIcons) {
+
+    freeIcons.textContent =
+      Number(
+        stats?.freeIcons ??
+        0
+      );
+  }
+
+
+  if (proIcons) {
+
+    proIcons.textContent =
+      Number(
+        stats?.proIcons ??
+        0
+      );
+  }
+}
+
+
+/* =========================================================
+   OPEN EDIT ICON
+   ========================================================= */
+
+function openEditIconModal(
+  iconIdValue
+) {
+
+  const icon =
+    adminIcons.find(
+      item =>
+        String(
+          item.id
+        ) ===
+        String(
+          iconIdValue
+        )
+    );
+
+
+  if (!icon) {
+
+    alert(
+      "Icon not found."
+    );
+
     return;
   }
+
+
+  if (!newIconModal) {
+    return;
+  }
+
+
+  editingIconId =
+    icon.id;
+
+
+  if (iconName) {
+
+    iconName.value =
+      icon.name ||
+      "";
+  }
+
+
+  if (iconId) {
+
+    iconId.value =
+      icon.id ||
+      "";
+
+    iconId.disabled =
+      true;
+  }
+
+
+  if (iconCategory) {
+
+    iconCategory.value =
+      icon.category ||
+      "";
+  }
+
+
+  if (iconTags) {
+
+    iconTags.value =
+      Array.isArray(
+        icon.tags
+      )
+        ? icon.tags.join(", ")
+        : "";
+  }
+
+
+  if (iconDescription) {
+
+    iconDescription.value =
+      icon.description ||
+      "";
+  }
+
+
+  if (iconSvg) {
+
+    iconSvg.value =
+      "";
+
+    iconSvg.placeholder =
+      "Leave blank to keep the current SVG.";
+  }
+
+
+  selectedPlan =
+    icon.plan ===
+      "pro"
+      ? "pro"
+      : "free";
+
+
+  idWasManuallyEdited =
+    true;
+
+
+  updatePlanButtons();
+
+  updateSummary();
+
+  updateLivePreview();
+
+  setIconModalMode(
+    "edit"
+  );
+
+
+  newIconModal.classList.add(
+    "open"
+  );
+
+
+  newIconModal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+
+  document.body.classList.add(
+    "admin-modal-open"
+  );
+
+
+  setTimeout(
+    () => {
+      iconName?.focus();
+    },
+    50
+  );
+}
+
+
+/* =========================================================
+   CREATE ICON
+   ========================================================= */
+
+async function createIcon() {
+
+  if (
+    !validateIconForm()
+  ) {
+
+    return;
+  }
+
+
+  const svg =
+    iconSvg?.value.trim() ||
+    "";
+
+
+  if (
+    !validateSvg(
+      svg
+    )
+  ) {
+
+    alert(
+      "Please paste a valid complete SVG."
+    );
+
+    iconSvg?.focus();
+
+    return;
+  }
+
 
   const payload = {
 
@@ -1362,13 +2043,14 @@ async function prepareNewIcon() {
     plan:
       selectedPlan,
 
-    svg:
-      iconSvg.value.trim()
+    svg
   };
+
 
   const originalText =
     saveNewIcon?.textContent ||
-    "Save Icon";
+    "Prepare Icon";
+
 
   if (saveNewIcon) {
 
@@ -1379,33 +2061,49 @@ async function prepareNewIcon() {
       "Saving...";
   }
 
+
   try {
 
     const response =
       await fetch(
         ADMIN_ICONS_CREATE_API,
         {
-          method: "POST",
-          credentials: "include",
-          cache: "no-store",
+          method:
+            "POST",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
           headers: {
+
             Accept:
               "application/json",
+
             "Content-Type":
               "application/json"
+
           },
+
           body:
-            JSON.stringify(payload)
+            JSON.stringify(
+              payload
+            )
         }
       );
 
+
     const data =
-      await response
-        .json()
-        .catch(() => ({}));
+      await parseApiResponse(
+        response
+      );
+
 
     if (
-      response.status === 401
+      response.status ===
+      401
     ) {
 
       throw new Error(
@@ -1413,8 +2111,10 @@ async function prepareNewIcon() {
       );
     }
 
+
     if (
-      response.status === 403
+      response.status ===
+      403
     ) {
 
       throw new Error(
@@ -1422,28 +2122,35 @@ async function prepareNewIcon() {
       );
     }
 
+
     if (
       !response.ok ||
-      data.success !== true
+      data.success !==
+        true
     ) {
 
       let message =
         data.error ||
         "Unable to save icon.";
 
+
       if (data.code) {
+
         message +=
           `\n\nCode: ${data.code}`;
       }
+
 
       throw new Error(
         message
       );
     }
 
+
     alert(
       `Icon "${payload.name}" saved successfully!`
     );
+
 
     closeNewIconModal();
 
@@ -1451,17 +2158,20 @@ async function prepareNewIcon() {
 
     await loadAdminIcons();
 
+
   } catch (error) {
 
     console.error(
-      "UAsset admin save error:",
+      "UAsset admin icon create failed:",
       error
     );
+
 
     alert(
       error?.message ||
       "Unable to save icon."
     );
+
 
   } finally {
 
@@ -1478,46 +2188,599 @@ async function prepareNewIcon() {
 
 
 /* =========================================================
-   COLLECTION MANAGER UI
+   UPDATE ICON
    ========================================================= */
 
-function getCollectionsSection() {
+async function updateIcon() {
 
-  return document.getElementById(
-    "collections"
-  );
+  if (
+    !editingIconId ||
+    !validateIconForm()
+  ) {
+
+    return;
+  }
+
+
+  const originalIcon =
+    adminIcons.find(
+      item =>
+        String(
+          item.id
+        ) ===
+        String(
+          editingIconId
+        )
+    );
+
+
+  if (!originalIcon) {
+
+    alert(
+      "Original icon could not be found."
+    );
+
+    return;
+  }
+
+
+  const svg =
+    iconSvg?.value.trim() ||
+    "";
+
+
+  const planChanged =
+    selectedPlan !==
+    originalIcon.plan;
+
+
+  if (
+    planChanged &&
+    !validateSvg(
+      svg
+    )
+  ) {
+
+    alert(
+      "SVG is required when changing Free/Pro plan."
+    );
+
+    iconSvg?.focus();
+
+    return;
+  }
+
+
+  if (
+    svg &&
+    !validateSvg(
+      svg
+    )
+  ) {
+
+    alert(
+      "The new SVG is not valid."
+    );
+
+    iconSvg?.focus();
+
+    return;
+  }
+
+
+  const payload = {
+
+    id:
+      editingIconId,
+
+    name:
+      iconName.value.trim(),
+
+    category:
+      iconCategory.value.trim(),
+
+    tags:
+      parseCommaList(
+        iconTags.value
+      ),
+
+    description:
+      iconDescription.value.trim(),
+
+    plan:
+      selectedPlan
+  };
+
+
+  if (svg) {
+
+    payload.svg =
+      svg;
+  }
+
+
+  const originalText =
+    saveNewIcon?.textContent ||
+    "Save Changes";
+
+
+  if (saveNewIcon) {
+
+    saveNewIcon.disabled =
+      true;
+
+    saveNewIcon.textContent =
+      "Saving...";
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        ADMIN_ICONS_UPDATE_API,
+        {
+          method:
+            "PATCH",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
+          headers: {
+
+            Accept:
+              "application/json",
+
+            "Content-Type":
+              "application/json"
+
+          },
+
+          body:
+            JSON.stringify(
+              payload
+            )
+        }
+      );
+
+
+    const data =
+      await parseApiResponse(
+        response
+      );
+
+
+    if (
+      response.status ===
+      401
+    ) {
+
+      throw new Error(
+        "Login with Bean ID required."
+      );
+    }
+
+
+    if (
+      response.status ===
+      403
+    ) {
+
+      throw new Error(
+        "UAsset admin access required."
+      );
+    }
+
+
+    if (
+      !response.ok ||
+      data.success !==
+        true
+    ) {
+
+      let message =
+        data.error ||
+        "Unable to update icon.";
+
+
+      if (data.code) {
+
+        message +=
+          `\n\nCode: ${data.code}`;
+      }
+
+
+      throw new Error(
+        message
+      );
+    }
+
+
+    alert(
+      `Icon "${payload.name}" updated successfully!`
+    );
+
+
+    closeNewIconModal();
+
+    await loadAdminIcons();
+
+
+  } catch (error) {
+
+    console.error(
+      "UAsset admin icon update failed:",
+      error
+    );
+
+
+    alert(
+      error?.message ||
+      "Unable to update icon."
+    );
+
+
+  } finally {
+
+    if (saveNewIcon) {
+
+      saveNewIcon.disabled =
+        false;
+
+      saveNewIcon.textContent =
+        originalText;
+    }
+  }
 }
 
+
+/* =========================================================
+   SAVE ICON — CREATE OR UPDATE
+   ========================================================= */
+
+async function saveIcon() {
+
+  if (editingIconId) {
+
+    await updateIcon();
+
+    return;
+  }
+
+
+  await createIcon();
+}
+
+
+/* =========================================================
+   TOGGLE ICON
+   ========================================================= */
+
+async function toggleIcon(
+  iconIdValue
+) {
+
+  const icon =
+    adminIcons.find(
+      item =>
+        String(
+          item.id
+        ) ===
+        String(
+          iconIdValue
+        )
+    );
+
+
+  if (!icon) {
+
+    alert(
+      "Icon not found."
+    );
+
+    return;
+  }
+
+
+  const nextActive =
+    icon.isActive !==
+    true;
+
+
+  const action =
+    nextActive
+      ? "unhide"
+      : "hide";
+
+
+  const confirmed =
+    window.confirm(
+      `Are you sure you want to ${action} "${icon.name}"?`
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        ADMIN_ICONS_UPDATE_API,
+        {
+          method:
+            "PATCH",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
+          headers: {
+
+            Accept:
+              "application/json",
+
+            "Content-Type":
+              "application/json"
+
+          },
+
+          body:
+            JSON.stringify({
+              id:
+                icon.id,
+
+              is_active:
+                nextActive
+            })
+        }
+      );
+
+
+    const data =
+      await parseApiResponse(
+        response
+      );
+
+
+    if (
+      response.status ===
+      401
+    ) {
+
+      throw new Error(
+        "Login with Bean ID required."
+      );
+    }
+
+
+    if (
+      response.status ===
+      403
+    ) {
+
+      throw new Error(
+        "UAsset admin access required."
+      );
+    }
+
+
+    if (
+      !response.ok ||
+      data.success !==
+        true
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to update icon status."
+      );
+    }
+
+
+    await loadAdminIcons();
+
+
+  } catch (error) {
+
+    console.error(
+      "UAsset icon toggle failed:",
+      error
+    );
+
+
+    alert(
+      error?.message ||
+      "Unable to update icon status."
+    );
+  }
+}
+
+
+/* =========================================================
+   DELETE ICON
+   ========================================================= */
+
+async function deleteIcon(
+  iconIdValue
+) {
+
+  const icon =
+    adminIcons.find(
+      item =>
+        String(
+          item.id
+        ) ===
+        String(
+          iconIdValue
+        )
+    );
+
+
+  if (!icon) {
+
+    alert(
+      "Icon not found."
+    );
+
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Delete icon "${icon.name}"?\n\nThis action cannot be undone.`
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        `${ADMIN_ICONS_DELETE_API}?id=${encodeURIComponent(
+          icon.id
+        )}`,
+        {
+          method:
+            "DELETE",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
+          headers: {
+
+            Accept:
+              "application/json"
+
+          }
+        }
+      );
+
+
+    const data =
+      await parseApiResponse(
+        response
+      );
+
+
+    if (
+      response.status ===
+      401
+    ) {
+
+      throw new Error(
+        "Login with Bean ID required."
+      );
+    }
+
+
+    if (
+      response.status ===
+      403
+    ) {
+
+      throw new Error(
+        "UAsset admin access required."
+      );
+    }
+
+
+    if (
+      !response.ok ||
+      data.success !==
+        true
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to delete icon."
+      );
+    }
+
+
+    alert(
+      `Icon "${icon.name}" deleted successfully!`
+    );
+
+
+    await loadAdminIcons();
+
+
+  } catch (error) {
+
+    console.error(
+      "UAsset icon delete failed:",
+      error
+    );
+
+
+    alert(
+      error?.message ||
+      "Unable to delete icon."
+    );
+  }
+}
+
+
+/* =========================================================
+   COLLECTION UI
+   ========================================================= */
 
 function ensureCollectionsManagerUI() {
 
   const section =
-    getCollectionsSection();
+    document.getElementById(
+      "collections"
+    );
+
 
   if (!section) {
     return null;
   }
+
 
   let manager =
     document.getElementById(
       "uassetCollectionsManager"
     );
 
+
   if (manager) {
     return manager;
   }
+
 
   const panelBody =
     section.querySelector(
       ".admin-panel-body"
     );
 
+
   if (!panelBody) {
     return null;
   }
 
+
   manager =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   manager.id =
     "uassetCollectionsManager";
@@ -1525,11 +2788,15 @@ function ensureCollectionsManagerUI() {
   manager.className =
     "uasset-collection-manager";
 
-  panelBody.innerHTML = "";
+
+  panelBody.innerHTML =
+    "";
+
 
   panelBody.appendChild(
     manager
   );
+
 
   return manager;
 }
@@ -1540,9 +2807,11 @@ function renderCollections() {
   const manager =
     ensureCollectionsManagerUI();
 
+
   if (!manager) {
     return;
   }
+
 
   const collections =
     Array.isArray(
@@ -1550,6 +2819,7 @@ function renderCollections() {
     )
       ? adminCollections
       : [];
+
 
   manager.innerHTML = `
 
@@ -1574,8 +2844,10 @@ function renderCollections() {
 
     </div>
 
+
     ${
-      collections.length === 0
+      collections.length ===
+      0
         ? `
           <div
             class="uasset-collection-table-wrap"
@@ -1588,6 +2860,7 @@ function renderCollections() {
           </div>
         `
         : `
+
           <div
             class="uasset-collection-table-wrap"
           >
@@ -1597,6 +2870,7 @@ function renderCollections() {
             >
 
               <thead>
+
                 <tr>
 
                   <th>
@@ -1620,7 +2894,9 @@ function renderCollections() {
                   </th>
 
                 </tr>
+
               </thead>
+
 
               <tbody>
 
@@ -1646,7 +2922,7 @@ function renderCollections() {
                             ? collection.categories
                             : [];
 
-                        const safeCategories =
+                        const categoryHtml =
                           categories
                             .map(
                               category =>
@@ -1663,7 +2939,8 @@ function renderCollections() {
                             .join("");
 
                         const active =
-                          collection.is_active === true;
+                          collection.is_active ===
+                          true;
 
                         const created =
                           collection.created_at
@@ -1672,7 +2949,9 @@ function renderCollections() {
                               ).toLocaleDateString()
                             : "—";
 
+
                         return `
+
                           <tr>
 
                             <td>
@@ -1691,13 +2970,15 @@ function renderCollections() {
 
                             </td>
 
+
                             <td>
 
                               <div
                                 class="uasset-collection-categories"
                               >
+
                                 ${
-                                  safeCategories ||
+                                  categoryHtml ||
                                   `
                                     <span
                                       class="uasset-collection-chip"
@@ -1706,26 +2987,37 @@ function renderCollections() {
                                     </span>
                                   `
                                 }
+
                               </div>
 
                             </td>
 
+
                             <td>
 
                               <span
-                                class="
-                                  admin-badge
-                                  ${active ? "free" : ""}
-                                "
+                                class="admin-badge ${
+                                  active
+                                    ? "free"
+                                    : ""
+                                }"
                               >
-                                ${active ? "ACTIVE" : "HIDDEN"}
+                                ${
+                                  active
+                                    ? "ACTIVE"
+                                    : "HIDDEN"
+                                }
                               </span>
 
                             </td>
 
+
                             <td>
-                              ${escapeHtml(created)}
+                              ${escapeHtml(
+                                created
+                              )}
                             </td>
+
 
                             <td>
 
@@ -1741,6 +3033,7 @@ function renderCollections() {
                                   Edit
                                 </button>
 
+
                                 <button
                                   type="button"
                                   class="uasset-small-button"
@@ -1752,6 +3045,7 @@ function renderCollections() {
                                       : "Unhide"
                                   }
                                 </button>
+
 
                                 <button
                                   type="button"
@@ -1766,6 +3060,7 @@ function renderCollections() {
                             </td>
 
                           </tr>
+
                         `;
                       }
                     )
@@ -1782,71 +3077,75 @@ function renderCollections() {
 
   `;
 
-  const inlineButton =
-    document.getElementById(
+
+  document
+    .getElementById(
       "uassetInlineNewCollection"
-    );
-
-  if (inlineButton) {
-
-    inlineButton.addEventListener(
+    )
+    ?.addEventListener(
       "click",
-      () => {
-        openCollectionModal();
-      }
+      openCollectionModal
     );
-  }
+
 
   manager
     .querySelectorAll(
       "[data-collection-edit]"
     )
-    .forEach(button => {
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-          openCollectionEditModal(
-            button.dataset.collectionEdit
-          );
-        }
-      );
-    });
+            openCollectionEditModal(
+              button.dataset.collectionEdit
+            );
+          }
+        );
+      }
+    );
+
 
   manager
     .querySelectorAll(
       "[data-collection-toggle]"
     )
-    .forEach(button => {
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-          toggleCollection(
-            button.dataset.collectionToggle
-          );
-        }
-      );
-    });
+            toggleCollection(
+              button.dataset.collectionToggle
+            );
+          }
+        );
+      }
+    );
+
 
   manager
     .querySelectorAll(
       "[data-collection-delete]"
     )
-    .forEach(button => {
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-          deleteCollection(
-            button.dataset.collectionDelete
-          );
-        }
-      );
-    });
+            deleteCollection(
+              button.dataset.collectionDelete
+            );
+          }
+        );
+      }
+    );
 }
 
 
@@ -1864,19 +3163,26 @@ function createCollectionModal() {
     return;
   }
 
+
   const backdrop =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   backdrop.id =
     "uassetCollectionModal";
 
+
   backdrop.className =
     "admin-modal-backdrop";
+
 
   backdrop.setAttribute(
     "aria-hidden",
     "true"
   );
+
 
   backdrop.innerHTML = `
 
@@ -1913,6 +3219,7 @@ function createCollectionModal() {
 
         </div>
 
+
         <button
           type="button"
           class="admin-modal-close"
@@ -1923,6 +3230,7 @@ function createCollectionModal() {
         </button>
 
       </div>
+
 
       <div
         class="uasset-collection-form"
@@ -1950,6 +3258,7 @@ function createCollectionModal() {
 
         </div>
 
+
         <div
           class="admin-field"
         >
@@ -1975,6 +3284,7 @@ function createCollectionModal() {
           </span>
 
         </div>
+
 
         <div
           class="admin-field"
@@ -2002,6 +3312,7 @@ function createCollectionModal() {
 
         </div>
 
+
         <div
           class="admin-field"
         >
@@ -2017,11 +3328,15 @@ function createCollectionModal() {
             class="admin-textarea"
             id="uassetCollectionDescription"
             maxlength="1000"
-            style="min-height:110px;resize:vertical;"
+            style="
+              min-height:110px;
+              resize:vertical;
+            "
             placeholder="Describe this collection..."
           ></textarea>
 
         </div>
+
 
         <label
           class="uasset-check-row"
@@ -2039,12 +3354,12 @@ function createCollectionModal() {
 
         </label>
 
+
         <div
           style="
             display:flex;
             justify-content:flex-end;
             gap:9px;
-            padding-top:4px;
           "
         >
 
@@ -2055,6 +3370,7 @@ function createCollectionModal() {
           >
             Cancel
           </button>
+
 
           <button
             type="button"
@@ -2072,9 +3388,11 @@ function createCollectionModal() {
 
   `;
 
+
   document.body.appendChild(
     backdrop
   );
+
 
   document
     .getElementById(
@@ -2085,6 +3403,7 @@ function createCollectionModal() {
       closeCollectionModal
     );
 
+
   document
     .getElementById(
       "uassetCollectionCancel"
@@ -2094,6 +3413,17 @@ function createCollectionModal() {
       closeCollectionModal
     );
 
+
+  document
+    .getElementById(
+      "uassetCollectionSave"
+    )
+    ?.addEventListener(
+      "click",
+      saveCollection
+    );
+
+
   backdrop.addEventListener(
     "click",
     event => {
@@ -2102,6 +3432,7 @@ function createCollectionModal() {
         event.target ===
         backdrop
       ) {
+
         closeCollectionModal();
       }
     }
@@ -2113,8 +3444,10 @@ function openCollectionModal() {
 
   createCollectionModal();
 
+
   editingCollectionId =
     null;
+
 
   const modal =
     document.getElementById(
@@ -2161,9 +3494,6 @@ function openCollectionModal() {
       "uassetCollectionSave"
     );
 
-  if (!modal) {
-    return;
-  }
 
   title.textContent =
     "New Collection";
@@ -2171,18 +3501,31 @@ function openCollectionModal() {
   subtitle.textContent =
     "Create a curated collection of icon categories.";
 
-  name.value = "";
-  id.value = "";
-  categories.value = "";
-  description.value = "";
-  active.checked = true;
+  name.value =
+    "";
 
-  id.disabled = false;
+  id.value =
+    "";
+
+  categories.value =
+    "";
+
+  description.value =
+    "";
+
+  active.checked =
+    true;
+
+  id.disabled =
+    false;
 
   save.textContent =
     "Create Collection";
 
-  modal.classList.add("open");
+
+  modal.classList.add(
+    "open"
+  );
 
   modal.setAttribute(
     "aria-hidden",
@@ -2193,9 +3536,13 @@ function openCollectionModal() {
     "admin-modal-open"
   );
 
-  setTimeout(() => {
-    name.focus();
-  }, 40);
+
+  setTimeout(
+    () => {
+      name.focus();
+    },
+    40
+  );
 }
 
 
@@ -2206,9 +3553,14 @@ function openCollectionEditModal(
   const collection =
     adminCollections.find(
       item =>
-        String(item.id) ===
-        String(collectionId)
+        String(
+          item.id
+        ) ===
+        String(
+          collectionId
+        )
     );
+
 
   if (!collection) {
 
@@ -2219,10 +3571,13 @@ function openCollectionEditModal(
     return;
   }
 
+
   createCollectionModal();
+
 
   editingCollectionId =
     collection.id;
+
 
   const modal =
     document.getElementById(
@@ -2269,19 +3624,27 @@ function openCollectionEditModal(
       "uassetCollectionSave"
     );
 
+
   title.textContent =
     "Edit Collection";
+
 
   subtitle.textContent =
     "Update collection details and visibility.";
 
+
   name.value =
-    collection.name || "";
+    collection.name ||
+    "";
+
 
   id.value =
-    collection.id || "";
+    collection.id ||
+    "";
 
-  id.disabled = true;
+  id.disabled =
+    true;
+
 
   categories.value =
     Array.isArray(
@@ -2290,29 +3653,43 @@ function openCollectionEditModal(
       ? collection.categories.join(", ")
       : "";
 
+
   description.value =
-    collection.description || "";
+    collection.description ||
+    "";
+
 
   active.checked =
-    collection.is_active === true;
+    collection.is_active ===
+    true;
+
 
   save.textContent =
     "Save Changes";
 
-  modal.classList.add("open");
+
+  modal.classList.add(
+    "open"
+  );
+
 
   modal.setAttribute(
     "aria-hidden",
     "false"
   );
 
+
   document.body.classList.add(
     "admin-modal-open"
   );
 
-  setTimeout(() => {
-    name.focus();
-  }, 40);
+
+  setTimeout(
+    () => {
+      name.focus();
+    },
+    40
+  );
 }
 
 
@@ -2323,37 +3700,30 @@ function closeCollectionModal() {
       "uassetCollectionModal"
     );
 
+
   if (!modal) {
     return;
   }
 
-  modal.classList.remove("open");
+
+  modal.classList.remove(
+    "open"
+  );
+
 
   modal.setAttribute(
     "aria-hidden",
     "true"
   );
 
+
   document.body.classList.remove(
     "admin-modal-open"
   );
 
+
   editingCollectionId =
     null;
-}
-
-
-/* =========================================================
-   COLLECTION API HELPERS
-   ========================================================= */
-
-async function parseApiResponse(
-  response
-) {
-
-  return response
-    .json()
-    .catch(() => ({}));
 }
 
 
@@ -2363,26 +3733,34 @@ async function parseApiResponse(
 
 async function loadAdminCollections() {
 
-  if (adminCollectionsLoading) {
+  if (
+    adminCollectionsLoading
+  ) {
     return;
   }
+
 
   adminCollectionsLoading =
     true;
 
+
   const manager =
     ensureCollectionsManagerUI();
+
 
   if (manager) {
 
     manager.innerHTML = `
+
       <div
         class="uasset-collection-empty"
       >
         Loading collections...
       </div>
+
     `;
   }
+
 
   try {
 
@@ -2390,20 +3768,30 @@ async function loadAdminCollections() {
       await fetch(
         `${ADMIN_COLLECTIONS_LIST_API}?include_inactive=true`,
         {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
+          method:
+            "GET",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
           headers: {
+
             Accept:
               "application/json"
+
           }
         }
       );
+
 
     const data =
       await parseApiResponse(
         response
       );
+
 
     if (
       response.status ===
@@ -2415,6 +3803,7 @@ async function loadAdminCollections() {
       );
     }
 
+
     if (
       response.status ===
       403
@@ -2425,9 +3814,11 @@ async function loadAdminCollections() {
       );
     }
 
+
     if (
       !response.ok ||
-      data.success !== true
+      data.success !==
+        true
     ) {
 
       throw new Error(
@@ -2436,6 +3827,7 @@ async function loadAdminCollections() {
       );
     }
 
+
     adminCollections =
       Array.isArray(
         data.collections
@@ -2443,13 +3835,16 @@ async function loadAdminCollections() {
         ? data.collections
         : [];
 
+
     if (totalCollections) {
 
       totalCollections.textContent =
         adminCollections.length;
     }
 
+
     renderCollections();
+
 
   } catch (error) {
 
@@ -2458,24 +3853,29 @@ async function loadAdminCollections() {
       error
     );
 
-    const managerError =
+
+    const errorManager =
       ensureCollectionsManagerUI();
 
-    if (managerError) {
 
-      managerError.innerHTML = `
+    if (errorManager) {
+
+      errorManager.innerHTML = `
 
         <div
           class="uasset-collection-empty"
         >
+
           ${escapeHtml(
             error?.message ||
             "Unable to load collections."
           )}
+
         </div>
 
       `;
     }
+
 
   } finally {
 
@@ -2486,7 +3886,7 @@ async function loadAdminCollections() {
 
 
 /* =========================================================
-   CREATE / UPDATE COLLECTION
+   SAVE COLLECTION
    ========================================================= */
 
 async function saveCollection() {
@@ -2521,15 +3921,14 @@ async function saveCollection() {
       "uassetCollectionSave"
     );
 
-  const name =
-    nameField?.value.trim() || "";
 
-  const rawId =
-    idField?.value.trim() || "";
+  const name =
+    nameField?.value.trim() ||
+    "";
 
   const id =
     makeCollectionId(
-      rawId
+      idField?.value.trim()
     );
 
   const categories =
@@ -2538,10 +3937,13 @@ async function saveCollection() {
     );
 
   const description =
-    descriptionField?.value.trim() || "";
+    descriptionField?.value.trim() ||
+    "";
 
   const isActive =
-    activeField?.checked === true;
+    activeField?.checked ===
+    true;
+
 
   if (!name) {
 
@@ -2554,9 +3956,12 @@ async function saveCollection() {
     return;
   }
 
+
   if (
     !id ||
-    !/^[a-z0-9-]+$/.test(id)
+    !/^[a-z0-9-]+$/.test(
+      id
+    )
   ) {
 
     alert(
@@ -2567,6 +3972,7 @@ async function saveCollection() {
 
     return;
   }
+
 
   if (
     categories.length ===
@@ -2582,6 +3988,7 @@ async function saveCollection() {
     return;
   }
 
+
   const payload = {
 
     id,
@@ -2596,22 +4003,27 @@ async function saveCollection() {
       isActive
   };
 
+
   const isEditing =
     !!editingCollectionId;
+
 
   const endpoint =
     isEditing
       ? ADMIN_COLLECTIONS_UPDATE_API
       : ADMIN_COLLECTIONS_CREATE_API;
 
+
   const method =
     isEditing
       ? "PATCH"
       : "POST";
 
+
   const originalText =
     saveButton?.textContent ||
     "Save";
+
 
   if (saveButton) {
 
@@ -2624,6 +4036,7 @@ async function saveCollection() {
         : "Creating...";
   }
 
+
   try {
 
     const response =
@@ -2631,14 +4044,23 @@ async function saveCollection() {
         endpoint,
         {
           method,
-          credentials: "include",
-          cache: "no-store",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
           headers: {
+
             Accept:
               "application/json",
+
             "Content-Type":
               "application/json"
+
           },
+
           body:
             JSON.stringify(
               payload
@@ -2646,10 +4068,12 @@ async function saveCollection() {
         }
       );
 
+
     const data =
       await parseApiResponse(
         response
       );
+
 
     if (
       response.status ===
@@ -2661,6 +4085,7 @@ async function saveCollection() {
       );
     }
 
+
     if (
       response.status ===
       403
@@ -2671,18 +4096,17 @@ async function saveCollection() {
       );
     }
 
+
     if (
       !response.ok ||
-      data.success !== true
+      data.success !==
+        true
     ) {
 
       let message =
         data.error ||
-        (
-          isEditing
-            ? "Unable to update collection."
-            : "Unable to create collection."
-        );
+        "Unable to save collection.";
+
 
       if (data.code) {
 
@@ -2690,10 +4114,12 @@ async function saveCollection() {
           `\n\nCode: ${data.code}`;
       }
 
+
       throw new Error(
         message
       );
     }
+
 
     alert(
       isEditing
@@ -2701,9 +4127,11 @@ async function saveCollection() {
         : `Collection "${name}" created successfully!`
     );
 
+
     closeCollectionModal();
 
     await loadAdminCollections();
+
 
   } catch (error) {
 
@@ -2712,10 +4140,12 @@ async function saveCollection() {
       error
     );
 
+
     alert(
       error?.message ||
       "Unable to save collection."
     );
+
 
   } finally {
 
@@ -2742,9 +4172,14 @@ async function toggleCollection(
   const collection =
     adminCollections.find(
       item =>
-        String(item.id) ===
-        String(collectionId)
+        String(
+          item.id
+        ) ===
+        String(
+          collectionId
+        )
     );
+
 
   if (!collection) {
 
@@ -2755,22 +4190,28 @@ async function toggleCollection(
     return;
   }
 
+
   const nextActive =
-    collection.is_active !== true;
+    collection.is_active !==
+    true;
+
 
   const actionText =
     nextActive
       ? "unhide"
       : "hide";
 
+
   const confirmed =
     window.confirm(
       `Are you sure you want to ${actionText} "${collection.name}"?`
     );
 
+
   if (!confirmed) {
     return;
   }
+
 
   try {
 
@@ -2778,29 +4219,44 @@ async function toggleCollection(
       await fetch(
         ADMIN_COLLECTIONS_UPDATE_API,
         {
-          method: "PATCH",
-          credentials: "include",
-          cache: "no-store",
+          method:
+            "PATCH",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
           headers: {
+
             Accept:
               "application/json",
+
             "Content-Type":
               "application/json"
+
           },
+
           body:
             JSON.stringify({
+
               id:
                 collection.id,
+
               is_active:
                 nextActive
+
             })
         }
       );
+
 
     const data =
       await parseApiResponse(
         response
       );
+
 
     if (
       response.status ===
@@ -2812,6 +4268,7 @@ async function toggleCollection(
       );
     }
 
+
     if (
       response.status ===
       403
@@ -2822,9 +4279,11 @@ async function toggleCollection(
       );
     }
 
+
     if (
       !response.ok ||
-      data.success !== true
+      data.success !==
+        true
     ) {
 
       throw new Error(
@@ -2833,7 +4292,9 @@ async function toggleCollection(
       );
     }
 
+
     await loadAdminCollections();
+
 
   } catch (error) {
 
@@ -2841,6 +4302,7 @@ async function toggleCollection(
       "UAsset collection toggle failed:",
       error
     );
+
 
     alert(
       error?.message ||
@@ -2861,9 +4323,14 @@ async function deleteCollection(
   const collection =
     adminCollections.find(
       item =>
-        String(item.id) ===
-        String(collectionId)
+        String(
+          item.id
+        ) ===
+        String(
+          collectionId
+        )
     );
+
 
   if (!collection) {
 
@@ -2874,14 +4341,17 @@ async function deleteCollection(
     return;
   }
 
+
   const confirmed =
     window.confirm(
       `Delete collection "${collection.name}"?\n\nThis action cannot be undone.`
     );
 
+
   if (!confirmed) {
     return;
   }
+
 
   try {
 
@@ -2891,20 +4361,30 @@ async function deleteCollection(
           collection.id
         )}`,
         {
-          method: "DELETE",
-          credentials: "include",
-          cache: "no-store",
+          method:
+            "DELETE",
+
+          credentials:
+            "include",
+
+          cache:
+            "no-store",
+
           headers: {
+
             Accept:
               "application/json"
+
           }
         }
       );
+
 
     const data =
       await parseApiResponse(
         response
       );
+
 
     if (
       response.status ===
@@ -2916,6 +4396,7 @@ async function deleteCollection(
       );
     }
 
+
     if (
       response.status ===
       403
@@ -2925,6 +4406,7 @@ async function deleteCollection(
         "UAsset admin access required."
       );
     }
+
 
     if (
       response.status ===
@@ -2937,9 +4419,11 @@ async function deleteCollection(
       );
     }
 
+
     if (
       !response.ok ||
-      data.success !== true
+      data.success !==
+        true
     ) {
 
       throw new Error(
@@ -2948,11 +4432,14 @@ async function deleteCollection(
       );
     }
 
+
     alert(
       `Collection "${collection.name}" deleted successfully!`
     );
 
+
     await loadAdminCollections();
+
 
   } catch (error) {
 
@@ -2960,6 +4447,7 @@ async function deleteCollection(
       "UAsset collection delete failed:",
       error
     );
+
 
     alert(
       error?.message ||
@@ -3023,7 +4511,7 @@ if (
 
   saveNewIcon.addEventListener(
     "click",
-    prepareNewIcon
+    saveIcon
   );
 }
 
@@ -3040,7 +4528,7 @@ if (
 
 
 /* =========================================================
-   BACKDROP CLICK — ICON MODAL
+   ICON MODAL BACKDROP
    ========================================================= */
 
 if (
@@ -3064,7 +4552,7 @@ if (
 
 
 /* =========================================================
-   ESCAPE KEY
+   KEYBOARD
    ========================================================= */
 
 document.addEventListener(
@@ -3072,33 +4560,38 @@ document.addEventListener(
   event => {
 
     if (
-      event.key ===
+      event.key !==
       "Escape"
     ) {
+      return;
+    }
 
-      if (
-        newIconModal?.classList.contains(
-          "open"
-        )
-      ) {
 
-        closeNewIconModal();
-        return;
-      }
+    if (
+      newIconModal?.classList.contains(
+        "open"
+      )
+    ) {
 
-      const collectionModal =
-        document.getElementById(
-          "uassetCollectionModal"
-        );
+      closeNewIconModal();
 
-      if (
-        collectionModal?.classList.contains(
-          "open"
-        )
-      ) {
+      return;
+    }
 
-        closeCollectionModal();
-      }
+
+    const collectionModal =
+      document.getElementById(
+        "uassetCollectionModal"
+      );
+
+
+    if (
+      collectionModal?.classList.contains(
+        "open"
+      )
+    ) {
+
+      closeCollectionModal();
     }
   }
 );
@@ -3117,15 +4610,20 @@ function scrollToSection(
       id
     );
 
+
   if (!section) {
     return;
   }
 
+
   section.scrollIntoView({
+
     behavior:
       "smooth",
+
     block:
       "start"
+
   });
 }
 
@@ -3222,12 +4720,12 @@ navLinks.forEach(
           }
         );
 
+
         link.classList.add(
           "active"
         );
       }
     );
-
   }
 );
 
@@ -3238,21 +4736,15 @@ navLinks.forEach(
 
 injectModalStyles();
 
+ensureIconActionsHeader();
+
+ensureCollectionsManagerUI();
+
 updatePlanButtons();
 
 updateSummary();
 
 updateLivePreview();
-
-/*
-  Prepare database-backed managers.
-*/
-
-ensureCollectionsManagerUI();
-
-/*
-  Load live database data.
-*/
 
 loadAdminIcons();
 
@@ -3260,5 +4752,5 @@ loadAdminCollections();
 
 
 console.log(
-  "UAsset Admin — live dashboard + collection manager loaded."
+  "UAsset Admin — Icon Manager + Collections Manager loaded."
 );
