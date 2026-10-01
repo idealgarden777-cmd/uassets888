@@ -1,20 +1,15 @@
 /* =========================================================
-   UASSET ADMIN — ADMIN.JS
-   Clean unified version
+   UASSET ADMIN — CLEAN REBUILD
+   admin/admin.js
 
-   Features:
-   - Dashboard statistics
-   - Icon list
-   - Create icon
-   - Edit icon
-   - Hide / Unhide icon
-   - Delete icon
-   - Collections list
-   - Create collection
-   - Edit collection
-   - Hide / Unhide collection
-   - Delete collection
-   - Bean authentication via backend APIs
+   Sections:
+   - Dashboard
+   - Icons
+   - Collections
+   - Categories
+   - Uploads
+   - Settings
+
    ========================================================= */
 
 
@@ -26,16 +21,51 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function qs(selector, root = document) {
+  return root.querySelector(selector);
+}
+
+function qsa(selector, root = document) {
+  return Array.from(root.querySelectorAll(selector));
+}
+
 
 /* =========================================================
    PRIMARY ELEMENTS
    ========================================================= */
 
+const pageTitle =
+  $("adminPageTitle");
+
+const pageSubtitle =
+  $("adminPageSubtitle");
+
+const navLinks =
+  qsa(".admin-nav-link");
+
+const sectionPanels =
+  qsa("[data-section-panel]");
+
 const newIconButton =
   $("newIconButton");
 
+const iconsNewButton =
+  $("iconsNewButton");
+
 const manageIconsButton =
   $("manageIconsButton");
+
+const refreshCollectionsButton =
+  $("refreshCollectionsButton");
+
+const refreshCategoriesButton =
+  $("refreshCategoriesButton");
+
+const newCollectionButton =
+  $("newCollectionButton");
+
+const newCategoryButton =
+  $("newCategoryButton");
 
 const quickNewIcon =
   $("quickNewIcon");
@@ -49,12 +79,92 @@ const quickCollection =
 const quickCategory =
   $("quickCategory");
 
-const newCollectionButton =
-  $("newCollectionButton");
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+const totalIcons =
+  $("totalIcons");
+
+const freeIcons =
+  $("freeIcons");
+
+const proIcons =
+  $("proIcons");
+
+const totalCollections =
+  $("totalCollections");
+
+const adminAuthStatus =
+  $("adminAuthStatus");
+
+const adminIconsStatus =
+  $("adminIconsStatus");
+
+const adminCollectionsStatus =
+  $("adminCollectionsStatus");
+
+const adminCategoriesStatus =
+  $("adminCategoriesStatus");
 
 
 /* =========================================================
-   ICON MODAL ELEMENTS
+   ICON ELEMENTS
+   ========================================================= */
+
+const adminIconsBody =
+  $("adminIconsBody");
+
+const iconSearch =
+  $("iconSearch");
+
+const iconPlanFilter =
+  $("iconPlanFilter");
+
+const iconStatusFilter =
+  $("iconStatusFilter");
+
+const iconResultsCount =
+  $("iconResultsCount");
+
+
+/* =========================================================
+   CATEGORY ELEMENTS
+   ========================================================= */
+
+const adminCategoriesBody =
+  $("adminCategoriesBody");
+
+const categorySearch =
+  $("categorySearch");
+
+const categoryStatusFilter =
+  $("categoryStatusFilter");
+
+const categoryResultsCount =
+  $("categoryResultsCount");
+
+
+/* =========================================================
+   UPLOAD ELEMENTS
+   ========================================================= */
+
+const adminUploadButton =
+  $("adminUploadButton");
+
+const adminFileInput =
+  $("adminFileInput");
+
+const adminUploadArea =
+  $("adminUploadArea");
+
+const adminUploadList =
+  $("adminUploadList");
+
+
+/* =========================================================
+   ICON MODAL
    ========================================================= */
 
 const newIconModal =
@@ -102,29 +212,12 @@ const previewId =
 const previewPlan =
   $("previewPlan");
 
-
-/* =========================================================
-   DASHBOARD ELEMENTS
-   ========================================================= */
-
-const adminIconsBody =
-  $("adminIconsBody");
-
-const totalIcons =
-  $("totalIcons");
-
-const freeIcons =
-  $("freeIcons");
-
-const proIcons =
-  $("proIcons");
-
-const totalCollections =
-  $("totalCollections");
+const newIconModalTitle =
+  $("newIconModalTitle");
 
 
 /* =========================================================
-   API ENDPOINTS
+   API
    ========================================================= */
 
 const API = {
@@ -155,6 +248,77 @@ const API = {
 
     delete:
       "/api/admin/collections/delete"
+  },
+
+  categories: {
+    list:
+      "/api/admin/categories/list",
+
+    create:
+      "/api/admin/categories/create",
+
+    update:
+      "/api/admin/categories/update",
+
+    delete:
+      "/api/admin/categories/delete"
+  }
+
+};
+
+
+/* =========================================================
+   PAGE META
+   ========================================================= */
+
+const SECTION_META = {
+
+  dashboard: {
+    title:
+      "Dashboard",
+
+    subtitle:
+      "Manage icons, collections, categories, uploads and system settings."
+  },
+
+  icons: {
+    title:
+      "Icon Manager",
+
+    subtitle:
+      "Create, edit, hide and delete UAsset icons."
+  },
+
+  collections: {
+    title:
+      "Collections",
+
+    subtitle:
+      "Group categories into curated collections."
+  },
+
+  categories: {
+    title:
+      "Categories",
+
+    subtitle:
+      "Manage categories used by the UAsset library."
+  },
+
+  uploads: {
+    title:
+      "Uploads",
+
+    subtitle:
+      "Upload and manage UAsset files."
+  },
+
+  settings: {
+    title:
+      "Settings",
+
+    subtitle:
+      "UAsset admin and library configuration."
   }
 
 };
@@ -166,14 +330,8 @@ const API = {
 
 const state = {
 
-  selectedPlan:
-    "free",
-
-  editingIconId:
-    null,
-
-  editingCollectionId:
-    null,
+  currentSection:
+    "dashboard",
 
   icons:
     [],
@@ -181,22 +339,39 @@ const state = {
   collections:
     [],
 
+  categories:
+    [],
+
+  editingIconId:
+    null,
+
+  editingCollectionId:
+    null,
+
+  editingCategoryId:
+    null,
+
   loadingIcons:
     false,
 
   loadingCollections:
+    false,
+
+  loadingCategories:
     false
 
 };
 
 
 /* =========================================================
-   HTML ESCAPE
+   GENERIC HELPERS
    ========================================================= */
 
 function escapeHtml(value) {
 
-  return String(value ?? "")
+  return String(
+    value ?? ""
+  )
     .replace(
       /&/g,
       "&amp;"
@@ -217,17 +392,24 @@ function escapeHtml(value) {
       /'/g,
       "&#039;"
     );
+
 }
 
 
-/* =========================================================
-   ID NORMALIZATION
-   ========================================================= */
+function cleanText(value) {
+
+  return String(
+    value ?? ""
+  ).trim();
+
+}
+
 
 function normalizeId(value) {
 
-  return String(value || "")
-    .trim()
+  return cleanText(
+    value
+  )
     .toLowerCase()
     .replace(
       /&/g,
@@ -245,18 +427,17 @@ function normalizeId(value) {
       0,
       60
     );
+
 }
 
-
-/* =========================================================
-   COMMA LIST
-   ========================================================= */
 
 function parseCommaList(value) {
 
   return [
     ...new Set(
-      String(value || "")
+      String(
+        value ?? ""
+      )
         .split(",")
         .map(
           item =>
@@ -265,336 +446,1253 @@ function parseCommaList(value) {
         .filter(Boolean)
     )
   ];
+
 }
 
 
-/* =========================================================
-   JSON RESPONSE
-   ========================================================= */
+function formatDate(value) {
 
-async function readJson(response) {
+  if (!value) {
+    return "—";
+  }
 
-  try {
+  const date =
+    new Date(
+      value
+    );
 
-    return await response.json();
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "—";
+  }
 
-  } catch {
+  return date.toLocaleDateString(
+    undefined,
+    {
+      year:
+        "numeric",
 
-    return {};
+      month:
+        "short",
+
+      day:
+        "numeric"
+    }
+  );
+
+}
+
+
+function setStatus(
+  element,
+  status,
+  text
+) {
+
+  if (!element) {
+    return;
+  }
+
+  element.textContent =
+    text;
+
+  element.classList.remove(
+    "success",
+    "warning",
+    "danger"
+  );
+
+  if (
+    status ===
+    "success"
+  ) {
+
+    element.classList.add(
+      "success"
+    );
+
+  } else if (
+    status ===
+    "warning"
+  ) {
+
+    element.classList.add(
+      "warning"
+    );
+
+  } else if (
+    status ===
+    "danger"
+  ) {
+
+    element.classList.add(
+      "danger"
+    );
 
   }
 
 }
 
 
-/* =========================================================
-   API ERROR
-   ========================================================= */
+async function readResponse(
+  response
+) {
 
-function apiErrorMessage(
+  let data = {};
+
+  try {
+
+    data =
+      await response.json();
+
+  } catch {
+
+    data = {};
+
+  }
+
+  return {
+    response,
+    data
+  };
+
+}
+
+
+function getErrorMessage(
   data,
   fallback
 ) {
 
-  let message =
+  return (
     data?.error ||
-    fallback;
+    data?.message ||
+    fallback
+  );
 
-  if (
-    data?.code
-  ) {
-
-    message +=
-      `\n\nCode: ${data.code}`;
-  }
-
-  return message;
 }
 
 
 /* =========================================================
-   MODAL CSS
+   API REQUEST
    ========================================================= */
 
-function injectAdminStyles() {
+async function apiRequest(
+  url,
+  options = {}
+) {
+
+  const response =
+    await fetch(
+      url,
+      {
+        credentials:
+          "same-origin",
+
+        cache:
+          "no-store",
+
+        ...options,
+
+        headers: {
+          Accept:
+            "application/json",
+
+          ...(options.headers || {})
+        }
+      }
+    );
+
+  const result =
+    await readResponse(
+      response
+    );
 
   if (
-    $("uassetAdminRuntimeStyles")
+    !result.response.ok
   ) {
+
+    throw new Error(
+      getErrorMessage(
+        result.data,
+        `Request failed (${result.response.status})`
+      )
+    );
+
+  }
+
+  return result.data;
+
+}
+
+
+/* =========================================================
+   SECTION NAVIGATION
+   ========================================================= */
+
+function activateSection(
+  section
+) {
+
+  if (
+    !SECTION_META[
+      section
+    ]
+  ) {
+    section =
+      "dashboard";
+  }
+
+  state.currentSection =
+    section;
+
+  sectionPanels.forEach(
+    panel => {
+
+      const isActive =
+        panel.dataset.sectionPanel ===
+        section;
+
+      panel.hidden =
+        !isActive;
+
+    }
+  );
+
+  navLinks.forEach(
+    link => {
+
+      const isActive =
+        link.dataset.section ===
+        section;
+
+      link.classList.toggle(
+        "active",
+        isActive
+      );
+
+    }
+  );
+
+  const meta =
+    SECTION_META[
+      section
+    ];
+
+  if (pageTitle) {
+    pageTitle.textContent =
+      meta.title;
+  }
+
+  if (pageSubtitle) {
+    pageSubtitle.textContent =
+      meta.subtitle;
+  }
+
+  window.history.replaceState(
+    null,
+    "",
+    `#${section}`
+  );
+
+  if (
+    section ===
+    "icons"
+  ) {
+
+    loadIcons();
+
+  }
+
+  if (
+    section ===
+    "collections"
+  ) {
+
+    loadCollections();
+
+  }
+
+  if (
+    section ===
+    "categories"
+  ) {
+
+    loadCategories();
+
+  }
+
+}
+
+
+function readInitialSection() {
+
+  const hash =
+    window.location.hash
+      .replace(
+        "#",
+        ""
+      )
+      .trim();
+
+  if (
+    SECTION_META[
+      hash
+    ]
+  ) {
+
+    return hash;
+
+  }
+
+  return "dashboard";
+
+}
+
+
+navLinks.forEach(
+  link => {
+
+    link.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        activateSection(
+          link.dataset.section
+        );
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================================================
+   DASHBOARD LOAD
+   ========================================================= */
+
+async function loadDashboard() {
+
+  setStatus(
+    adminAuthStatus,
+    "warning",
+    "Checking"
+  );
+
+  setStatus(
+    adminIconsStatus,
+    "warning",
+    "Checking"
+  );
+
+  setStatus(
+    adminCollectionsStatus,
+    "warning",
+    "Checking"
+  );
+
+  setStatus(
+    adminCategoriesStatus,
+    "warning",
+    "Checking"
+  );
+
+
+  try {
+
+    const data =
+      await apiRequest(
+        API.icons.list
+      );
+
+    state.icons =
+      Array.isArray(
+        data.icons
+      )
+        ? data.icons
+        : [];
+
+    updateIconStats();
+
+    setStatus(
+      adminAuthStatus,
+      "success",
+      "Active"
+    );
+
+    setStatus(
+      adminIconsStatus,
+      "success",
+      "Online"
+    );
+
+  } catch (
+    error
+  ) {
+
+    setStatus(
+      adminAuthStatus,
+      "warning",
+      "Unknown"
+    );
+
+    setStatus(
+      adminIconsStatus,
+      "danger",
+      "Error"
+    );
+
+    console.error(
+      "Dashboard icon load failed:",
+      error
+    );
+
+  }
+
+
+  try {
+
+    const data =
+      await apiRequest(
+        API.collections.list
+      );
+
+    state.collections =
+      normalizeCollections(
+        data
+      );
+
+    totalCollections.textContent =
+      String(
+        state.collections.length
+      );
+
+    setStatus(
+      adminCollectionsStatus,
+      "success",
+      "Online"
+    );
+
+  } catch (
+    error
+  ) {
+
+    totalCollections.textContent =
+      "0";
+
+    setStatus(
+      adminCollectionsStatus,
+      "warning",
+      "Unavailable"
+    );
+
+    console.warn(
+      "Dashboard collection load failed:",
+      error
+    );
+
+  }
+
+
+  try {
+
+    const data =
+      await apiRequest(
+        API.categories.list
+      );
+
+    state.categories =
+      normalizeCategories(
+        data
+      );
+
+    setStatus(
+      adminCategoriesStatus,
+      "success",
+      "Online"
+    );
+
+  } catch (
+    error
+  ) {
+
+    setStatus(
+      adminCategoriesStatus,
+      "warning",
+      "Unavailable"
+    );
+
+    console.warn(
+      "Dashboard category load failed:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   ICON STATS
+   ========================================================= */
+
+function updateIconStats() {
+
+  const icons =
+    state.icons;
+
+  const total =
+    icons.length;
+
+  const free =
+    icons.filter(
+      icon =>
+        icon.plan ===
+        "free"
+    ).length;
+
+  const pro =
+    icons.filter(
+      icon =>
+        icon.plan ===
+        "pro"
+    ).length;
+
+  if (totalIcons) {
+    totalIcons.textContent =
+      String(total);
+  }
+
+  if (freeIcons) {
+    freeIcons.textContent =
+      String(free);
+  }
+
+  if (proIcons) {
+    proIcons.textContent =
+      String(pro);
+  }
+
+}
+
+
+/* =========================================================
+   ICONS — LOAD
+   ========================================================= */
+
+async function loadIcons() {
+
+  if (
+    state.loadingIcons
+  ) {
+    return;
+  }
+
+  state.loadingIcons =
+    true;
+
+  renderIconLoading();
+
+  try {
+
+    const data =
+      await apiRequest(
+        API.icons.list
+      );
+
+    state.icons =
+      Array.isArray(
+        data.icons
+      )
+        ? data.icons
+        : [];
+
+    updateIconStats();
+
+    renderIcons();
+
+    setStatus(
+      adminIconsStatus,
+      "success",
+      "Online"
+    );
+
+  } catch (
+    error
+  ) {
+
+    renderIconError(
+      error.message
+    );
+
+    setStatus(
+      adminIconsStatus,
+      "danger",
+      "Error"
+    );
+
+  } finally {
+
+    state.loadingIcons =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   ICON FILTER
+   ========================================================= */
+
+function getFilteredIcons() {
+
+  const search =
+    cleanText(
+      iconSearch?.value
+    )
+      .toLowerCase();
+
+  const plan =
+    iconPlanFilter?.value ||
+    "";
+
+  const status =
+    iconStatusFilter?.value ||
+    "active";
+
+  return state.icons.filter(
+    icon => {
+
+      const name =
+        cleanText(
+          icon.name
+        ).toLowerCase();
+
+      const id =
+        cleanText(
+          icon.id
+        ).toLowerCase();
+
+      const category =
+        cleanText(
+          icon.category
+        ).toLowerCase();
+
+      const tags =
+        Array.isArray(
+          icon.tags
+        )
+          ? icon.tags
+              .join(" ")
+              .toLowerCase()
+          : "";
+
+      const matchesSearch =
+        !search ||
+        name.includes(search) ||
+        id.includes(search) ||
+        category.includes(search) ||
+        tags.includes(search);
+
+      const matchesPlan =
+        !plan ||
+        icon.plan ===
+          plan;
+
+      const active =
+        icon.isActive ===
+        true;
+
+      const matchesStatus =
+        status ===
+          "all"
+          ? true
+          : status ===
+              "active"
+            ? active
+            : !active;
+
+      return (
+        matchesSearch &&
+        matchesPlan &&
+        matchesStatus
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   ICONS — RENDER
+   ========================================================= */
+
+function renderIcons() {
+
+  if (!adminIconsBody) {
+    return;
+  }
+
+  const icons =
+    getFilteredIcons();
+
+  if (iconResultsCount) {
+
+    iconResultsCount.textContent =
+      `${icons.length} ${
+        icons.length === 1
+          ? "icon"
+          : "icons"
+      }`;
+
+  }
+
+  if (
+    !icons.length
+  ) {
+
+    adminIconsBody.innerHTML = `
+      <tr>
+        <td
+          colspan="6"
+          class="admin-table-empty"
+        >
+          No icons found.
+        </td>
+      </tr>
+    `;
 
     return;
 
   }
 
 
-  const style =
-    document.createElement(
-      "style"
+  adminIconsBody.innerHTML =
+    icons.map(
+      icon =>
+        renderIconRow(
+          icon
+        )
+    ).join("");
+
+  qsa(
+    "[data-icon-edit]",
+    adminIconsBody
+  ).forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const id =
+            button.dataset.iconEdit;
+
+          openEditIcon(
+            id
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  qsa(
+    "[data-icon-toggle]",
+    adminIconsBody
+  ).forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          toggleIcon(
+            button.dataset.iconToggle,
+            button.dataset.iconActive ===
+              "true"
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  qsa(
+    "[data-icon-delete]",
+    adminIconsBody
+  ).forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          deleteIcon(
+            button.dataset.iconDelete
+          );
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+function renderIconRow(
+  icon
+) {
+
+  const id =
+    escapeHtml(
+      icon.id
     );
 
+  const name =
+    escapeHtml(
+      icon.name
+    );
 
-  style.id =
-    "uassetAdminRuntimeStyles";
+  const category =
+    escapeHtml(
+      icon.category
+    );
 
+  const plan =
+    icon.plan ===
+      "pro"
+      ? "pro"
+      : "free";
 
-  style.textContent = `
+  const active =
+    icon.isActive ===
+    true;
 
-    body.uasset-modal-open {
-      overflow: hidden;
-    }
+  const statusClass =
+    active
+      ? "active"
+      : "inactive";
 
+  const statusLabel =
+    active
+      ? "ACTIVE"
+      : "HIDDEN";
 
-    .uasset-icon-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
+  const actionLabel =
+    active
+      ? "Hide"
+      : "Unhide";
 
 
-    .uasset-icon-action {
-      border: 1px solid var(--line);
-      border-radius: 8px;
+  return `
+    <tr>
 
-      padding: 6px 9px;
+      <td>
 
-      background: var(--surface);
-      color: var(--text);
+        <div class="admin-icon-cell">
 
-      font-size: 10px;
-      line-height: 1;
+          <div
+            class="admin-icon-preview"
+            data-svg-preview="${id}"
+          >
+            ${getSafeSvgPreview(
+              icon.previewSvg ||
+              icon.svg ||
+              ""
+            )}
+          </div>
 
-      cursor: pointer;
+        </div>
 
-      transition:
-        background .15s ease,
-        border-color .15s ease,
-        transform .15s ease;
-    }
+      </td>
 
 
-    .uasset-icon-action:hover {
-      background: var(--surface-soft);
-      border-color: var(--line-strong);
-      transform: translateY(-1px);
-    }
+      <td>
 
+        <div class="admin-icon-name">
+          ${name}
+        </div>
 
-    .uasset-icon-action.danger:hover {
-      border-color: #b54b4b;
-    }
+        <div class="admin-icon-id">
+          ${id}
+        </div>
 
+      </td>
 
-    .uasset-action-disabled {
-      opacity: .55;
-      pointer-events: none;
-    }
 
+      <td>
+        <span class="admin-muted">
+          ${category || "—"}
+        </span>
+      </td>
 
-    .uasset-collection-manager {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
 
+      <td>
 
-    .uasset-collection-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+        <span
+          class="admin-badge ${plan}"
+        >
+          ${plan.toUpperCase()}
+        </span>
 
+      </td>
 
-    .uasset-collection-toolbar-copy {
-      color: var(--muted);
-      font-size: 11px;
-    }
 
+      <td>
 
-    .uasset-collection-table-wrap {
-      overflow-x: auto;
+        <span
+          class="admin-badge ${statusClass}"
+        >
+          ${statusLabel}
+        </span>
 
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      </td>
 
-      background: var(--surface);
-    }
 
-
-    .uasset-collection-table {
-      width: 100%;
-      min-width: 720px;
-
-      border-collapse: collapse;
-    }
-
-
-    .uasset-collection-table th {
-      padding: 11px 13px;
-
-      border-bottom: 1px solid var(--line);
-
-      color: var(--muted);
-
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 500;
-
-      text-align: left;
-      white-space: nowrap;
-    }
-
-
-    .uasset-collection-table td {
-      padding: 13px;
-
-      border-bottom: 1px solid var(--line);
-
-      font-size: 11px;
-      vertical-align: middle;
-    }
-
-
-    .uasset-collection-table tr:last-child td {
-      border-bottom: 0;
-    }
-
-
-    .uasset-collection-name {
-      font-weight: 600;
-    }
-
-
-    .uasset-collection-id {
-      margin-top: 3px;
-
-      color: var(--muted);
-
-      font-family: var(--mono);
-      font-size: 9px;
-    }
-
-
-    .uasset-collection-categories {
-      display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
-    }
-
-
-    .uasset-collection-chip {
-      display: inline-flex;
-      align-items: center;
-
-      padding: 4px 7px;
-
-      border: 1px solid var(--line);
-      border-radius: 999px;
-
-      background: var(--surface-soft);
-
-      color: var(--muted);
-
-      font-size: 9px;
-    }
-
-
-    .uasset-collection-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-
-    .uasset-small-button {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-
-      padding: 7px 9px;
-
-      background: var(--surface);
-      color: var(--text);
-
-      font-size: 10px;
-
-      cursor: pointer;
-    }
-
-
-    .uasset-small-button:hover {
-      background: var(--surface-soft);
-      border-color: var(--line-strong);
-    }
-
-
-    .uasset-small-button.danger:hover {
-      border-color: #b54b4b;
-    }
-
-
-    .uasset-collection-empty {
-      padding: 30px;
-
-      text-align: center;
-
-      color: var(--muted);
-
-      font-size: 11px;
-    }
-
-
-    .uasset-collection-form {
-      display: flex;
-      flex-direction: column;
-
-      gap: 15px;
-
-      padding: 22px;
-    }
-
-
-    .uasset-check-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      font-size: 11px;
-    }
-
-
-    .uasset-check-row input {
-      width: 15px;
-      height: 15px;
-    }
-
-
-    @media (max-width: 760px) {
-
-      .uasset-collection-form {
-        padding: 16px;
-      }
-
-      .uasset-icon-actions {
-        align-items: flex-start;
-      }
-
-    }
-
+      <td>
+
+        <div class="admin-icon-actions">
+
+          <button
+            type="button"
+            class="admin-icon-action"
+            data-icon-edit="${id}"
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            class="admin-icon-action"
+            data-icon-toggle="${id}"
+            data-icon-active="${active}"
+          >
+            ${actionLabel}
+          </button>
+
+          <button
+            type="button"
+            class="admin-icon-action danger"
+            data-icon-delete="${id}"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </td>
+
+    </tr>
   `;
 
-
-  document.head.appendChild(
-    style
-  );
 }
 
 
 /* =========================================================
-   ICON MODAL OPEN/CLOSE
+   SAFE SVG PREVIEW
    ========================================================= */
+
+function getSafeSvgPreview(
+  svg
+) {
+
+  const value =
+    cleanText(
+      svg
+    );
+
+  if (!value) {
+
+    return `
+      <span
+        class="admin-muted"
+      >
+        —
+      </span>
+    `;
+
+  }
+
+  try {
+
+    const parser =
+      new DOMParser();
+
+    const documentNode =
+      parser.parseFromString(
+        value,
+        "image/svg+xml"
+      );
+
+    const root =
+      documentNode.documentElement;
+
+    if (
+      !root ||
+      root.tagName.toLowerCase() !==
+        "svg"
+    ) {
+
+      return "";
+
+    }
+
+    root.querySelectorAll(
+      "script, foreignObject"
+    ).forEach(
+      node =>
+        node.remove()
+    );
+
+    root.setAttribute(
+      "width",
+      "21"
+    );
+
+    root.setAttribute(
+      "height",
+      "21"
+    );
+
+    root.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    root.setAttribute(
+      "focusable",
+      "false"
+    );
+
+    return root.outerHTML;
+
+  } catch {
+
+    return "";
+
+  }
+
+}
+
+
+/* =========================================================
+   ICON LOADING / ERROR
+   ========================================================= */
+
+function renderIconLoading() {
+
+  if (!adminIconsBody) {
+    return;
+  }
+
+  adminIconsBody.innerHTML = `
+    <tr>
+      <td
+        colspan="6"
+        class="admin-table-empty"
+      >
+        Loading icons...
+      </td>
+    </tr>
+  `;
+
+}
+
+
+function renderIconError(
+  message
+) {
+
+  if (!adminIconsBody) {
+    return;
+  }
+
+  adminIconsBody.innerHTML = `
+    <tr>
+      <td
+        colspan="6"
+        class="admin-table-empty"
+      >
+        ${escapeHtml(
+          message ||
+          "Unable to load icons."
+        )}
+      </td>
+    </tr>
+  `;
+
+  if (iconResultsCount) {
+    iconResultsCount.textContent =
+      "0 icons";
+  }
+
+}
+
+
+/* =========================================================
+   ICON MODAL
+   ========================================================= */
+
+function clearIconForm() {
+
+  iconName.value =
+    "";
+
+  iconId.value =
+    "";
+
+  iconCategory.value =
+    "";
+
+  iconTags.value =
+    "";
+
+  iconDescription.value =
+    "";
+
+  iconPlan.value =
+    "free";
+
+  iconSvg.value =
+    "";
+
+  state.editingIconId =
+    null;
+
+  if (newIconModalTitle) {
+
+    newIconModalTitle.textContent =
+      "New Icon";
+
+  }
+
+  if (saveNewIcon) {
+
+    saveNewIcon.textContent =
+      "Save Icon";
+
+  }
+
+  updateIconPreview();
+
+}
+
+
+function fillIconForm(
+  icon
+) {
+
+  iconName.value =
+    icon.name ||
+    "";
+
+  iconId.value =
+    icon.id ||
+    "";
+
+  iconCategory.value =
+    icon.category ||
+    "";
+
+  iconTags.value =
+    Array.isArray(
+      icon.tags
+    )
+      ? icon.tags.join(
+          ", "
+        )
+      : "";
+
+  iconDescription.value =
+    icon.description ||
+    "";
+
+  iconPlan.value =
+    icon.plan ===
+      "pro"
+      ? "pro"
+      : "free";
+
+  iconSvg.value =
+    icon.svg ||
+    "";
+
+  state.editingIconId =
+    icon.id;
+
+  if (newIconModalTitle) {
+
+    newIconModalTitle.textContent =
+      "Edit Icon";
+
+  }
+
+  if (saveNewIcon) {
+
+    saveNewIcon.textContent =
+      "Update Icon";
+
+  }
+
+  updateIconPreview();
+
+}
+
+
+function openNewIcon() {
+
+  clearIconForm();
+
+  openIconModal();
+
+}
+
+
+function openEditIcon(
+  id
+) {
+
+  const icon =
+    state.icons.find(
+      item =>
+        String(
+          item.id
+        ) ===
+        String(id)
+    );
+
+  if (!icon) {
+
+    alert(
+      "Icon not found."
+    );
+
+    return;
+
+  }
+
+  fillIconForm(
+    icon
+  );
+
+  openIconModal();
+
+}
+
 
 function openIconModal() {
 
@@ -602,10 +1700,8 @@ function openIconModal() {
     return;
   }
 
-
-  newIconModal.classList.add(
-    "open"
-  );
+  newIconModal.hidden =
+    false;
 
   newIconModal.setAttribute(
     "aria-hidden",
@@ -615,6 +1711,16 @@ function openIconModal() {
   document.body.classList.add(
     "uasset-modal-open"
   );
+
+  setTimeout(
+    () => {
+
+      iconName?.focus();
+
+    },
+    30
+  );
+
 }
 
 
@@ -624,10 +1730,8 @@ function closeIconModal() {
     return;
   }
 
-
-  newIconModal.classList.remove(
-    "open"
-  );
+  newIconModal.hidden =
+    true;
 
   newIconModal.setAttribute(
     "aria-hidden",
@@ -638,239 +1742,8 @@ function closeIconModal() {
     "uasset-modal-open"
   );
 
-
-  state.editingIconId =
-    null;
-
-
-  setIconModalCreateMode();
-
 }
 
-
-/* =========================================================
-   ICON CREATE MODE
-   ========================================================= */
-
-function setIconModalCreateMode() {
-
-  const title =
-    $("newIconTitle");
-
-  const subtitle =
-    newIconModal?.querySelector(
-      ".admin-modal-head .admin-panel-subtitle"
-    );
-
-
-  if (title) {
-
-    title.textContent =
-      "Create New Icon";
-  }
-
-
-  if (subtitle) {
-
-    subtitle.textContent =
-      "Create and prepare a new UAsset asset.";
-  }
-
-
-  if (saveNewIcon) {
-
-    saveNewIcon.textContent =
-      "Prepare Icon";
-  }
-
-
-  if (iconId) {
-
-    iconId.disabled =
-      false;
-  }
-
-
-  if (iconSvg) {
-
-    iconSvg.placeholder =
-      '<svg xmlns="http://www.w3.org/2000/svg" ...></svg>';
-  }
-}
-
-
-/* =========================================================
-   ICON EDIT MODE
-   ========================================================= */
-
-function setIconModalEditMode() {
-
-  const title =
-    $("newIconTitle");
-
-  const subtitle =
-    newIconModal?.querySelector(
-      ".admin-modal-head .admin-panel-subtitle"
-    );
-
-
-  if (title) {
-
-    title.textContent =
-      "Edit Icon";
-  }
-
-
-  if (subtitle) {
-
-    subtitle.textContent =
-      "Update icon metadata and settings.";
-  }
-
-
-  if (saveNewIcon) {
-
-    saveNewIcon.textContent =
-      "Save Changes";
-  }
-
-
-  if (iconId) {
-
-    iconId.disabled =
-      true;
-  }
-
-
-  if (iconSvg) {
-
-    iconSvg.placeholder =
-      "Leave blank to keep the current SVG.";
-  }
-}
-
-
-/* =========================================================
-   RESET ICON FORM
-   ========================================================= */
-
-function resetIconForm() {
-
-  if (iconName) {
-    iconName.value =
-      "";
-  }
-
-  if (iconId) {
-    iconId.value =
-      "";
-    iconId.disabled =
-      false;
-  }
-
-  if (iconCategory) {
-    iconCategory.value =
-      "";
-  }
-
-  if (iconTags) {
-    iconTags.value =
-      "";
-  }
-
-  if (iconDescription) {
-    iconDescription.value =
-      "";
-  }
-
-  if (iconSvg) {
-    iconSvg.value =
-      "";
-  }
-
-
-  state.selectedPlan =
-    "free";
-
-  state.editingIconId =
-    null;
-
-
-  updatePlanUI();
-
-  updateIconPreview();
-
-}
-
-
-/* =========================================================
-   ICON PLAN UI
-   ========================================================= */
-
-function updatePlanUI() {
-
-  document
-    .querySelectorAll(
-      "[data-plan]"
-    )
-    .forEach(
-      button => {
-
-        const active =
-          button.dataset.plan ===
-          state.selectedPlan;
-
-        button.classList.toggle(
-          "active",
-          active
-        );
-      }
-    );
-
-
-  if (previewPlan) {
-
-    previewPlan.textContent =
-      state.selectedPlan.toUpperCase();
-
-    previewPlan.className =
-      state.selectedPlan ===
-        "pro"
-        ? "admin-badge pro"
-        : "admin-badge free";
-  }
-}
-
-
-/* =========================================================
-   ICON SUMMARY
-   ========================================================= */
-
-function updateIconSummary() {
-
-  if (previewName) {
-
-    previewName.textContent =
-      iconName?.value.trim() ||
-      "New Icon";
-  }
-
-
-  if (previewId) {
-
-    previewId.textContent =
-      iconId?.value.trim() ||
-      "new-icon";
-  }
-
-
-  updatePlanUI();
-}
-
-
-/* =========================================================
-   ICON SVG PREVIEW
-   ========================================================= */
 
 function updateIconPreview() {
 
@@ -878,772 +1751,376 @@ function updateIconPreview() {
     return;
   }
 
+  const name =
+    cleanText(
+      iconName.value
+    );
+
+  const id =
+    normalizeId(
+      iconId.value ||
+      name
+    );
+
+  const plan =
+    iconPlan.value ===
+      "pro"
+      ? "PRO"
+      : "FREE";
+
+  if (previewName) {
+    previewName.textContent =
+      name ||
+      "New Icon";
+  }
+
+  if (previewId) {
+    previewId.textContent =
+      id ||
+      "—";
+  }
+
+  if (previewPlan) {
+    previewPlan.textContent =
+      plan;
+  }
 
   const svg =
-    iconSvg?.value.trim() ||
-    "";
+    cleanText(
+      iconSvg.value
+    );
 
+  const preview =
+    getSafeSvgPreview(
+      svg
+    );
 
-  if (!svg) {
-
-    iconLivePreview.innerHTML = `
+  iconLivePreview.innerHTML =
+    preview ||
+    `
       <span
-        class="preview-placeholder"
+        class="admin-preview-placeholder"
       >
         SVG preview
       </span>
     `;
 
-    updateIconSummary();
-
-    return;
-  }
-
-
-  if (!isValidSvg(svg)) {
-
-    iconLivePreview.innerHTML = `
-      <span
-        class="preview-placeholder"
-      >
-        Invalid SVG markup
-      </span>
-    `;
-
-    updateIconSummary();
-
-    return;
-  }
-
-
-  iconLivePreview.innerHTML =
-    svg;
-
-
-  const renderedSvg =
-    iconLivePreview.querySelector(
-      "svg"
-    );
-
-
-  if (!renderedSvg) {
-
-    iconLivePreview.innerHTML = `
-      <span
-        class="preview-placeholder"
-      >
-        Invalid SVG
-      </span>
-    `;
-
-    updateIconSummary();
-
-    return;
-  }
-
-
-  renderedSvg.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  renderedSvg.style.width =
-    "72px";
-
-  renderedSvg.style.height =
-    "72px";
-
-  renderedSvg.style.color =
-    "currentColor";
-
-
-  updateIconSummary();
 }
 
 
 /* =========================================================
-   SVG VALIDATION
+   ICON CREATE
    ========================================================= */
 
-function isValidSvg(value) {
-
-  const svg =
-    String(value || "")
-      .trim();
-
-
-  return (
-    svg.length > 0 &&
-    svg.length <= 200000 &&
-    /^<svg\b/i.test(svg) &&
-    /<\/svg>\s*$/i.test(svg)
-  );
-}
-
-
-/* =========================================================
-   ICON FORM VALIDATION
-   ========================================================= */
-
-function validateIconForm(
-  requireSvg
-) {
+async function createIcon() {
 
   const name =
-    iconName?.value.trim() ||
-    "";
+    cleanText(
+      iconName.value
+    );
 
   const id =
-    iconId?.value.trim() ||
-    "";
+    normalizeId(
+      iconId.value ||
+      name
+    );
 
   const category =
-    iconCategory?.value.trim() ||
-    "";
+    cleanText(
+      iconCategory.value
+    );
+
+  const tags =
+    parseCommaList(
+      iconTags.value
+    );
+
+  const description =
+    cleanText(
+      iconDescription.value
+    );
+
+  const plan =
+    iconPlan.value ===
+      "pro"
+      ? "pro"
+      : "free";
 
   const svg =
-    iconSvg?.value.trim() ||
-    "";
+    cleanText(
+      iconSvg.value
+    );
 
 
   if (!name) {
 
     alert(
-      "Please enter an icon name."
+      "Icon name is required."
     );
 
-    iconName?.focus();
+    iconName.focus();
 
-    return false;
+    return;
+
   }
 
 
-  if (
-    !id ||
-    !/^[a-z0-9-]+$/.test(id)
-  ) {
+  if (!id) {
 
     alert(
-      "Icon ID must contain only lowercase letters, numbers and hyphens."
+      "Valid icon ID is required."
     );
 
-    iconId?.focus();
+    iconId.focus();
 
-    return false;
+    return;
+
   }
 
 
   if (!category) {
 
     alert(
-      "Please enter a category."
+      "Icon category is required."
     );
 
-    iconCategory?.focus();
+    iconCategory.focus();
 
-    return false;
-  }
-
-
-  if (
-    requireSvg &&
-    !isValidSvg(svg)
-  ) {
-
-    alert(
-      "Please paste a valid complete SVG."
-    );
-
-    iconSvg?.focus();
-
-    return false;
-  }
-
-
-  if (
-    svg &&
-    !isValidSvg(svg)
-  ) {
-
-    alert(
-      "The SVG code is not valid."
-    );
-
-    iconSvg?.focus();
-
-    return false;
-  }
-
-
-  return true;
-}
-
-
-/* =========================================================
-   OPEN NEW ICON
-   ========================================================= */
-
-function openNewIcon() {
-
-  if (!newIconModal) {
     return;
+
   }
 
 
-  resetIconForm();
+  if (!svg) {
 
-  setIconModalCreateMode();
+    alert(
+      "SVG code is required."
+    );
 
-  openIconModal();
+    iconSvg.focus();
+
+    return;
+
+  }
 
 
-  setTimeout(
-    () => {
-      iconName?.focus();
-    },
-    40
+  setButtonLoading(
+    saveNewIcon,
+    true,
+    "Saving..."
   );
-}
-
-
-/* =========================================================
-   OPEN EDIT ICON
-   ========================================================= */
-
-function openEditIcon(
-  id
-) {
-
-  const icon =
-    state.icons.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-
-  if (!icon) {
-
-    alert(
-      "Icon not found."
-    );
-
-    return;
-  }
-
-
-  state.editingIconId =
-    icon.id;
-
-
-  if (iconName) {
-
-    iconName.value =
-      icon.name ||
-      "";
-  }
-
-
-  if (iconId) {
-
-    iconId.value =
-      icon.id ||
-      "";
-
-    iconId.disabled =
-      true;
-  }
-
-
-  if (iconCategory) {
-
-    iconCategory.value =
-      icon.category ||
-      "";
-  }
-
-
-  if (iconTags) {
-
-    iconTags.value =
-      Array.isArray(
-        icon.tags
-      )
-        ? icon.tags.join(", ")
-        : "";
-  }
-
-
-  if (iconDescription) {
-
-    iconDescription.value =
-      icon.description ||
-      "";
-  }
-
-
-  if (iconSvg) {
-
-    iconSvg.value =
-      "";
-
-    iconSvg.placeholder =
-      "Leave blank to keep the current SVG.";
-  }
-
-
-  state.selectedPlan =
-    icon.plan === "pro"
-      ? "pro"
-      : "free";
-
-
-  updatePlanUI();
-
-  updateIconSummary();
-
-  updateIconPreview();
-
-  setIconModalEditMode();
-
-  openIconModal();
-
-
-  setTimeout(
-    () => {
-      iconName?.focus();
-    },
-    40
-  );
-}
-
-
-/* =========================================================
-   CREATE ICON REQUEST
-   ========================================================= */
-
-async function createIcon() {
-
-  const svg =
-    iconSvg?.value.trim() ||
-    "";
-
-
-  if (
-    !validateIconForm(
-      true
-    )
-  ) {
-
-    return;
-  }
-
-
-  const payload = {
-
-    id:
-      iconId.value.trim(),
-
-    name:
-      iconName.value.trim(),
-
-    category:
-      iconCategory.value.trim(),
-
-    tags:
-      parseCommaList(
-        iconTags.value
-      ),
-
-    description:
-      iconDescription.value.trim(),
-
-    plan:
-      state.selectedPlan,
-
-    svg
-
-  };
-
-
-  const originalText =
-    saveNewIcon?.textContent ||
-    "Prepare Icon";
-
-
-  if (saveNewIcon) {
-
-    saveNewIcon.disabled =
-      true;
-
-    saveNewIcon.textContent =
-      "Saving...";
-  }
 
 
   try {
 
-    const response =
-      await fetch(
-        API.icons.create,
-        {
+    await apiRequest(
+      API.icons.create,
+      {
+        method:
+          "POST",
 
-          method:
-            "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-          credentials:
-            "include",
-
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json",
-
-            "Content-Type":
-              "application/json"
-
-          },
-
-          body:
-            JSON.stringify(
-              payload
-            )
-
-        }
-      );
-
-
-    const data =
-      await readJson(
-        response
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to create icon."
-        )
-      );
-    }
+        body:
+          JSON.stringify({
+            id,
+            name,
+            category,
+            tags,
+            description,
+            plan,
+            svg
+          })
+      }
+    );
 
 
     alert(
-      `Icon "${payload.name}" saved successfully!`
+      "Icon created successfully."
     );
-
 
     closeIconModal();
 
-    resetIconForm();
-
     await loadIcons();
 
-  } catch (error) {
-
-    console.error(
-      "UAsset create icon failed:",
-      error
-    );
-
+  } catch (
+    error
+  ) {
 
     alert(
-      error?.message ||
+      error.message ||
       "Unable to create icon."
     );
 
   } finally {
 
-    if (saveNewIcon) {
+    setButtonLoading(
+      saveNewIcon,
+      false,
+      state.editingIconId
+        ? "Update Icon"
+        : "Save Icon"
+    );
 
-      saveNewIcon.disabled =
-        false;
-
-      saveNewIcon.textContent =
-        originalText;
-    }
   }
+
 }
 
 
 /* =========================================================
-   UPDATE ICON REQUEST
+   ICON UPDATE
    ========================================================= */
 
 async function updateIcon() {
 
-  const id =
+  const existingId =
     state.editingIconId;
 
+  if (!existingId) {
 
-  if (!id) {
-
-    alert(
-      "No icon is selected for editing."
-    );
+    await createIcon();
 
     return;
+
   }
 
 
-  if (
-    !validateIconForm(
-      false
-    )
-  ) {
-
-    return;
-  }
-
-
-  const originalIcon =
-    state.icons.find(
-      item =>
-        String(item.id) ===
-        String(id)
+  const name =
+    cleanText(
+      iconName.value
     );
 
-
-  if (!originalIcon) {
-
-    alert(
-      "Original icon could not be found."
+  const category =
+    cleanText(
+      iconCategory.value
     );
 
-    return;
-  }
+  const tags =
+    parseCommaList(
+      iconTags.value
+    );
 
+  const description =
+    cleanText(
+      iconDescription.value
+    );
 
-  const newSvg =
-    iconSvg?.value.trim() ||
-    "";
-
-
-  const planChanged =
-    state.selectedPlan !==
-    (
-      originalIcon.plan ===
+  const plan =
+    iconPlan.value ===
       "pro"
-        ? "pro"
-        : "free"
+      ? "pro"
+      : "free";
+
+  const svg =
+    cleanText(
+      iconSvg.value
     );
 
 
-  /*
-    Backend requires a new SVG when
-    Free -> Pro or Pro -> Free.
-  */
-
-  if (
-    planChanged &&
-    !isValidSvg(
-      newSvg
-    )
-  ) {
+  if (!name) {
 
     alert(
-      "Please paste the SVG when changing the Free/Pro plan."
+      "Icon name is required."
     );
 
-    iconSvg?.focus();
+    return;
+
+  }
+
+
+  if (!category) {
+
+    alert(
+      "Icon category is required."
+    );
 
     return;
+
   }
 
 
-  const payload = {
+  if (!svg) {
 
-    id,
+    alert(
+      "SVG code is required."
+    );
 
-    name:
-      iconName.value.trim(),
+    return;
 
-    category:
-      iconCategory.value.trim(),
-
-    tags:
-      parseCommaList(
-        iconTags.value
-      ),
-
-    description:
-      iconDescription.value.trim(),
-
-    plan:
-      state.selectedPlan
-
-  };
-
-
-  if (newSvg) {
-
-    payload.svg =
-      newSvg;
   }
 
 
-  const originalText =
-    saveNewIcon?.textContent ||
-    "Save Changes";
-
-
-  if (saveNewIcon) {
-
-    saveNewIcon.disabled =
-      true;
-
-    saveNewIcon.textContent =
-      "Saving...";
-  }
+  setButtonLoading(
+    saveNewIcon,
+    true,
+    "Updating..."
+  );
 
 
   try {
 
-    const response =
-      await fetch(
-        API.icons.update,
-        {
+    await apiRequest(
+      API.icons.update,
+      {
+        method:
+          "PATCH",
 
-          method:
-            "PATCH",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-          credentials:
-            "include",
+        body:
+          JSON.stringify({
+            id:
+              existingId,
 
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json",
-
-            "Content-Type":
-              "application/json"
-
-          },
-
-          body:
-            JSON.stringify(
-              payload
-            )
-
-        }
-      );
-
-
-    const data =
-      await readJson(
-        response
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to update icon."
-        )
-      );
-    }
+            name,
+            category,
+            tags,
+            description,
+            plan,
+            svg
+          })
+      }
+    );
 
 
     alert(
-      `Icon "${payload.name}" updated successfully!`
+      "Icon updated successfully."
     );
-
 
     closeIconModal();
 
     await loadIcons();
 
-  } catch (error) {
-
-    console.error(
-      "UAsset update icon failed:",
-      error
-    );
-
+  } catch (
+    error
+  ) {
 
     alert(
-      error?.message ||
+      error.message ||
       "Unable to update icon."
     );
 
   } finally {
 
-    if (saveNewIcon) {
+    setButtonLoading(
+      saveNewIcon,
+      false,
+      "Update Icon"
+    );
 
-      saveNewIcon.disabled =
-        false;
-
-      saveNewIcon.textContent =
-        originalText;
-    }
   }
+
 }
 
 
 /* =========================================================
-   SAVE ICON
+   ICON SAVE ROUTER
    ========================================================= */
 
 async function saveIcon() {
@@ -1654,60 +2131,33 @@ async function saveIcon() {
 
     await updateIcon();
 
-    return;
+  } else {
+
+    await createIcon();
+
   }
 
-
-  await createIcon();
 }
 
 
 /* =========================================================
-   ICON HIDE / UNHIDE
+   ICON TOGGLE
    ========================================================= */
 
 async function toggleIcon(
-  id
+  id,
+  currentlyActive
 ) {
 
-  const icon =
-    state.icons.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-
-  if (!icon) {
-
-    alert(
-      "Icon not found."
-    );
-
-    return;
-  }
-
-
-  const currentActive =
-    icon.isActive ===
-    true;
-
-
-  const nextActive =
-    !currentActive;
-
-
   const action =
-    nextActive
-      ? "unhide"
-      : "hide";
-
+    currentlyActive
+      ? "hide"
+      : "unhide";
 
   const confirmed =
     window.confirm(
-      `Are you sure you want to ${action} "${icon.name}"?`
+      `Are you sure you want to ${action} this icon?`
     );
-
 
   if (!confirmed) {
     return;
@@ -1716,107 +2166,45 @@ async function toggleIcon(
 
   try {
 
-    const response =
-      await fetch(
-        API.icons.update,
-        {
+    await apiRequest(
+      API.icons.update,
+      {
+        method:
+          "PATCH",
 
-          method:
-            "PATCH",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-          credentials:
-            "include",
-
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json",
-
-            "Content-Type":
-              "application/json"
-
-          },
-
-          body:
-            JSON.stringify({
-
-              id,
-
-              is_active:
-                nextActive
-
-            })
-
-        }
-      );
-
-
-    const data =
-      await readJson(
-        response
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to update icon status."
-        )
-      );
-    }
+        body:
+          JSON.stringify({
+            id,
+            is_active:
+              !currentlyActive
+          })
+      }
+    );
 
 
     await loadIcons();
 
-  } catch (error) {
-
-    console.error(
-      "UAsset toggle icon failed:",
-      error
-    );
-
+  } catch (
+    error
+  ) {
 
     alert(
-      error?.message ||
+      error.message ||
       "Unable to update icon status."
     );
+
   }
+
 }
 
 
 /* =========================================================
-   DELETE ICON
+   ICON DELETE
    ========================================================= */
 
 async function deleteIcon(
@@ -1826,26 +2214,20 @@ async function deleteIcon(
   const icon =
     state.icons.find(
       item =>
-        String(item.id) ===
+        String(
+          item.id
+        ) ===
         String(id)
     );
 
-
-  if (!icon) {
-
-    alert(
-      "Icon not found."
-    );
-
-    return;
-  }
-
+  const label =
+    icon?.name ||
+    id;
 
   const confirmed =
     window.confirm(
-      `Delete icon "${icon.name}"?\n\nThis action cannot be undone.`
+      `Delete "${label}" permanently?\n\nThis action cannot be undone.`
     );
-
 
   if (!confirmed) {
     return;
@@ -1854,368 +2236,266 @@ async function deleteIcon(
 
   try {
 
-    const response =
-      await fetch(
-        `${API.icons.delete}?id=${encodeURIComponent(id)}`,
-        {
-
-          method:
-            "DELETE",
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json"
-
-          }
-
-        }
-      );
-
-
-    const data =
-      await readJson(
-        response
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to delete icon."
-        )
-      );
-    }
-
-
-    if (
-      data.storageCleanup ===
-      false
-    ) {
-
-      alert(
-        `Icon "${icon.name}" was deleted, but the storage file needs cleanup.`
-      );
-
-    } else {
-
-      alert(
-        `Icon "${icon.name}" deleted successfully!`
-      );
-
-    }
+    await apiRequest(
+      `${API.icons.delete}?id=${encodeURIComponent(id)}`,
+      {
+        method:
+          "DELETE"
+      }
+    );
 
 
     await loadIcons();
 
-  } catch (error) {
-
-    console.error(
-      "UAsset delete icon failed:",
-      error
-    );
-
+  } catch (
+    error
+  ) {
 
     alert(
-      error?.message ||
+      error.message ||
       "Unable to delete icon."
     );
+
   }
+
 }
 
 
 /* =========================================================
-   ICON TABLE HEADER
+   COLLECTION NORMALIZATION
    ========================================================= */
 
-function ensureIconActionsHeader() {
-
-  if (!adminIconsBody) {
-    return;
-  }
-
-
-  const table =
-    adminIconsBody.closest(
-      "table"
-    );
-
-
-  if (!table) {
-    return;
-  }
-
-
-  const headRow =
-    table.querySelector(
-      "thead tr"
-    );
-
-
-  if (!headRow) {
-    return;
-  }
-
+function normalizeCollections(
+  data
+) {
 
   if (
-    headRow.querySelector(
-      '[data-uasset-action-header="true"]'
+    Array.isArray(
+      data?.collections
     )
   ) {
 
-    return;
+    return data.collections;
+
   }
 
+  if (
+    Array.isArray(
+      data
+    )
+  ) {
 
-  const th =
-    document.createElement(
-      "th"
-    );
+    return data;
 
+  }
 
-  th.dataset.uassetActionHeader =
-    "true";
+  return [];
 
-  th.textContent =
-    "ACTIONS";
-
-
-  headRow.appendChild(
-    th
-  );
 }
 
 
 /* =========================================================
-   ICON ROW RENDER
+   COLLECTIONS — LOAD
    ========================================================= */
 
-function renderIcons() {
+async function loadCollections() {
 
-  if (!adminIconsBody) {
+  if (
+    state.loadingCollections
+  ) {
     return;
   }
 
+  state.loadingCollections =
+    true;
 
-  ensureIconActionsHeader();
+  renderCollectionsLoading();
 
+  try {
 
-  if (
-    state.icons.length ===
-    0
+    const data =
+      await apiRequest(
+        API.collections.list +
+        "?include_inactive=true"
+      );
+
+    state.collections =
+      normalizeCollections(
+        data
+      );
+
+    totalCollections.textContent =
+      String(
+        state.collections.length
+      );
+
+    renderCollections();
+
+    setStatus(
+      adminCollectionsStatus,
+      "success",
+      "Online"
+    );
+
+  } catch (
+    error
   ) {
 
-    adminIconsBody.innerHTML = `
+    renderCollectionsError(
+      error.message
+    );
 
+    setStatus(
+      adminCollectionsStatus,
+      "danger",
+      "Error"
+    );
+
+  } finally {
+
+    state.loadingCollections =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   COLLECTIONS — RENDER
+   ========================================================= */
+
+function renderCollections() {
+
+  const body =
+    $("adminCollectionsBody");
+
+  if (!body) {
+    return;
+  }
+
+  if (
+    !state.collections.length
+  ) {
+
+    body.innerHTML = `
       <tr>
-
         <td
-          colspan="5"
-          style="
-            text-align:center;
-            padding:28px;
-            color:var(--muted);
-          "
+          colspan="6"
+          class="admin-table-empty"
         >
-          No icons found.
+          No collections found.
         </td>
-
       </tr>
-
     `;
 
     return;
+
   }
 
 
-  adminIconsBody.innerHTML =
-    state.icons
+  body.innerHTML =
+    state.collections
       .map(
-        icon => {
+        collection => {
 
-          const id =
-            escapeHtml(
-              icon.id
-            );
-
-          const name =
-            escapeHtml(
-              icon.name
-            );
-
-          const category =
-            escapeHtml(
-              icon.category
-            );
-
-          const plan =
-            icon.plan ===
-              "pro"
-              ? "pro"
-              : "free";
+          const categories =
+            Array.isArray(
+              collection.categories
+            )
+              ? collection.categories
+                  .map(
+                    category =>
+                      escapeHtml(
+                        category
+                      )
+                  )
+                  .join(", ")
+              : "—";
 
           const active =
-            icon.isActive ===
-            true;
-
-          const statusText =
-            active
-              ? "Active"
-              : "Hidden";
-
+            collection.is_active !==
+            false;
 
           return `
-
-            <tr
-              class="admin-live-icon-row"
-            >
+            <tr>
 
               <td>
-
-                <div
-                  class="admin-live-icon-meta"
-                >
-
-                  <div
-                    class="admin-live-icon-preview"
-                    aria-hidden="true"
-                  >
-
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      width="26"
-                      height="26"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.7"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      style="opacity:.34;"
-                    >
-
-                      <rect
-                        x="5"
-                        y="5"
-                        width="14"
-                        height="14"
-                        rx="3"
-                      />
-
-                      <path
-                        d="M8 12h8"
-                      />
-
-                    </svg>
-
-                  </div>
-
-
-                  <div
-                    class="admin-live-icon-copy"
-                  >
-
-                    <div
-                      class="admin-live-icon-name"
-                    >
-                      ${name}
-                    </div>
-
-                    <div
-                      class="admin-live-icon-id"
-                    >
-                      ${id}
-                    </div>
-
-                  </div>
-
-                </div>
-
+                <strong>
+                  ${escapeHtml(
+                    collection.name ||
+                    "Untitled"
+                  )}
+                </strong>
               </td>
 
-
               <td>
-                ${category}
-              </td>
-
-
-              <td>
-
-                <span
-                  class="admin-badge ${plan}"
-                >
-                  ${plan.toUpperCase()}
+                <span class="admin-icon-id">
+                  ${escapeHtml(
+                    collection.id ||
+                    "—"
+                  )}
                 </span>
-
               </td>
 
+              <td>
+                <span class="admin-muted">
+                  ${categories}
+                </span>
+              </td>
 
               <td>
-
                 <span
-                  class="admin-status-dot"
-                ></span>
-
-                ${statusText}
-
+                  class="admin-badge ${
+                    active
+                      ? "active"
+                      : "inactive"
+                  }"
+                >
+                  ${
+                    active
+                      ? "ACTIVE"
+                      : "HIDDEN"
+                  }
+                </span>
               </td>
 
+              <td>
+                <span class="admin-muted">
+                  ${formatDate(
+                    collection.created_at ||
+                    collection.createdAt
+                  )}
+                </span>
+              </td>
 
               <td>
 
-                <div
-                  class="uasset-icon-actions"
-                >
+                <div class="admin-icon-actions">
 
                   <button
                     type="button"
-                    class="uasset-icon-action"
-                    data-action="edit-icon"
-                    data-id="${id}"
+                    class="admin-icon-action"
+                    data-collection-edit="${
+                      escapeHtml(
+                        collection.id
+                      )
+                    }"
                   >
                     Edit
                   </button>
 
-
                   <button
                     type="button"
-                    class="uasset-icon-action"
-                    data-action="toggle-icon"
-                    data-id="${id}"
+                    class="admin-icon-action"
+                    data-collection-toggle="${
+                      escapeHtml(
+                        collection.id
+                      )
+                    }"
+                    data-collection-active="${
+                      active
+                    }"
                   >
                     ${
                       active
@@ -2224,12 +2504,14 @@ function renderIcons() {
                     }
                   </button>
 
-
                   <button
                     type="button"
-                    class="uasset-icon-action danger"
-                    data-action="delete-icon"
-                    data-id="${id}"
+                    class="admin-icon-action danger"
+                    data-collection-delete="${
+                      escapeHtml(
+                        collection.id
+                      )
+                    }"
                   >
                     Delete
                   </button>
@@ -2239,7 +2521,6 @@ function renderIcons() {
               </td>
 
             </tr>
-
           `;
 
         }
@@ -2247,366 +2528,190 @@ function renderIcons() {
       .join("");
 
 
-  attachIconTableEvents();
-}
+  qsa(
+    "[data-collection-edit]",
+    body
+  ).forEach(
+    button => {
 
+      button.addEventListener(
+        "click",
+        () => {
 
-/* =========================================================
-   ICON TABLE EVENTS
-   ========================================================= */
-
-function attachIconTableEvents() {
-
-  if (!adminIconsBody) {
-    return;
-  }
-
-
-  adminIconsBody
-    .querySelectorAll(
-      "[data-action]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            const action =
-              button.dataset.action;
-
-            const id =
-              button.dataset.id;
-
-
-            if (
-              action ===
-              "edit-icon"
-            ) {
-
-              openEditIcon(id);
-
-              return;
-            }
-
-
-            if (
-              action ===
-              "toggle-icon"
-            ) {
-
-              toggleIcon(id);
-
-              return;
-            }
-
-
-            if (
-              action ===
-              "delete-icon"
-            ) {
-
-              deleteIcon(id);
-
-            }
-
-          }
-        );
-
-      }
-    );
-}
-
-
-/* =========================================================
-   LOAD ICONS
-   ========================================================= */
-
-async function loadIcons() {
-
-  if (
-    state.loadingIcons
-  ) {
-
-    return;
-  }
-
-
-  state.loadingIcons =
-    true;
-
-
-  if (adminIconsBody) {
-
-    adminIconsBody.innerHTML = `
-
-      <tr>
-
-        <td
-          colspan="5"
-          style="
-            text-align:center;
-            padding:28px;
-            color:var(--muted);
-          "
-        >
-          Loading icons...
-        </td>
-
-      </tr>
-
-    `;
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        API.icons.list,
-        {
-
-          method:
-            "GET",
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json"
-
-          }
+          openCollectionModal(
+            button.dataset.collectionEdit
+          );
 
         }
       );
 
+    }
+  );
 
-    const data =
-      await readJson(
-        response
+
+  qsa(
+    "[data-collection-toggle]",
+    body
+  ).forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          toggleCollection(
+            button.dataset.collectionToggle,
+            button.dataset.collectionActive ===
+              "true"
+          );
+
+        }
       );
 
+    }
+  );
 
-    if (
-      response.status ===
-      401
-    ) {
 
-      throw new Error(
-        "Login with Bean ID required."
+  qsa(
+    "[data-collection-delete]",
+    body
+  ).forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          deleteCollection(
+            button.dataset.collectionDelete
+          );
+
+        }
       );
+
     }
+  );
 
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to load admin icon library."
-        )
-      );
-    }
-
-
-    state.icons =
-      Array.isArray(
-        data.icons
-      )
-        ? data.icons
-        : [];
-
-
-    updateIconStats(
-      data.stats || {}
-    );
-
-
-    renderIcons();
-
-
-  } catch (error) {
-
-    console.error(
-      "UAsset load icons failed:",
-      error
-    );
-
-
-    if (adminIconsBody) {
-
-      adminIconsBody.innerHTML = `
-
-        <tr>
-
-          <td
-            colspan="5"
-            style="
-              text-align:center;
-              padding:28px;
-              color:var(--muted);
-            "
-          >
-
-            ${escapeHtml(
-              error?.message ||
-              "Unable to load icons."
-            )}
-
-          </td>
-
-        </tr>
-
-      `;
-    }
-
-
-  } finally {
-
-    state.loadingIcons =
-      false;
-  }
 }
 
 
-/* =========================================================
-   ICON STATS
-   ========================================================= */
+function renderCollectionsLoading() {
 
-function updateIconStats(
-  stats
+  const body =
+    $("adminCollectionsBody");
+
+  if (!body) {
+    return;
+  }
+
+  body.innerHTML = `
+    <tr>
+      <td
+        colspan="6"
+        class="admin-table-empty"
+      >
+        Loading collections...
+      </td>
+    </tr>
+  `;
+
+}
+
+
+function renderCollectionsError(
+  message
 ) {
 
-  if (totalIcons) {
+  const body =
+    $("adminCollectionsBody");
 
-    totalIcons.textContent =
-      Number(
-        stats.totalIcons ??
-        state.icons.length
-      );
+  if (!body) {
+    return;
   }
 
+  body.innerHTML = `
+    <tr>
+      <td
+        colspan="6"
+        class="admin-table-empty"
+      >
+        ${escapeHtml(
+          message ||
+          "Unable to load collections."
+        )}
+      </td>
+    </tr>
+  `;
 
-  if (freeIcons) {
-
-    freeIcons.textContent =
-      Number(
-        stats.freeIcons ??
-        state.icons.filter(
-          icon =>
-            icon.plan ===
-            "free"
-        ).length
-      );
-  }
-
-
-  if (proIcons) {
-
-    proIcons.textContent =
-      Number(
-        stats.proIcons ??
-        state.icons.filter(
-          icon =>
-            icon.plan ===
-            "pro"
-        ).length
-      );
-  }
 }
 
 
 /* =========================================================
-   COLLECTION MODAL CREATION
+   COLLECTION MODAL
    ========================================================= */
 
 function ensureCollectionModal() {
 
-  let modal =
-    $("uassetCollectionModal");
+  if (
+    $("uassetCollectionModal")
+  ) {
 
+    return;
 
-  if (modal) {
-    return modal;
   }
 
 
-  modal =
+  const modal =
     document.createElement(
       "div"
     );
 
-
   modal.id =
     "uassetCollectionModal";
 
-
   modal.className =
-    "admin-modal-backdrop";
+    "admin-modal";
 
+  modal.hidden =
+    true;
 
   modal.setAttribute(
     "aria-hidden",
     "true"
   );
 
-
   modal.innerHTML = `
+    <div
+      class="admin-modal-backdrop"
+      data-collection-close
+    ></div>
 
     <div
-      class="admin-modal"
+      class="admin-modal-card"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="uassetCollectionModalTitle"
     >
 
-      <div
-        class="admin-modal-head"
-      >
+      <div class="admin-modal-head">
 
         <div>
 
-          <p class="eyebrow">
-            UASSET / COLLECTION MANAGER
+          <p class="admin-panel-eyebrow">
+            COLLECTION MANAGER
           </p>
 
           <h2
-            class="admin-panel-title"
+            class="admin-modal-title"
             id="uassetCollectionModalTitle"
           >
             New Collection
           </h2>
 
-          <p
-            class="admin-panel-subtitle"
-            id="uassetCollectionModalSubtitle"
-          >
-            Create a curated collection.
+          <p class="admin-modal-subtitle">
+            Create a curated category collection.
           </p>
 
         </div>
-
 
         <button
           type="button"
@@ -2620,158 +2725,141 @@ function ensureCollectionModal() {
       </div>
 
 
-      <div
-        class="uasset-collection-form"
-      >
+      <div class="admin-modal-body">
 
-        <div
-          class="admin-field"
-        >
+        <div class="admin-form-grid">
 
-          <label
-            class="admin-label"
-            for="uassetCollectionName"
-          >
-            Collection Name
-          </label>
+          <div class="admin-form-group">
 
-          <input
-            class="admin-input"
-            id="uassetCollectionName"
-            type="text"
-            maxlength="120"
-            placeholder="Business Essentials"
-            autocomplete="off"
-          >
+            <label
+              class="admin-label"
+              for="uassetCollectionName"
+            >
+              Name
+            </label>
 
-        </div>
+            <input
+              id="uassetCollectionName"
+              class="admin-input"
+              type="text"
+              maxlength="100"
+              placeholder="Business Essentials"
+            >
+
+          </div>
 
 
-        <div
-          class="admin-field"
-        >
+          <div class="admin-form-group">
 
-          <label
-            class="admin-label"
-            for="uassetCollectionId"
-          >
-            Collection ID
-          </label>
+            <label
+              class="admin-label"
+              for="uassetCollectionId"
+            >
+              ID
+            </label>
 
-          <input
-            class="admin-input"
-            id="uassetCollectionId"
-            type="text"
-            maxlength="60"
-            placeholder="business-essentials"
-            autocomplete="off"
-          >
+            <input
+              id="uassetCollectionId"
+              class="admin-input"
+              type="text"
+              maxlength="60"
+              placeholder="business-essentials"
+            >
 
-        </div>
+          </div>
 
 
-        <div
-          class="admin-field"
-        >
+          <div class="admin-form-group admin-form-full">
 
-          <label
-            class="admin-label"
-            for="uassetCollectionCategories"
-          >
-            Categories
-          </label>
+            <label
+              class="admin-label"
+              for="uassetCollectionCategories"
+            >
+              Categories
+            </label>
 
-          <input
-            class="admin-input"
-            id="uassetCollectionCategories"
-            type="text"
-            maxlength="1000"
-            placeholder="business, office, finance"
-            autocomplete="off"
-          >
+            <input
+              id="uassetCollectionCategories"
+              class="admin-input"
+              type="text"
+              placeholder="business, office, finance"
+            >
 
-          <span
-            class="admin-help"
-          >
-            Separate categories with commas.
-          </span>
-
-        </div>
+          </div>
 
 
-        <div
-          class="admin-field"
-        >
+          <div class="admin-form-group admin-form-full">
 
-          <label
-            class="admin-label"
-            for="uassetCollectionDescription"
-          >
-            Description
-          </label>
+            <label
+              class="admin-label"
+              for="uassetCollectionDescription"
+            >
+              Description
+            </label>
 
-          <textarea
-            class="admin-textarea"
-            id="uassetCollectionDescription"
-            maxlength="1000"
-            style="
-              min-height:110px;
-              resize:vertical;
-            "
-            placeholder="Describe this collection..."
-          ></textarea>
+            <textarea
+              id="uassetCollectionDescription"
+              class="admin-textarea"
+              rows="4"
+              maxlength="500"
+              placeholder="Professional business icon collection."
+            ></textarea>
 
-        </div>
+          </div>
 
 
-        <label
-          class="uasset-check-row"
-        >
+          <div class="admin-form-group">
 
-          <input
-            type="checkbox"
-            id="uassetCollectionActive"
-            checked
-          >
+            <label
+              class="admin-label"
+              for="uassetCollectionActive"
+            >
+              Status
+            </label>
 
-          <span>
-            Collection is active
-          </span>
+            <select
+              id="uassetCollectionActive"
+              class="admin-select"
+            >
 
-        </label>
+              <option value="true">
+                Active
+              </option>
 
+              <option value="false">
+                Hidden
+              </option>
 
-        <div
-          style="
-            display:flex;
-            justify-content:flex-end;
-            gap:9px;
-          "
-        >
+            </select>
 
-          <button
-            type="button"
-            class="admin-button"
-            id="uassetCollectionCancel"
-          >
-            Cancel
-          </button>
-
-
-          <button
-            type="button"
-            class="admin-button primary"
-            id="uassetCollectionSave"
-          >
-            Create Collection
-          </button>
+          </div>
 
         </div>
 
       </div>
 
-    </div>
 
+      <div class="admin-modal-footer">
+
+        <button
+          type="button"
+          class="admin-button"
+          id="uassetCollectionCancel"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="admin-button primary"
+          id="uassetCollectionSave"
+        >
+          Save Collection
+        </button>
+
+      </div>
+
+    </div>
   `;
 
 
@@ -2781,1263 +2869,428 @@ function ensureCollectionModal() {
 
 
   $("uassetCollectionClose")
-    ?.addEventListener(
+    .addEventListener(
       "click",
       closeCollectionModal
     );
-
 
   $("uassetCollectionCancel")
-    ?.addEventListener(
+    .addEventListener(
       "click",
       closeCollectionModal
     );
 
-
   $("uassetCollectionSave")
-    ?.addEventListener(
+    .addEventListener(
       "click",
       saveCollection
     );
 
-
-  modal.addEventListener(
+  qs(
+    "[data-collection-close]",
+    modal
+  ).addEventListener(
     "click",
-    event => {
-
-      if (
-        event.target ===
-        modal
-      ) {
-
-        closeCollectionModal();
-      }
-    }
+    closeCollectionModal
   );
 
-
-  return modal;
 }
 
 
 /* =========================================================
-   OPEN NEW COLLECTION
+   COLLECTION MODAL OPEN
    ========================================================= */
 
-function openCollectionModal() {
+function openCollectionModal(
+  id = null
+) {
+
+  ensureCollectionModal();
 
   const modal =
-    ensureCollectionModal();
+    $("uassetCollectionModal");
+
+  const title =
+    $("uassetCollectionModalTitle");
+
+  const name =
+    $("uassetCollectionName");
+
+  const collectionId =
+    $("uassetCollectionId");
+
+  const categories =
+    $("uassetCollectionCategories");
+
+  const description =
+    $("uassetCollectionDescription");
+
+  const active =
+    $("uassetCollectionActive");
 
 
   state.editingCollectionId =
     null;
 
 
-  $("uassetCollectionModalTitle").textContent =
-    "New Collection";
+  if (id) {
 
+    const collection =
+      state.collections.find(
+        item =>
+          String(
+            item.id
+          ) ===
+          String(id)
+      );
 
-  $("uassetCollectionModalSubtitle").textContent =
-    "Create a curated collection.";
+    if (!collection) {
 
+      alert(
+        "Collection not found."
+      );
 
-  $("uassetCollectionName").value =
-    "";
+      return;
 
-  $("uassetCollectionId").value =
-    "";
+    }
 
-  $("uassetCollectionCategories").value =
-    "";
+    state.editingCollectionId =
+      collection.id;
 
-  $("uassetCollectionDescription").value =
-    "";
+    title.textContent =
+      "Edit Collection";
 
-  $("uassetCollectionActive").checked =
-    true;
+    name.value =
+      collection.name ||
+      "";
 
+    collectionId.value =
+      collection.id ||
+      "";
 
-  $("uassetCollectionId").disabled =
-    false;
+    categories.value =
+      Array.isArray(
+        collection.categories
+      )
+        ? collection.categories.join(
+            ", "
+          )
+        : "";
 
+    description.value =
+      collection.description ||
+      "";
 
-  $("uassetCollectionSave").textContent =
-    "Create Collection";
+    active.value =
+      collection.is_active ===
+        false
+        ? "false"
+        : "true";
 
+    collectionId.disabled =
+      true;
 
-  modal.classList.add(
-    "open"
-  );
+  } else {
 
+    title.textContent =
+      "New Collection";
 
-  modal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
+    name.value =
+      "";
 
+    collectionId.value =
+      "";
 
-  document.body.classList.add(
-    "uasset-modal-open"
-  );
+    categories.value =
+      "";
 
+    description.value =
+      "";
 
-  setTimeout(
-    () => {
-      $("uassetCollectionName")?.focus();
-    },
-    40
-  );
-}
+    active.value =
+      "true";
 
+    collectionId.disabled =
+      false;
 
-/* =========================================================
-   OPEN EDIT COLLECTION
-   ========================================================= */
-
-function openEditCollection(
-  id
-) {
-
-  const collection =
-    state.collections.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-
-  if (!collection) {
-
-    alert(
-      "Collection not found."
-    );
-
-    return;
   }
 
 
-  const modal =
-    ensureCollectionModal();
-
-
-  state.editingCollectionId =
-    collection.id;
-
-
-  $("uassetCollectionModalTitle").textContent =
-    "Edit Collection";
-
-
-  $("uassetCollectionModalSubtitle").textContent =
-    "Update collection details and visibility.";
-
-
-  $("uassetCollectionName").value =
-    collection.name ||
-    "";
-
-
-  $("uassetCollectionId").value =
-    collection.id ||
-    "";
-
-
-  $("uassetCollectionId").disabled =
-    true;
-
-
-  $("uassetCollectionCategories").value =
-    Array.isArray(
-      collection.categories
-    )
-      ? collection.categories.join(", ")
-      : "";
-
-
-  $("uassetCollectionDescription").value =
-    collection.description ||
-    "";
-
-
-  $("uassetCollectionActive").checked =
-    collection.is_active ===
-    true;
-
-
-  $("uassetCollectionSave").textContent =
-    "Save Changes";
-
-
-  modal.classList.add(
-    "open"
-  );
-
+  modal.hidden =
+    false;
 
   modal.setAttribute(
     "aria-hidden",
     "false"
   );
 
-
   document.body.classList.add(
     "uasset-modal-open"
   );
 
-
   setTimeout(
     () => {
-      $("uassetCollectionName")?.focus();
+      name.focus();
     },
-    40
+    30
   );
+
 }
 
-
-/* =========================================================
-   CLOSE COLLECTION MODAL
-   ========================================================= */
 
 function closeCollectionModal() {
 
   const modal =
     $("uassetCollectionModal");
 
-
   if (!modal) {
     return;
   }
 
-
-  modal.classList.remove(
-    "open"
-  );
-
+  modal.hidden =
+    true;
 
   modal.setAttribute(
     "aria-hidden",
     "true"
   );
 
-
   document.body.classList.remove(
     "uasset-modal-open"
   );
 
-
-  state.editingCollectionId =
-    null;
 }
 
 
 /* =========================================================
-   COLLECTION UI
-   ========================================================= */
-
-function ensureCollectionsManagerUI() {
-
-  const section =
-    $("collections");
-
-
-  if (!section) {
-    return null;
-  }
-
-
-  let manager =
-    $("uassetCollectionsManager");
-
-
-  if (manager) {
-    return manager;
-  }
-
-
-  const body =
-    section.querySelector(
-      ".admin-panel-body"
-    );
-
-
-  if (!body) {
-    return null;
-  }
-
-
-  manager =
-    document.createElement(
-      "div"
-    );
-
-
-  manager.id =
-    "uassetCollectionsManager";
-
-
-  manager.className =
-    "uasset-collection-manager";
-
-
-  body.innerHTML =
-    "";
-
-
-  body.appendChild(
-    manager
-  );
-
-
-  return manager;
-}
-
-
-/* =========================================================
-   RENDER COLLECTIONS
-   ========================================================= */
-
-function renderCollections() {
-
-  const manager =
-    ensureCollectionsManagerUI();
-
-
-  if (!manager) {
-    return;
-  }
-
-
-  if (
-    state.collections.length ===
-    0
-  ) {
-
-    manager.innerHTML = `
-
-      <div
-        class="uasset-collection-toolbar"
-      >
-
-        <div
-          class="uasset-collection-toolbar-copy"
-        >
-          No collections found.
-        </div>
-
-
-        <button
-          type="button"
-          class="admin-button"
-          id="uassetInlineNewCollection"
-        >
-          + New Collection
-        </button>
-
-      </div>
-
-    `;
-
-
-    $("uassetInlineNewCollection")
-      ?.addEventListener(
-        "click",
-        openCollectionModal
-      );
-
-
-    return;
-  }
-
-
-  manager.innerHTML = `
-
-    <div
-      class="uasset-collection-toolbar"
-    >
-
-      <div
-        class="uasset-collection-toolbar-copy"
-      >
-        ${state.collections.length}
-        collection(s) loaded.
-      </div>
-
-
-      <button
-        type="button"
-        class="admin-button"
-        id="uassetInlineNewCollection"
-      >
-        + New Collection
-      </button>
-
-    </div>
-
-
-    <div
-      class="uasset-collection-table-wrap"
-    >
-
-      <table
-        class="uasset-collection-table"
-      >
-
-        <thead>
-
-          <tr>
-
-            <th>
-              COLLECTION
-            </th>
-
-            <th>
-              CATEGORIES
-            </th>
-
-            <th>
-              STATUS
-            </th>
-
-            <th>
-              CREATED
-            </th>
-
-            <th>
-              ACTIONS
-            </th>
-
-          </tr>
-
-        </thead>
-
-
-        <tbody>
-
-          ${
-            state.collections
-              .map(
-                collection => {
-
-                  const id =
-                    escapeHtml(
-                      collection.id
-                    );
-
-                  const name =
-                    escapeHtml(
-                      collection.name
-                    );
-
-                  const categories =
-                    Array.isArray(
-                      collection.categories
-                    )
-                      ? collection.categories
-                      : [];
-
-                  const categoriesHtml =
-                    categories
-                      .map(
-                        category =>
-                          `
-                            <span
-                              class="uasset-collection-chip"
-                            >
-                              ${escapeHtml(
-                                category
-                              )}
-                            </span>
-                          `
-                      )
-                      .join("");
-
-
-                  const active =
-                    collection.is_active ===
-                    true;
-
-
-                  const created =
-                    collection.created_at
-                      ? new Date(
-                          collection.created_at
-                        ).toLocaleDateString()
-                      : "—";
-
-
-                  return `
-
-                    <tr>
-
-                      <td>
-
-                        <div
-                          class="uasset-collection-name"
-                        >
-                          ${name}
-                        </div>
-
-
-                        <div
-                          class="uasset-collection-id"
-                        >
-                          ${id}
-                        </div>
-
-                      </td>
-
-
-                      <td>
-
-                        <div
-                          class="uasset-collection-categories"
-                        >
-
-                          ${
-                            categoriesHtml ||
-                            `
-                              <span
-                                class="uasset-collection-chip"
-                              >
-                                No categories
-                              </span>
-                            `
-                          }
-
-                        </div>
-
-                      </td>
-
-
-                      <td>
-
-                        <span
-                          class="admin-badge ${
-                            active
-                              ? "free"
-                              : ""
-                          }"
-                        >
-                          ${
-                            active
-                              ? "ACTIVE"
-                              : "HIDDEN"
-                          }
-                        </span>
-
-                      </td>
-
-
-                      <td>
-                        ${escapeHtml(
-                          created
-                        )}
-                      </td>
-
-
-                      <td>
-
-                        <div
-                          class="uasset-collection-actions"
-                        >
-
-                          <button
-                            type="button"
-                            class="uasset-small-button"
-                            data-collection-action="edit"
-                            data-collection-id="${id}"
-                          >
-                            Edit
-                          </button>
-
-
-                          <button
-                            type="button"
-                            class="uasset-small-button"
-                            data-collection-action="toggle"
-                            data-collection-id="${id}"
-                          >
-                            ${
-                              active
-                                ? "Hide"
-                                : "Unhide"
-                            }
-                          </button>
-
-
-                          <button
-                            type="button"
-                            class="uasset-small-button danger"
-                            data-collection-action="delete"
-                            data-collection-id="${id}"
-                          >
-                            Delete
-                          </button>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  `;
-                }
-              )
-              .join("")
-          }
-
-        </tbody>
-
-      </table>
-
-    </div>
-
-  `;
-
-
-  $("uassetInlineNewCollection")
-    ?.addEventListener(
-      "click",
-      openCollectionModal
-    );
-
-
-  manager
-    .querySelectorAll(
-      "[data-collection-action]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            const action =
-              button.dataset.collectionAction;
-
-            const id =
-              button.dataset.collectionId;
-
-
-            if (
-              action ===
-              "edit"
-            ) {
-
-              openEditCollection(
-                id
-              );
-
-              return;
-            }
-
-
-            if (
-              action ===
-              "toggle"
-            ) {
-
-              toggleCollection(
-                id
-              );
-
-              return;
-            }
-
-
-            if (
-              action ===
-              "delete"
-            ) {
-
-              deleteCollection(
-                id
-              );
-
-            }
-
-          }
-        );
-
-      }
-    );
-}
-
-
-/* =========================================================
-   LOAD COLLECTIONS
-   ========================================================= */
-
-async function loadCollections() {
-
-  if (
-    state.loadingCollections
-  ) {
-
-    return;
-  }
-
-
-  state.loadingCollections =
-    true;
-
-
-  const manager =
-    ensureCollectionsManagerUI();
-
-
-  if (manager) {
-
-    manager.innerHTML = `
-
-      <div
-        class="uasset-collection-empty"
-      >
-        Loading collections...
-      </div>
-
-    `;
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        `${API.collections.list}?include_inactive=true`,
-        {
-
-          method:
-            "GET",
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json"
-
-          }
-
-        }
-      );
-
-
-    const data =
-      await readJson(
-        response
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to load collections."
-        )
-      );
-    }
-
-
-    state.collections =
-      Array.isArray(
-        data.collections
-      )
-        ? data.collections
-        : [];
-
-
-    if (totalCollections) {
-
-      totalCollections.textContent =
-        state.collections.length;
-    }
-
-
-    renderCollections();
-
-
-  } catch (error) {
-
-    console.error(
-      "UAsset load collections failed:",
-      error
-    );
-
-
-    const errorManager =
-      ensureCollectionsManagerUI();
-
-
-    if (errorManager) {
-
-      errorManager.innerHTML = `
-
-        <div
-          class="uasset-collection-empty"
-        >
-
-          ${escapeHtml(
-            error?.message ||
-            "Unable to load collections."
-          )}
-
-        </div>
-
-      `;
-    }
-
-
-  } finally {
-
-    state.loadingCollections =
-      false;
-  }
-}
-
-
-/* =========================================================
-   SAVE COLLECTION
+   COLLECTION SAVE
    ========================================================= */
 
 async function saveCollection() {
 
   const name =
-    $("uassetCollectionName")
-      ?.value
-      .trim() ||
-    "";
-
+    cleanText(
+      $("uassetCollectionName").value
+    );
 
   const id =
     normalizeId(
-      $("uassetCollectionId")
-        ?.value
+      $("uassetCollectionId").value ||
+      name
     );
-
 
   const categories =
     parseCommaList(
-      $("uassetCollectionCategories")
-        ?.value
+      $("uassetCollectionCategories").value
     );
 
-
   const description =
-    $("uassetCollectionDescription")
-      ?.value
-      .trim() ||
-    "";
-
+    cleanText(
+      $("uassetCollectionDescription").value
+    );
 
   const isActive =
-    $("uassetCollectionActive")
-      ?.checked ===
-    true;
+    $("uassetCollectionActive").value !==
+    "false";
+
+  const editingId =
+    state.editingCollectionId;
 
 
   if (!name) {
 
     alert(
-      "Please enter a collection name."
+      "Collection name is required."
     );
 
-    $("uassetCollectionName")
-      ?.focus();
+    return;
+
+  }
+
+
+  if (!id) {
+
+    alert(
+      "Collection ID is required."
+    );
 
     return;
+
   }
 
 
   if (
-    !id ||
-    !/^[a-z0-9-]+$/.test(
-      id
-    )
+    !categories.length
   ) {
 
     alert(
-      "Collection ID must contain only lowercase letters, numbers and hyphens."
+      "At least one category is required."
     );
 
-    $("uassetCollectionId")
-      ?.focus();
-
     return;
+
   }
-
-
-  if (
-    categories.length ===
-    0
-  ) {
-
-    alert(
-      "Please add at least one category."
-    );
-
-    $("uassetCollectionCategories")
-      ?.focus();
-
-    return;
-  }
-
-
-  const editing =
-    !!state.editingCollectionId;
-
-
-  const endpoint =
-    editing
-      ? API.collections.update
-      : API.collections.create;
-
-
-  const method =
-    editing
-      ? "PATCH"
-      : "POST";
-
-
-  const payload = {
-
-    id,
-
-    name,
-
-    description,
-
-    categories,
-
-    is_active:
-      isActive
-
-  };
 
 
   const button =
     $("uassetCollectionSave");
 
 
-  const oldText =
-    button?.textContent ||
-    "Save";
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.textContent =
-      editing
-        ? "Saving..."
-        : "Creating...";
-  }
+  setButtonLoading(
+    button,
+    true,
+    "Saving..."
+  );
 
 
   try {
 
-    const response =
-      await fetch(
-        endpoint,
+    if (editingId) {
+
+      await apiRequest(
+        API.collections.update,
         {
-
-          method,
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store",
+          method:
+            "PATCH",
 
           headers: {
-
-            Accept:
-              "application/json",
-
             "Content-Type":
               "application/json"
-
           },
 
           body:
-            JSON.stringify(
-              payload
-            )
+            JSON.stringify({
+              id:
+                editingId,
 
+              name,
+
+              description,
+
+              categories,
+
+              is_active:
+                isActive
+            })
         }
       );
 
+    } else {
 
-    const data =
-      await readJson(
-        response
+      await apiRequest(
+        API.collections.create,
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              id,
+
+              name,
+
+              description,
+
+              categories,
+
+              is_active:
+                isActive
+            })
+        }
       );
 
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          editing
-            ? "Unable to update collection."
-            : "Unable to create collection."
-        )
-      );
     }
 
 
     alert(
-      editing
-        ? `Collection "${name}" updated successfully!`
-        : `Collection "${name}" created successfully!`
+      editingId
+        ? "Collection updated successfully."
+        : "Collection created successfully."
     );
-
 
     closeCollectionModal();
 
     await loadCollections();
 
-
-  } catch (error) {
-
-    console.error(
-      "UAsset save collection failed:",
-      error
-    );
-
+  } catch (
+    error
+  ) {
 
     alert(
-      error?.message ||
+      error.message ||
       "Unable to save collection."
     );
 
   } finally {
 
-    if (button) {
+    setButtonLoading(
+      button,
+      false,
+      editingId
+        ? "Update Collection"
+        : "Save Collection"
+    );
 
-      button.disabled =
-        false;
-
-      button.textContent =
-        oldText;
-    }
   }
+
 }
 
 
 /* =========================================================
-   TOGGLE COLLECTION
+   COLLECTION TOGGLE
    ========================================================= */
 
 async function toggleCollection(
-  id
+  id,
+  active
 ) {
-
-  const collection =
-    state.collections.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-
-  if (!collection) {
-
-    alert(
-      "Collection not found."
-    );
-
-    return;
-  }
-
-
-  const nextActive =
-    collection.is_active !==
-    true;
-
-
-  const action =
-    nextActive
-      ? "unhide"
-      : "hide";
-
-
-  const confirmed =
-    window.confirm(
-      `Are you sure you want to ${action} "${collection.name}"?`
-    );
-
-
-  if (!confirmed) {
-    return;
-  }
-
 
   try {
 
-    const response =
-      await fetch(
-        API.collections.update,
-        {
+    await apiRequest(
+      API.collections.update,
+      {
+        method:
+          "PATCH",
 
-          method:
-            "PATCH",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-          credentials:
-            "include",
+        body:
+          JSON.stringify({
+            id,
 
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json",
-
-            "Content-Type":
-              "application/json"
-
-          },
-
-          body:
-            JSON.stringify({
-
-              id,
-
-              is_active:
-                nextActive
-
-            })
-
-        }
-      );
-
-
-    const data =
-      await readJson(
-        response
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to update collection status."
-        )
-      );
-    }
-
+            is_active:
+              !active
+          })
+      }
+    );
 
     await loadCollections();
 
-
-  } catch (error) {
-
-    console.error(
-      "UAsset toggle collection failed:",
-      error
-    );
-
+  } catch (
+    error
+  ) {
 
     alert(
-      error?.message ||
-      "Unable to update collection status."
+      error.message ||
+      "Unable to update collection."
     );
+
   }
+
 }
 
 
 /* =========================================================
-   DELETE COLLECTION
+   COLLECTION DELETE
    ========================================================= */
 
 async function deleteCollection(
@@ -4047,26 +3300,20 @@ async function deleteCollection(
   const collection =
     state.collections.find(
       item =>
-        String(item.id) ===
+        String(
+          item.id
+        ) ===
         String(id)
     );
 
-
-  if (!collection) {
-
-    alert(
-      "Collection not found."
-    );
-
-    return;
-  }
-
+  const label =
+    collection?.name ||
+    id;
 
   const confirmed =
     window.confirm(
-      `Delete collection "${collection.name}"?\n\nThis action cannot be undone.`
+      `Delete "${label}" permanently?`
     );
-
 
   if (!confirmed) {
     return;
@@ -4075,277 +3322,379 @@ async function deleteCollection(
 
   try {
 
-    const response =
-      await fetch(
-        `${API.collections.delete}?id=${encodeURIComponent(
-          id
-        )}`,
-        {
-
-          method:
-            "DELETE",
-
-          credentials:
-            "include",
-
-          cache:
-            "no-store",
-
-          headers: {
-
-            Accept:
-              "application/json"
-
-          }
-
-        }
-      );
-
-
-    const data =
-      await readJson(
-        response
-      );
-
-
-    if (
-      response.status ===
-      401
-    ) {
-
-      throw new Error(
-        "Login with Bean ID required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      403
-    ) {
-
-      throw new Error(
-        "UAsset admin access required."
-      );
-    }
-
-
-    if (
-      response.status ===
-      409
-    ) {
-
-      throw new Error(
-        data.error ||
-        "Collection cannot be deleted because it is still in use."
-      );
-    }
-
-
-    if (
-      !response.ok ||
-      data.success !==
-        true
-    ) {
-
-      throw new Error(
-        apiErrorMessage(
-          data,
-          "Unable to delete collection."
-        )
-      );
-    }
-
-
-    alert(
-      `Collection "${collection.name}" deleted successfully!`
+    await apiRequest(
+      `${API.collections.delete}?id=${encodeURIComponent(id)}`,
+      {
+        method:
+          "DELETE"
+      }
     );
-
 
     await loadCollections();
 
-
-  } catch (error) {
-
-    console.error(
-      "UAsset delete collection failed:",
-      error
-    );
-
+  } catch (
+    error
+  ) {
 
     alert(
-      error?.message ||
+      error.message ||
       "Unable to delete collection."
     );
+
   }
+
 }
 
 
 /* =========================================================
-   BUTTON EVENTS
+   CATEGORY NORMALIZATION
    ========================================================= */
 
-if (
-  newIconButton
+function normalizeCategories(
+  data
 ) {
 
-  newIconButton.addEventListener(
-    "click",
-    openNewIcon
-  );
-}
+  if (
+    Array.isArray(
+      data?.categories
+    )
+  ) {
 
+    return data.categories;
 
-if (
-  quickNewIcon
-) {
+  }
 
-  quickNewIcon.addEventListener(
-    "click",
-    openNewIcon
-  );
-}
+  if (
+    Array.isArray(
+      data
+    )
+  ) {
 
+    return data;
 
-if (
-  closeNewIcon
-) {
+  }
 
-  closeNewIcon.addEventListener(
-    "click",
-    closeIconModal
-  );
-}
+  return [];
 
-
-if (
-  cancelNewIcon
-) {
-
-  cancelNewIcon.addEventListener(
-    "click",
-    closeIconModal
-  );
-}
-
-
-if (
-  saveNewIcon
-) {
-
-  saveNewIcon.addEventListener(
-    "click",
-    saveIcon
-  );
-}
-
-
-if (
-  newCollectionButton
-) {
-
-  newCollectionButton.addEventListener(
-    "click",
-    openCollectionModal
-  );
-}
-
-
-if (
-  manageIconsButton
-) {
-
-  manageIconsButton.addEventListener(
-    "click",
-    () => {
-
-      scrollToSection(
-        "icons"
-      );
-
-      loadIcons();
-
-    }
-  );
-}
-
-
-if (
-  quickUpload
-) {
-
-  quickUpload.addEventListener(
-    "click",
-    () => {
-
-      scrollToSection(
-        "uploads"
-      );
-
-    }
-  );
-}
-
-
-if (
-  quickCollection
-) {
-
-  quickCollection.addEventListener(
-    "click",
-    () => {
-
-      scrollToSection(
-        "collections"
-      );
-
-      loadCollections();
-
-    }
-  );
-}
-
-
-if (
-  quickCategory
-) {
-
-  quickCategory.addEventListener(
-    "click",
-    () => {
-
-      scrollToSection(
-        "categories"
-      );
-
-    }
-  );
 }
 
 
 /* =========================================================
-   PLAN BUTTONS
+   CATEGORIES — LOAD
    ========================================================= */
 
-document
-  .querySelectorAll(
-    "[data-plan]"
-  )
-  .forEach(
+async function loadCategories() {
+
+  if (
+    state.loadingCategories
+  ) {
+    return;
+  }
+
+  state.loadingCategories =
+    true;
+
+  renderCategoriesLoading();
+
+  try {
+
+    const data =
+      await apiRequest(
+        API.categories.list +
+        "?include_inactive=true"
+      );
+
+    state.categories =
+      normalizeCategories(
+        data
+      );
+
+    renderCategories();
+
+    setStatus(
+      adminCategoriesStatus,
+      "success",
+      "Online"
+    );
+
+  } catch (
+    error
+  ) {
+
+    renderCategoriesError(
+      error.message
+    );
+
+    setStatus(
+      adminCategoriesStatus,
+      "danger",
+      "Error"
+    );
+
+  } finally {
+
+    state.loadingCategories =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   CATEGORY FILTER
+   ========================================================= */
+
+function getFilteredCategories() {
+
+  const search =
+    cleanText(
+      categorySearch?.value
+    )
+      .toLowerCase();
+
+  const status =
+    categoryStatusFilter?.value ||
+    "active";
+
+
+  return state.categories.filter(
+    category => {
+
+      const name =
+        cleanText(
+          category.name
+        ).toLowerCase();
+
+      const id =
+        cleanText(
+          category.id
+        ).toLowerCase();
+
+      const description =
+        cleanText(
+          category.description
+        ).toLowerCase();
+
+      const matchesSearch =
+        !search ||
+        name.includes(
+          search
+        ) ||
+        id.includes(
+          search
+        ) ||
+        description.includes(
+          search
+        );
+
+      const active =
+        category.is_active !==
+        false;
+
+      const matchesStatus =
+        status ===
+          "all"
+          ? true
+          : status ===
+              "active"
+            ? active
+            : !active;
+
+      return (
+        matchesSearch &&
+        matchesStatus
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   CATEGORIES — RENDER
+   ========================================================= */
+
+function renderCategories() {
+
+  if (!adminCategoriesBody) {
+    return;
+  }
+
+  const categories =
+    getFilteredCategories();
+
+  if (categoryResultsCount) {
+
+    categoryResultsCount.textContent =
+      `${categories.length} ${
+        categories.length === 1
+          ? "category"
+          : "categories"
+      }`;
+
+  }
+
+
+  if (
+    !categories.length
+  ) {
+
+    adminCategoriesBody.innerHTML = `
+      <tr>
+        <td
+          colspan="6"
+          class="admin-table-empty"
+        >
+          No categories found.
+        </td>
+      </tr>
+    `;
+
+    return;
+
+  }
+
+
+  adminCategoriesBody.innerHTML =
+    categories
+      .map(
+        category => {
+
+          const active =
+            category.is_active !==
+            false;
+
+          return `
+            <tr>
+
+              <td>
+                <strong>
+                  ${escapeHtml(
+                    category.name ||
+                    "Untitled"
+                  )}
+                </strong>
+              </td>
+
+              <td>
+                <span class="admin-icon-id">
+                  ${escapeHtml(
+                    category.id ||
+                    "—"
+                  )}
+                </span>
+              </td>
+
+              <td>
+                <span class="admin-muted">
+                  ${escapeHtml(
+                    category.description ||
+                    "—"
+                  )}
+                </span>
+              </td>
+
+              <td>
+                <span class="admin-muted">
+                  ${escapeHtml(
+                    category.sort_order ??
+                    0
+                  )}
+                </span>
+              </td>
+
+              <td>
+
+                <span
+                  class="admin-badge ${
+                    active
+                      ? "active"
+                      : "inactive"
+                  }"
+                >
+                  ${
+                    active
+                      ? "ACTIVE"
+                      : "HIDDEN"
+                  }
+                </span>
+
+              </td>
+
+              <td>
+
+                <div class="admin-icon-actions">
+
+                  <button
+                    type="button"
+                    class="admin-icon-action"
+                    data-category-edit="${
+                      escapeHtml(
+                        category.id
+                      )
+                    }"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    class="admin-icon-action"
+                    data-category-toggle="${
+                      escapeHtml(
+                        category.id
+                      )
+                    }"
+                    data-category-active="${
+                      active
+                    }"
+                  >
+                    ${
+                      active
+                        ? "Hide"
+                        : "Unhide"
+                    }
+                  </button>
+
+                  <button
+                    type="button"
+                    class="admin-icon-action danger"
+                    data-category-delete="${
+                      escapeHtml(
+                        category.id
+                      )
+                    }"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </td>
+
+            </tr>
+          `;
+
+        }
+      )
+      .join("");
+
+
+  qsa(
+    "[data-category-edit]",
+    adminCategoriesBody
+  ).forEach(
     button => {
 
       button.addEventListener(
         "click",
         () => {
 
-          state.selectedPlan =
-            button.dataset.plan ===
-            "pro"
-              ? "pro"
-              : "free";
-
-
-          updatePlanUI();
+          openCategoryModal(
+            button.dataset.categoryEdit
+          );
 
         }
       );
@@ -4354,52 +3703,1177 @@ document
   );
 
 
-/* =========================================================
-   ICON FORM EVENTS
-   ========================================================= */
+  qsa(
+    "[data-category-toggle]",
+    adminCategoriesBody
+  ).forEach(
+    button => {
 
-if (
-  iconName
-) {
+      button.addEventListener(
+        "click",
+        () => {
 
-  iconName.addEventListener(
-    "input",
-    () => {
-
-      if (
-        !state.editingIconId &&
-        iconId
-      ) {
-
-        iconId.value =
-          normalizeId(
-            iconName.value
+          toggleCategory(
+            button.dataset.categoryToggle,
+            button.dataset.categoryActive ===
+              "true"
           );
-      }
 
-
-      updateIconSummary();
+        }
+      );
 
     }
   );
+
+
+  qsa(
+    "[data-category-delete]",
+    adminCategoriesBody
+  ).forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          deleteCategory(
+            button.dataset.categoryDelete
+          );
+
+        }
+      );
+
+    }
+  );
+
 }
 
 
-if (
-  iconId
+function renderCategoriesLoading() {
+
+  if (!adminCategoriesBody) {
+    return;
+  }
+
+  adminCategoriesBody.innerHTML = `
+    <tr>
+      <td
+        colspan="6"
+        class="admin-table-empty"
+      >
+        Loading categories...
+      </td>
+    </tr>
+  `;
+
+}
+
+
+function renderCategoriesError(
+  message
 ) {
 
-  iconId.addEventListener(
-    "input",
-    updateIconSummary
-  );
+  if (!adminCategoriesBody) {
+    return;
+  }
+
+  adminCategoriesBody.innerHTML = `
+    <tr>
+      <td
+        colspan="6"
+        class="admin-table-empty"
+      >
+        ${escapeHtml(
+          message ||
+          "Unable to load categories."
+        )}
+      </td>
+    </tr>
+  `;
+
 }
+
+
+/* =========================================================
+   CATEGORY MODAL
+   ========================================================= */
+
+function ensureCategoryModal() {
+
+  if (
+    $("uassetCategoryModal")
+  ) {
+
+    return;
+
+  }
+
+
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+  modal.id =
+    "uassetCategoryModal";
+
+  modal.className =
+    "admin-modal";
+
+  modal.hidden =
+    true;
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  modal.innerHTML = `
+    <div
+      class="admin-modal-backdrop"
+      data-category-close
+    ></div>
+
+    <div
+      class="admin-modal-card"
+      role="dialog"
+      aria-modal="true"
+    >
+
+      <div class="admin-modal-head">
+
+        <div>
+
+          <p class="admin-panel-eyebrow">
+            CATEGORY MANAGER
+          </p>
+
+          <h2
+            class="admin-modal-title"
+            id="uassetCategoryModalTitle"
+          >
+            New Category
+          </h2>
+
+          <p class="admin-modal-subtitle">
+            Manage a UAsset icon category.
+          </p>
+
+        </div>
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          id="uassetCategoryClose"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="admin-modal-body">
+
+        <div class="admin-form-grid">
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="uassetCategoryName"
+            >
+              Name
+            </label>
+
+            <input
+              id="uassetCategoryName"
+              class="admin-input"
+              type="text"
+              maxlength="80"
+              placeholder="Business"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="uassetCategoryId"
+            >
+              ID
+            </label>
+
+            <input
+              id="uassetCategoryId"
+              class="admin-input"
+              type="text"
+              maxlength="60"
+              placeholder="business"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="uassetCategoryOrder"
+            >
+              Sort Order
+            </label>
+
+            <input
+              id="uassetCategoryOrder"
+              class="admin-input"
+              type="number"
+              value="0"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="uassetCategoryActive"
+            >
+              Status
+            </label>
+
+            <select
+              id="uassetCategoryActive"
+              class="admin-select"
+            >
+
+              <option value="true">
+                Active
+              </option>
+
+              <option value="false">
+                Hidden
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="admin-form-group admin-form-full">
+
+            <label
+              class="admin-label"
+              for="uassetCategoryDescription"
+            >
+              Description
+            </label>
+
+            <textarea
+              id="uassetCategoryDescription"
+              class="admin-textarea"
+              rows="4"
+              maxlength="500"
+              placeholder="Describe this category."
+            ></textarea>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="admin-modal-footer">
+
+        <button
+          type="button"
+          class="admin-button"
+          id="uassetCategoryCancel"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="admin-button primary"
+          id="uassetCategorySave"
+        >
+          Save Category
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+
+  document.body.appendChild(
+    modal
+  );
+
+
+  $("uassetCategoryClose")
+    .addEventListener(
+      "click",
+      closeCategoryModal
+    );
+
+  $("uassetCategoryCancel")
+    .addEventListener(
+      "click",
+      closeCategoryModal
+    );
+
+  $("uassetCategorySave")
+    .addEventListener(
+      "click",
+      saveCategory
+    );
+
+  qs(
+    "[data-category-close]",
+    modal
+  ).addEventListener(
+    "click",
+    closeCategoryModal
+  );
+
+}
+
+
+/* =========================================================
+   CATEGORY MODAL OPEN
+   ========================================================= */
+
+function openCategoryModal(
+  id = null
+) {
+
+  ensureCategoryModal();
+
+  const modal =
+    $("uassetCategoryModal");
+
+  const title =
+    $("uassetCategoryModalTitle");
+
+  const name =
+    $("uassetCategoryName");
+
+  const categoryId =
+    $("uassetCategoryId");
+
+  const description =
+    $("uassetCategoryDescription");
+
+  const order =
+    $("uassetCategoryOrder");
+
+  const active =
+    $("uassetCategoryActive");
+
+
+  state.editingCategoryId =
+    null;
+
+
+  if (id) {
+
+    const category =
+      state.categories.find(
+        item =>
+          String(
+            item.id
+          ) ===
+          String(id)
+      );
+
+    if (!category) {
+
+      alert(
+        "Category not found."
+      );
+
+      return;
+
+    }
+
+    state.editingCategoryId =
+      category.id;
+
+    title.textContent =
+      "Edit Category";
+
+    name.value =
+      category.name ||
+      "";
+
+    categoryId.value =
+      category.id ||
+      "";
+
+    description.value =
+      category.description ||
+      "";
+
+    order.value =
+      Number(
+        category.sort_order ??
+        0
+      );
+
+    active.value =
+      category.is_active ===
+        false
+        ? "false"
+        : "true";
+
+    categoryId.disabled =
+      true;
+
+  } else {
+
+    title.textContent =
+      "New Category";
+
+    name.value =
+      "";
+
+    categoryId.value =
+      "";
+
+    description.value =
+      "";
+
+    order.value =
+      "0";
+
+    active.value =
+      "true";
+
+    categoryId.disabled =
+      false;
+
+  }
+
+
+  modal.hidden =
+    false;
+
+  modal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  document.body.classList.add(
+    "uasset-modal-open"
+  );
+
+  setTimeout(
+    () => {
+      name.focus();
+    },
+    30
+  );
+
+}
+
+
+function closeCategoryModal() {
+
+  const modal =
+    $("uassetCategoryModal");
+
+  if (!modal) {
+    return;
+  }
+
+  modal.hidden =
+    true;
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  document.body.classList.remove(
+    "uasset-modal-open"
+  );
+
+}
+
+
+/* =========================================================
+   CATEGORY SAVE
+   ========================================================= */
+
+async function saveCategory() {
+
+  const name =
+    cleanText(
+      $("uassetCategoryName").value
+    );
+
+  const id =
+    normalizeId(
+      $("uassetCategoryId").value ||
+      name
+    );
+
+  const description =
+    cleanText(
+      $("uassetCategoryDescription").value
+    );
+
+  const sortOrder =
+    Number(
+      $("uassetCategoryOrder").value
+    );
+
+  const isActive =
+    $("uassetCategoryActive").value !==
+    "false";
+
+  const editingId =
+    state.editingCategoryId;
+
+
+  if (!name) {
+
+    alert(
+      "Category name is required."
+    );
+
+    return;
+
+  }
+
+
+  if (!id) {
+
+    alert(
+      "Category ID is required."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !Number.isFinite(
+      sortOrder
+    )
+  ) {
+
+    alert(
+      "Sort order must be a valid number."
+    );
+
+    return;
+
+  }
+
+
+  const button =
+    $("uassetCategorySave");
+
+
+  setButtonLoading(
+    button,
+    true,
+    "Saving..."
+  );
+
+
+  try {
+
+    if (editingId) {
+
+      await apiRequest(
+        API.categories.update,
+        {
+          method:
+            "PATCH",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              id:
+                editingId,
+
+              name,
+
+              description,
+
+              sort_order:
+                Math.trunc(
+                  sortOrder
+                ),
+
+              is_active:
+                isActive
+            })
+        }
+      );
+
+    } else {
+
+      await apiRequest(
+        API.categories.create,
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              id,
+
+              name,
+
+              description,
+
+              sort_order:
+                Math.trunc(
+                  sortOrder
+                ),
+
+              is_active:
+                isActive
+            })
+        }
+      );
+
+    }
+
+
+    alert(
+      editingId
+        ? "Category updated successfully."
+        : "Category created successfully."
+    );
+
+    closeCategoryModal();
+
+    await loadCategories();
+
+  } catch (
+    error
+  ) {
+
+    alert(
+      error.message ||
+      "Unable to save category."
+    );
+
+  } finally {
+
+    setButtonLoading(
+      button,
+      false,
+      editingId
+        ? "Update Category"
+        : "Save Category"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CATEGORY TOGGLE
+   ========================================================= */
+
+async function toggleCategory(
+  id,
+  active
+) {
+
+  try {
+
+    await apiRequest(
+      API.categories.update,
+      {
+        method:
+          "PATCH",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body:
+          JSON.stringify({
+            id,
+
+            is_active:
+              !active
+          })
+      }
+    );
+
+    await loadCategories();
+
+  } catch (
+    error
+  ) {
+
+    alert(
+      error.message ||
+      "Unable to update category."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CATEGORY DELETE
+   ========================================================= */
+
+async function deleteCategory(
+  id
+) {
+
+  const category =
+    state.categories.find(
+      item =>
+        String(
+          item.id
+        ) ===
+        String(id)
+    );
+
+  const label =
+    category?.name ||
+    id;
+
+  const confirmed =
+    window.confirm(
+      `Delete "${label}" permanently?`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  try {
+
+    await apiRequest(
+      `${API.categories.delete}?id=${encodeURIComponent(id)}`,
+      {
+        method:
+          "DELETE"
+      }
+    );
+
+    await loadCategories();
+
+  } catch (
+    error
+  ) {
+
+    alert(
+      error.message ||
+      "Unable to delete category."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   BUTTON LOADING
+   ========================================================= */
+
+function setButtonLoading(
+  button,
+  loading,
+  label
+) {
+
+  if (!button) {
+    return;
+  }
+
+  if (loading) {
+
+    button.disabled =
+      true;
+
+    button.dataset.originalText =
+      button.textContent;
+
+    button.textContent =
+      label;
+
+  } else {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      label ||
+      button.dataset.originalText ||
+      button.textContent;
+
+  }
+
+}
+
+
+/* =========================================================
+   UPLOAD UI
+   ========================================================= */
+
+function showUploadMessage(
+  message
+) {
+
+  if (!adminUploadList) {
+    return;
+  }
+
+  adminUploadList.innerHTML = `
+    <div
+      class="admin-table-empty"
+      style="padding:20px;"
+    >
+      ${escapeHtml(
+        message
+      )}
+    </div>
+  `;
+
+}
+
+
+function handleFiles(
+  files
+) {
+
+  const list =
+    Array.from(
+      files || []
+    );
+
+  if (!list.length) {
+
+    showUploadMessage(
+      "No files selected."
+    );
+
+    return;
+
+  }
+
+
+  if (!adminUploadList) {
+    return;
+  }
+
+
+  adminUploadList.innerHTML =
+    list
+      .map(
+        file => `
+          <div
+            class="admin-setting-card"
+            style="margin:10px 20px;"
+          >
+
+            <div class="admin-setting-copy">
+
+              <h3>
+                ${escapeHtml(
+                  file.name
+                )}
+              </h3>
+
+              <p>
+                ${escapeHtml(
+                  formatFileSize(
+                    file.size
+                  )
+                )}
+              </p>
+
+            </div>
+
+            <span class="admin-status-badge">
+              Selected
+            </span>
+
+          </div>
+        `
+      )
+      .join("");
+
+}
+
+
+function formatFileSize(
+  bytes
+) {
+
+  const value =
+    Number(
+      bytes
+    );
+
+  if (!Number.isFinite(value)) {
+    return "0 B";
+  }
+
+  if (
+    value <
+    1024
+  ) {
+    return `${value} B`;
+  }
+
+  if (
+    value <
+    1024 * 1024
+  ) {
+    return `${(
+      value /
+      1024
+    ).toFixed(1)} KB`;
+  }
+
+  return `${(
+    value /
+    (1024 * 1024)
+  ).toFixed(1)} MB`;
+
+}
+
+
+adminUploadButton?.addEventListener(
+  "click",
+  () => {
+
+    adminFileInput?.click();
+
+  }
+);
+
+
+adminFileInput?.addEventListener(
+  "change",
+  () => {
+
+    handleFiles(
+      adminFileInput.files
+    );
+
+  }
+);
+
+
+adminUploadArea?.addEventListener(
+  "dragover",
+  event => {
+
+    event.preventDefault();
+
+    adminUploadArea.style.borderColor =
+      "#111111";
+
+  }
+);
+
+
+adminUploadArea?.addEventListener(
+  "dragleave",
+  () => {
+
+    adminUploadArea.style.borderColor =
+      "";
+
+  }
+);
+
+
+adminUploadArea?.addEventListener(
+  "drop",
+  event => {
+
+    event.preventDefault();
+
+    adminUploadArea.style.borderColor =
+      "";
+
+    handleFiles(
+      event.dataTransfer?.files
+    );
+
+  }
+);
+
+
+/* =========================================================
+   ICON EVENTS
+   ========================================================= */
+
+newIconButton?.addEventListener(
+  "click",
+  openNewIcon
+);
+
+iconsNewButton?.addEventListener(
+  "click",
+  openNewIcon
+);
+
+manageIconsButton?.addEventListener(
+  "click",
+  loadIcons
+);
+
+quickNewIcon?.addEventListener(
+  "click",
+  openNewIcon
+);
+
+quickUpload?.addEventListener(
+  "click",
+  () => {
+
+    activateSection(
+      "uploads"
+    );
+
+    adminFileInput?.click();
+
+  }
+);
+
+quickCollection?.addEventListener(
+  "click",
+  () => {
+
+    activateSection(
+      "collections"
+    );
+
+    openCollectionModal();
+
+  }
+);
+
+quickCategory?.addEventListener(
+  "click",
+  () => {
+
+    activateSection(
+      "categories"
+    );
+
+    openCategoryModal();
+
+  }
+);
+
+
+/* =========================================================
+   COLLECTION EVENTS
+   ========================================================= */
+
+refreshCollectionsButton?.addEventListener(
+  "click",
+  loadCollections
+);
+
+newCollectionButton?.addEventListener(
+  "click",
+  () => {
+
+    openCollectionModal();
+
+  }
+);
+
+
+/* =========================================================
+   CATEGORY EVENTS
+   ========================================================= */
+
+refreshCategoriesButton?.addEventListener(
+  "click",
+  loadCategories
+);
+
+newCategoryButton?.addEventListener(
+  "click",
+  () => {
+
+    openCategoryModal();
+
+  }
+);
+
+
+/* =========================================================
+   ICON MODAL EVENTS
+   ========================================================= */
+
+closeNewIcon?.addEventListener(
+  "click",
+  closeIconModal
+);
+
+cancelNewIcon?.addEventListener(
+  "click",
+  closeIconModal
+);
+
+saveNewIcon?.addEventListener(
+  "click",
+  saveIcon
+);
+
+
+qsa(
+  "[data-close-icon-modal]"
+).forEach(
+  element => {
+
+    element.addEventListener(
+      "click",
+      closeIconModal
+    );
+
+  }
+);
 
 
 [
+  iconName,
+  iconId,
   iconCategory,
   iconTags,
-  iconDescription
+  iconDescription,
+  iconPlan,
+  iconSvg
 ]
   .filter(Boolean)
   .forEach(
@@ -4407,47 +4881,91 @@ if (
 
       element.addEventListener(
         "input",
-        updateIconSummary
+        updateIconPreview
+      );
+
+      element.addEventListener(
+        "change",
+        updateIconPreview
       );
 
     }
   );
 
 
-if (
-  iconSvg
-) {
+iconName?.addEventListener(
+  "input",
+  () => {
 
-  iconSvg.addEventListener(
-    "input",
-    updateIconPreview
-  );
-}
+    if (
+      !state.editingIconId &&
+      !iconId.value.trim()
+    ) {
+
+      iconId.value =
+        normalizeId(
+          iconName.value
+        );
+
+    }
+
+    updateIconPreview();
+
+  }
+);
 
 
 /* =========================================================
-   ICON MODAL BACKDROP
+   ICON FILTER EVENTS
    ========================================================= */
 
-if (
-  newIconModal
-) {
+[
+  iconSearch,
+  iconPlanFilter,
+  iconStatusFilter
+]
+  .filter(Boolean)
+  .forEach(
+    element => {
 
-  newIconModal.addEventListener(
-    "click",
-    event => {
+      element.addEventListener(
+        "input",
+        renderIcons
+      );
 
-      if (
-        event.target ===
-        newIconModal
-      ) {
-
-        closeIconModal();
-      }
+      element.addEventListener(
+        "change",
+        renderIcons
+      );
 
     }
   );
-}
+
+
+/* =========================================================
+   CATEGORY FILTER EVENTS
+   ========================================================= */
+
+[
+  categorySearch,
+  categoryStatusFilter
+]
+  .filter(Boolean)
+  .forEach(
+    element => {
+
+      element.addEventListener(
+        "input",
+        renderCategories
+      );
+
+      element.addEventListener(
+        "change",
+        renderCategories
+      );
+
+    }
+  );
 
 
 /* =========================================================
@@ -4464,32 +4982,44 @@ document.addEventListener(
     ) {
 
       return;
+
     }
 
-
     if (
-      newIconModal?.classList.contains(
-        "open"
-      )
+      newIconModal &&
+      !newIconModal.hidden
     ) {
 
       closeIconModal();
 
       return;
-    }
 
+    }
 
     const collectionModal =
       $("uassetCollectionModal");
 
-
     if (
-      collectionModal?.classList.contains(
-        "open"
-      )
+      collectionModal &&
+      !collectionModal.hidden
     ) {
 
       closeCollectionModal();
+
+      return;
+
+    }
+
+    const categoryModal =
+      $("uassetCategoryModal");
+
+    if (
+      categoryModal &&
+      !categoryModal.hidden
+    ) {
+
+      closeCategoryModal();
+
     }
 
   }
@@ -4497,128 +5027,70 @@ document.addEventListener(
 
 
 /* =========================================================
-   NAVIGATION
+   GLOBAL CLICK SAFETY
    ========================================================= */
 
-function scrollToSection(
-  id
-) {
+document.addEventListener(
+  "click",
+  event => {
 
-  const section =
-    $(id);
+    const target =
+      event.target;
 
+    if (
+      target instanceof
+      HTMLElement &&
+      target.matches(
+        ".admin-modal"
+      )
+    {
 
-  if (!section) {
-    return;
+      if (
+        target.id ===
+        "newIconModal"
+      ) {
+
+        closeIconModal();
+
+      }
+
+      if (
+        target.id ===
+        "uassetCollectionModal"
+      ) {
+
+        closeCollectionModal();
+
+      }
+
+      if (
+        target.id ===
+        "uassetCategoryModal"
+      ) {
+
+        closeCategoryModal();
+
+      }
+
+    }
+
   }
+);
 
 
-  section.scrollIntoView({
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
 
-    behavior:
-      "smooth",
+async function initAdmin() {
 
-    block:
-      "start"
+  activateSection(
+    readInitialSection()
+  );
 
-  });
+  await loadDashboard();
+
 }
 
 
-/* =========================================================
-   SIDEBAR NAV
-   ========================================================= */
-
-document
-  .querySelectorAll(
-    ".admin-nav-link"
-  )
-  .forEach(
-    link => {
-
-      link.addEventListener(
-        "click",
-        () => {
-
-          document
-            .querySelectorAll(
-              ".admin-nav-link"
-            )
-            .forEach(
-              item => {
-
-                item.classList.remove(
-                  "active"
-                );
-
-              }
-            );
-
-
-          link.classList.add(
-            "active"
-          );
-
-
-          const href =
-            link.getAttribute(
-              "href"
-            );
-
-
-          if (
-            href ===
-            "#collections"
-          ) {
-
-            setTimeout(
-              loadCollections,
-              80
-            );
-          }
-
-
-          if (
-            href ===
-            "#icons"
-          ) {
-
-            setTimeout(
-              loadIcons,
-              80
-            );
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-/* =========================================================
-   INITIAL SETUP
-   ========================================================= */
-
-injectAdminStyles();
-
-setIconModalCreateMode();
-
-updatePlanUI();
-
-updateIconSummary();
-
-updateIconPreview();
-
-ensureIconActionsHeader();
-
-ensureCollectionsManagerUI();
-
-loadIcons();
-
-loadCollections();
-
-
-console.log(
-  "UAsset Admin — clean unified admin.js loaded."
-);
+initAdmin();
