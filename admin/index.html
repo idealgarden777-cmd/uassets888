@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
-
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -11,12 +11,20 @@
 
   <meta
     name="description"
-    content="UAsset Admin Dashboard"
+    content="UAsset Administration"
+  >
+
+  <meta
+    name="theme-color"
+    content="#f7f7f5"
   >
 
   <title>UAsset Admin</title>
 
-  <!-- Fonts -->
+  <!-- =====================================================
+       FONTS
+       ===================================================== -->
+
   <link
     rel="preconnect"
     href="https://fonts.googleapis.com"
@@ -33,38 +41,67 @@
     rel="stylesheet"
   >
 
-  <!-- Admin stylesheet -->
+  <!-- =====================================================
+       ADMIN CSS
+       ===================================================== -->
+
   <link
     rel="stylesheet"
     href="/admin/admin.css"
   >
+
 </head>
+
 
 <body>
 
-  <div class="admin-shell">
+  <!-- =====================================================
+       APP
+       ===================================================== -->
 
-    <!-- =====================================================
+  <div
+    class="admin-app"
+    id="adminApp"
+  >
+
+
+    <!-- ===================================================
          SIDEBAR
-         ===================================================== -->
+         =================================================== -->
 
-    <aside class="admin-sidebar">
+    <aside
+      class="admin-sidebar"
+      id="adminSidebar"
+    >
+
+      <!-- BRAND -->
 
       <a
         href="/"
         class="admin-brand"
         aria-label="UAsset Home"
       >
-        <span class="admin-brand-mark">U</span>
+
+        <span
+          class="admin-brand-mark"
+          aria-hidden="true"
+        >
+          U
+        </span>
 
         <span class="admin-brand-name">
           UAsset
         </span>
+
       </a>
+
+
+      <!-- NAVIGATION -->
 
       <div class="admin-nav-label">
         ADMIN
       </div>
+
 
       <nav
         class="admin-nav"
@@ -76,6 +113,7 @@
           class="admin-nav-link active"
           data-section="dashboard"
         >
+
           <span
             class="admin-nav-icon"
             aria-hidden="true"
@@ -86,13 +124,16 @@
           <span>
             Dashboard
           </span>
+
         </a>
+
 
         <a
           href="#icons"
           class="admin-nav-link"
           data-section="icons"
         >
+
           <span
             class="admin-nav-icon"
             aria-hidden="true"
@@ -103,13 +144,16 @@
           <span>
             Icons
           </span>
+
         </a>
+
 
         <a
           href="#collections"
           class="admin-nav-link"
           data-section="collections"
         >
+
           <span
             class="admin-nav-icon"
             aria-hidden="true"
@@ -120,13 +164,16 @@
           <span>
             Collections
           </span>
+
         </a>
+
 
         <a
           href="#categories"
           class="admin-nav-link"
           data-section="categories"
         >
+
           <span
             class="admin-nav-icon"
             aria-hidden="true"
@@ -137,13 +184,16 @@
           <span>
             Categories
           </span>
+
         </a>
+
 
         <a
           href="#uploads"
           class="admin-nav-link"
           data-section="uploads"
         >
+
           <span
             class="admin-nav-icon"
             aria-hidden="true"
@@ -154,13 +204,16 @@
           <span>
             Uploads
           </span>
+
         </a>
+
 
         <a
           href="#settings"
           class="admin-nav-link"
           data-section="settings"
         >
+
           <span
             class="admin-nav-icon"
             aria-hidden="true"
@@ -171,25 +224,38 @@
           <span>
             Settings
           </span>
+
         </a>
 
       </nav>
+
+
+      <!-- SIDEBAR FOOTER -->
 
       <div class="admin-sidebar-footer">
 
         <div class="admin-user-card">
 
-          <div class="admin-avatar">
-            SA
+          <div
+            class="admin-avatar"
+            id="adminAvatar"
+          >
+            A
           </div>
 
           <div class="admin-user-copy">
 
-            <span class="admin-user-name">
+            <span
+              class="admin-user-name"
+              id="adminUserName"
+            >
               UAsset Admin
             </span>
 
-            <span class="admin-user-role">
+            <span
+              class="admin-user-role"
+              id="adminUserRole"
+            >
               Administrator
             </span>
 
@@ -202,17 +268,59 @@
     </aside>
 
 
-    <!-- =====================================================
+    <!-- ===================================================
+         MOBILE HEADER
+         =================================================== -->
+
+    <header
+      class="admin-mobile-header"
+      id="adminMobileHeader"
+    >
+
+      <a
+        href="/"
+        class="admin-mobile-brand"
+      >
+
+        <span class="admin-brand-mark">
+          U
+        </span>
+
+        <span>
+          UAsset
+        </span>
+
+      </a>
+
+
+      <button
+        type="button"
+        class="admin-mobile-menu"
+        id="adminMobileMenu"
+        aria-label="Open menu"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
+
+    </header>
+
+
+    <!-- ===================================================
          MAIN
-         ===================================================== -->
+         =================================================== -->
 
     <main class="admin-main">
 
-      <!-- ===================================================
-           TOP BAR
-           =================================================== -->
 
-      <header class="admin-topbar">
+      <!-- =================================================
+           TOP BAR
+           ================================================= -->
+
+      <header
+        class="admin-topbar"
+        id="adminTopbar"
+      >
 
         <div class="admin-heading">
 
@@ -231,11 +339,11 @@
             class="admin-page-subtitle"
             id="adminPageSubtitle"
           >
-            Manage icons, collections, categories,
-            uploads and system settings.
+            Manage your UAsset library and platform settings.
           </p>
 
         </div>
+
 
         <div class="admin-top-actions">
 
@@ -243,15 +351,16 @@
             href="/"
             class="admin-button"
           >
-            View UAsset
+            View Library
           </a>
+
 
           <button
             type="button"
             class="admin-button primary"
-            id="newIconButton"
+            id="globalNewButton"
           >
-            + New Icon
+            + New
           </button>
 
         </div>
@@ -259,9 +368,9 @@
       </header>
 
 
-      <!-- ===================================================
+      <!-- =================================================
            DASHBOARD
-           =================================================== -->
+           ================================================= -->
 
       <section
         class="admin-section"
@@ -269,288 +378,359 @@
         data-section-panel="dashboard"
       >
 
-        <div class="admin-stats">
+        <!-- STATS -->
+
+        <div
+          class="admin-stats"
+          id="dashboardStats"
+        >
+
 
           <div class="admin-stat">
 
-            <div class="admin-stat-label">
+            <span class="admin-stat-label">
               TOTAL ICONS
-            </div>
+            </span>
 
-            <div
+            <strong
               class="admin-stat-value"
               id="totalIcons"
             >
               0
-            </div>
+            </strong>
 
-            <div class="admin-stat-detail">
-              Current library
-            </div>
+            <span class="admin-stat-detail">
+              Library assets
+            </span>
 
           </div>
 
 
           <div class="admin-stat">
 
-            <div class="admin-stat-label">
-              FREE ICONS
-            </div>
+            <span class="admin-stat-label">
+              FREE
+            </span>
 
-            <div
+            <strong
               class="admin-stat-value"
               id="freeIcons"
             >
               0
-            </div>
+            </strong>
 
-            <div class="admin-stat-detail">
-              Available to everyone
-            </div>
+            <span class="admin-stat-detail">
+              Public assets
+            </span>
 
           </div>
 
 
           <div class="admin-stat">
 
-            <div class="admin-stat-label">
-              PRO ICONS
-            </div>
+            <span class="admin-stat-label">
+              PRO
+            </span>
 
-            <div
+            <strong
               class="admin-stat-value"
               id="proIcons"
             >
               0
-            </div>
+            </strong>
 
-            <div class="admin-stat-detail">
-              Premium library
-            </div>
+            <span class="admin-stat-detail">
+              Premium assets
+            </span>
 
           </div>
 
 
           <div class="admin-stat">
 
-            <div class="admin-stat-label">
+            <span class="admin-stat-label">
               COLLECTIONS
-            </div>
+            </span>
 
-            <div
+            <strong
               class="admin-stat-value"
               id="totalCollections"
             >
               0
-            </div>
+            </strong>
 
-            <div class="admin-stat-detail">
+            <span class="admin-stat-detail">
               Curated groups
-            </div>
+            </span>
 
           </div>
 
         </div>
 
 
+        <!-- DASHBOARD GRID -->
+
         <div class="admin-dashboard-grid">
+
+
+          <!-- QUICK ACTIONS -->
 
           <section class="admin-panel">
 
             <div class="admin-panel-head">
 
               <div>
+
                 <p class="admin-panel-eyebrow">
                   QUICK ACTIONS
                 </p>
 
                 <h2 class="admin-panel-title">
-                  Manage UAsset
+                  Manage Library
                 </h2>
+
               </div>
 
             </div>
 
+
             <div class="admin-quick-grid">
+
 
               <button
                 type="button"
                 class="admin-quick-card"
-                id="quickNewIcon"
+                data-action="new-icon"
               >
-                <span class="admin-quick-icon">
+
+                <span
+                  class="admin-quick-icon"
+                  aria-hidden="true"
+                >
                   +
                 </span>
 
                 <span class="admin-quick-copy">
+
                   <strong>
                     New Icon
                   </strong>
 
                   <small>
-                    Add an icon to the library
+                    Add SVG icon
                   </small>
+
                 </span>
+
               </button>
 
 
               <button
                 type="button"
                 class="admin-quick-card"
-                id="quickUpload"
+                data-action="new-collection"
               >
-                <span class="admin-quick-icon">
+
+                <span
+                  class="admin-quick-icon"
+                  aria-hidden="true"
+                >
+                  ▦
+                </span>
+
+                <span class="admin-quick-copy">
+
+                  <strong>
+                    New Collection
+                  </strong>
+
+                  <small>
+                    Group categories
+                  </small>
+
+                </span>
+
+              </button>
+
+
+              <button
+                type="button"
+                class="admin-quick-card"
+                data-action="new-category"
+              >
+
+                <span
+                  class="admin-quick-icon"
+                  aria-hidden="true"
+                >
+                  ◎
+                </span>
+
+                <span class="admin-quick-copy">
+
+                  <strong>
+                    New Category
+                  </strong>
+
+                  <small>
+                    Create taxonomy
+                  </small>
+
+                </span>
+
+              </button>
+
+
+              <button
+                type="button"
+                class="admin-quick-card"
+                data-action="upload"
+              >
+
+                <span
+                  class="admin-quick-icon"
+                  aria-hidden="true"
+                >
                   ↑
                 </span>
 
                 <span class="admin-quick-copy">
+
                   <strong>
                     Upload
                   </strong>
 
                   <small>
-                    Upload a new asset
+                    Add asset files
                   </small>
+
                 </span>
+
               </button>
 
-
-              <button
-                type="button"
-                class="admin-quick-card"
-                id="quickCollection"
-              >
-                <span class="admin-quick-icon">
-                  ▦
-                </span>
-
-                <span class="admin-quick-copy">
-                  <strong>
-                    Collection
-                  </strong>
-
-                  <small>
-                    Create a collection
-                  </small>
-                </span>
-              </button>
-
-
-              <button
-                type="button"
-                class="admin-quick-card"
-                id="quickCategory"
-              >
-                <span class="admin-quick-icon">
-                  ◎
-                </span>
-
-                <span class="admin-quick-copy">
-                  <strong>
-                    Category
-                  </strong>
-
-                  <small>
-                    Manage icon categories
-                  </small>
-                </span>
-              </button>
 
             </div>
 
           </section>
 
+
+          <!-- SYSTEM STATUS -->
 
           <section class="admin-panel">
 
             <div class="admin-panel-head">
 
               <div>
+
                 <p class="admin-panel-eyebrow">
                   SYSTEM
                 </p>
 
                 <h2 class="admin-panel-title">
-                  Admin Status
+                  System Status
                 </h2>
+
               </div>
 
             </div>
 
+
             <div class="admin-status-list">
 
+
               <div class="admin-status-row">
 
                 <span>
-                  Authentication
+                  Bean Authentication
                 </span>
 
                 <span
                   class="admin-status-badge"
-                  id="adminAuthStatus"
+                  id="statusAuth"
                 >
                   Checking
                 </span>
 
               </div>
 
+
               <div class="admin-status-row">
 
                 <span>
-                  Icons API
+                  Icon API
                 </span>
 
                 <span
                   class="admin-status-badge"
-                  id="adminIconsStatus"
+                  id="statusIcons"
                 >
                   Checking
                 </span>
 
               </div>
 
+
               <div class="admin-status-row">
 
                 <span>
-                  Collections API
+                  Collections
                 </span>
 
                 <span
                   class="admin-status-badge"
-                  id="adminCollectionsStatus"
+                  id="statusCollections"
                 >
                   Checking
                 </span>
 
               </div>
 
+
               <div class="admin-status-row">
 
                 <span>
-                  Categories API
+                  Categories
                 </span>
 
                 <span
                   class="admin-status-badge"
-                  id="adminCategoriesStatus"
+                  id="statusCategories"
                 >
                   Checking
                 </span>
 
               </div>
+
+
+              <div class="admin-status-row">
+
+                <span>
+                  Pro Storage
+                </span>
+
+                <span
+                  class="admin-status-badge"
+                  id="statusStorage"
+                >
+                  Checking
+                </span>
+
+              </div>
+
 
             </div>
 
           </section>
+
 
         </div>
 
       </section>
 
 
-      <!-- ===================================================
+      <!-- =================================================
            ICONS
-           =================================================== -->
+           ================================================= -->
 
       <section
         class="admin-section"
@@ -562,6 +742,7 @@
         <div class="admin-section-head">
 
           <div>
+
             <p class="admin-panel-eyebrow">
               LIBRARY
             </p>
@@ -571,24 +752,26 @@
             </h2>
 
             <p class="admin-section-description">
-              Create, edit, hide and delete UAsset icons.
+              Manage every icon in the UAsset library.
             </p>
+
           </div>
+
 
           <div class="admin-section-actions">
 
             <button
               type="button"
-              class="admin-button primary"
-              id="manageIconsButton"
+              class="admin-button"
+              id="refreshIconsButton"
             >
-              Refresh Icons
+              Refresh
             </button>
 
             <button
               type="button"
               class="admin-button primary"
-              id="iconsNewButton"
+              id="newIconButton"
             >
               + New Icon
             </button>
@@ -602,6 +785,7 @@
 
           <div class="admin-toolbar">
 
+
             <div class="admin-toolbar-left">
 
               <input
@@ -612,10 +796,24 @@
                 autocomplete="off"
               >
 
+
+              <select
+                class="admin-select"
+                id="iconCategoryFilter"
+              >
+
+                <option value="">
+                  All Categories
+                </option>
+
+              </select>
+
+
               <select
                 class="admin-select"
                 id="iconPlanFilter"
               >
+
                 <option value="">
                   All Plans
                 </option>
@@ -627,26 +825,31 @@
                 <option value="pro">
                   Pro
                 </option>
+
               </select>
+
 
               <select
                 class="admin-select"
                 id="iconStatusFilter"
               >
+
+                <option value="all">
+                  All Status
+                </option>
+
                 <option value="active">
                   Active
                 </option>
 
-                <option value="all">
-                  All
+                <option value="inactive">
+                  Hidden
                 </option>
 
-                <option value="inactive">
-                  Inactive
-                </option>
               </select>
 
             </div>
+
 
             <div class="admin-toolbar-right">
 
@@ -691,6 +894,10 @@
                   </th>
 
                   <th>
+                    UPDATED
+                  </th>
+
+                  <th>
                     ACTIONS
                   </th>
 
@@ -698,12 +905,13 @@
 
               </thead>
 
+
               <tbody id="adminIconsBody">
 
                 <tr>
 
                   <td
-                    colspan="6"
+                    colspan="7"
                     class="admin-table-empty"
                   >
                     Loading icons...
@@ -722,9 +930,9 @@
       </section>
 
 
-      <!-- ===================================================
+      <!-- =================================================
            COLLECTIONS
-           =================================================== -->
+           ================================================= -->
 
       <section
         class="admin-section"
@@ -736,18 +944,21 @@
         <div class="admin-section-head">
 
           <div>
+
             <p class="admin-panel-eyebrow">
               CURATION
             </p>
 
             <h2 class="admin-section-title">
-              Collections
+              Collection Manager
             </h2>
 
             <p class="admin-section-description">
-              Group categories into curated collections.
+              Organize categories into reusable collections.
             </p>
+
           </div>
+
 
           <div class="admin-section-actions">
 
@@ -774,67 +985,88 @@
 
         <section class="admin-panel">
 
-          <div
-            id="adminCollectionsManager"
-            class="admin-manager"
-          >
+          <div class="admin-toolbar">
 
-            <div class="admin-table-wrap">
+            <div class="admin-toolbar-left">
 
-              <table class="admin-table">
-
-                <thead>
-
-                  <tr>
-
-                    <th>
-                      NAME
-                    </th>
-
-                    <th>
-                      ID
-                    </th>
-
-                    <th>
-                      CATEGORIES
-                    </th>
-
-                    <th>
-                      STATUS
-                    </th>
-
-                    <th>
-                      CREATED
-                    </th>
-
-                    <th>
-                      ACTIONS
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-                <tbody
-                  id="adminCollectionsBody"
-                >
-
-                  <tr>
-
-                    <td
-                      colspan="6"
-                      class="admin-table-empty"
-                    >
-                      Loading collections...
-                    </td>
-
-                  </tr>
-
-                </tbody>
-
-              </table>
+              <input
+                type="search"
+                class="admin-input admin-search"
+                id="collectionSearch"
+                placeholder="Search collections..."
+                autocomplete="off"
+              >
 
             </div>
+
+
+            <div class="admin-toolbar-right">
+
+              <span
+                class="admin-toolbar-count"
+                id="collectionResultsCount"
+              >
+                0 collections
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-table-wrap">
+
+            <table class="admin-table">
+
+              <thead>
+
+                <tr>
+
+                  <th>
+                    NAME
+                  </th>
+
+                  <th>
+                    ID
+                  </th>
+
+                  <th>
+                    CATEGORIES
+                  </th>
+
+                  <th>
+                    STATUS
+                  </th>
+
+                  <th>
+                    CREATED
+                  </th>
+
+                  <th>
+                    ACTIONS
+                  </th>
+
+                </tr>
+
+              </thead>
+
+
+              <tbody id="adminCollectionsBody">
+
+                <tr>
+
+                  <td
+                    colspan="6"
+                    class="admin-table-empty"
+                  >
+                    Loading collections...
+                  </td>
+
+                </tr>
+
+              </tbody>
+
+            </table>
 
           </div>
 
@@ -843,9 +1075,9 @@
       </section>
 
 
-      <!-- ===================================================
+      <!-- =================================================
            CATEGORIES
-           =================================================== -->
+           ================================================= -->
 
       <section
         class="admin-section"
@@ -857,18 +1089,21 @@
         <div class="admin-section-head">
 
           <div>
+
             <p class="admin-panel-eyebrow">
               TAXONOMY
             </p>
 
             <h2 class="admin-section-title">
-              Categories
+              Category Manager
             </h2>
 
             <p class="admin-section-description">
-              Manage categories used by the UAsset library.
+              Control categories used throughout the library.
             </p>
+
           </div>
+
 
           <div class="admin-section-actions">
 
@@ -907,26 +1142,28 @@
                 autocomplete="off"
               >
 
+
               <select
                 class="admin-select"
                 id="categoryStatusFilter"
               >
 
+                <option value="all">
+                  All Status
+                </option>
+
                 <option value="active">
                   Active
                 </option>
 
-                <option value="all">
-                  All
-                </option>
-
                 <option value="inactive">
-                  Inactive
+                  Hidden
                 </option>
 
               </select>
 
             </div>
+
 
             <div class="admin-toolbar-right">
 
@@ -978,6 +1215,7 @@
 
               </thead>
 
+
               <tbody id="adminCategoriesBody">
 
                 <tr>
@@ -986,7 +1224,7 @@
                     colspan="6"
                     class="admin-table-empty"
                   >
-                    Categories are not loaded yet.
+                    Loading categories...
                   </td>
 
                 </tr>
@@ -1002,9 +1240,9 @@
       </section>
 
 
-      <!-- ===================================================
+      <!-- =================================================
            UPLOADS
-           =================================================== -->
+           ================================================= -->
 
       <section
         class="admin-section"
@@ -1016,17 +1254,19 @@
         <div class="admin-section-head">
 
           <div>
+
             <p class="admin-panel-eyebrow">
               ASSETS
             </p>
 
             <h2 class="admin-section-title">
-              Uploads
+              Upload Manager
             </h2>
 
             <p class="admin-section-description">
-              Upload and manage UAsset files.
+              Upload SVG assets and prepare them for the library.
             </p>
+
           </div>
 
         </div>
@@ -1039,34 +1279,41 @@
             id="adminUploadArea"
           >
 
-            <div class="admin-upload-icon">
+            <div
+              class="admin-upload-icon"
+              aria-hidden="true"
+            >
               ↑
             </div>
 
             <h3 class="admin-upload-title">
-              Upload Assets
+              Upload SVG Assets
             </h3>
 
             <p class="admin-upload-description">
-              Upload management will be connected here.
+              Select SVG files or drag them into this area.
             </p>
+
 
             <button
               type="button"
-              class="admin-button"
-              id="adminUploadButton"
+              class="admin-button primary"
+              id="adminChooseFilesButton"
             >
               Choose Files
             </button>
 
+
             <input
               type="file"
               id="adminFileInput"
-              hidden
+              accept=".svg,image/svg+xml"
               multiple
+              hidden
             >
 
           </div>
+
 
           <div
             class="admin-upload-list"
@@ -1078,9 +1325,9 @@
       </section>
 
 
-      <!-- ===================================================
+      <!-- =================================================
            SETTINGS
-           =================================================== -->
+           ================================================= -->
 
       <section
         class="admin-section"
@@ -1092,8 +1339,9 @@
         <div class="admin-section-head">
 
           <div>
+
             <p class="admin-panel-eyebrow">
-              CONFIGURATION
+              SYSTEM
             </p>
 
             <h2 class="admin-section-title">
@@ -1101,28 +1349,30 @@
             </h2>
 
             <p class="admin-section-description">
-              UAsset admin and library configuration.
+              Review UAsset system configuration and security.
             </p>
+
           </div>
 
         </div>
 
 
-        <section class="admin-panel">
+        <div class="admin-settings-grid">
 
-          <div class="admin-settings-grid">
 
-            <div class="admin-setting-card">
+          <section class="admin-panel">
 
-              <div class="admin-setting-copy">
+            <div class="admin-panel-head">
 
-                <h3>
-                  Admin Authentication
-                </h3>
+              <div>
 
-                <p>
-                  Bean ID based administrator access.
+                <p class="admin-panel-eyebrow">
+                  AUTHENTICATION
                 </p>
+
+                <h2 class="admin-panel-title">
+                  Bean Admin Access
+                </h2>
 
               </div>
 
@@ -1130,62 +1380,200 @@
                 class="admin-status-badge"
                 id="settingsAuthStatus"
               >
-                Active
+                Checking
               </span>
 
             </div>
 
+            <div class="admin-settings-content">
 
-            <div class="admin-setting-card">
+              <div class="admin-setting-row">
 
-              <div class="admin-setting-copy">
+                <div class="admin-setting-copy">
 
-                <h3>
-                  Pro Assets
-                </h3>
+                  <strong>
+                    Bean ID Authentication
+                  </strong>
 
-                <p>
-                  Premium assets use protected storage.
+                  <span>
+                    Administrator access is verified server-side.
+                  </span>
+
+                </div>
+
+                <span
+                  class="admin-status-badge"
+                  id="settingBeanStatus"
+                >
+                  Checking
+                </span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <section class="admin-panel">
+
+            <div class="admin-panel-head">
+
+              <div>
+
+                <p class="admin-panel-eyebrow">
+                  STORAGE
                 </p>
+
+                <h2 class="admin-panel-title">
+                  Asset Storage
+                </h2>
 
               </div>
 
               <span
                 class="admin-status-badge"
-                id="settingsProStatus"
+                id="settingsStorageStatus"
               >
-                Protected
+                Checking
               </span>
 
             </div>
 
+            <div class="admin-settings-content">
 
-            <div class="admin-setting-card">
+              <div class="admin-setting-row">
 
-              <div class="admin-setting-copy">
+                <div class="admin-setting-copy">
 
-                <h3>
-                  Rate Limiting
-                </h3>
+                  <strong>
+                    Free Assets
+                  </strong>
 
-                <p>
-                  API request protection is enabled.
+                  <span>
+                    Public UAsset storage.
+                  </span>
+
+                </div>
+
+                <span
+                  class="admin-status-badge"
+                  id="settingFreeStorage"
+                >
+                  Configured
+                </span>
+
+              </div>
+
+
+              <div class="admin-setting-row">
+
+                <div class="admin-setting-copy">
+
+                  <strong>
+                    Pro Assets
+                  </strong>
+
+                  <span>
+                    Protected private storage.
+                  </span>
+
+                </div>
+
+                <span
+                  class="admin-status-badge"
+                  id="settingProStorage"
+                >
+                  Protected
+                </span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <section class="admin-panel">
+
+            <div class="admin-panel-head">
+
+              <div>
+
+                <p class="admin-panel-eyebrow">
+                  SECURITY
                 </p>
+
+                <h2 class="admin-panel-title">
+                  API Protection
+                </h2>
 
               </div>
 
               <span
                 class="admin-status-badge"
-                id="settingsRateLimitStatus"
+                id="settingsSecurityStatus"
               >
-                Enabled
+                Checking
               </span>
 
             </div>
 
-          </div>
+            <div class="admin-settings-content">
 
-        </section>
+              <div class="admin-setting-row">
+
+                <div class="admin-setting-copy">
+
+                  <strong>
+                    Rate Limiting
+                  </strong>
+
+                  <span>
+                    API request protection.
+                  </span>
+
+                </div>
+
+                <span
+                  class="admin-status-badge"
+                  id="settingRateLimit"
+                >
+                  Enabled
+                </span>
+
+              </div>
+
+
+              <div class="admin-setting-row">
+
+                <div class="admin-setting-copy">
+
+                  <strong>
+                    Security Headers
+                  </strong>
+
+                  <span>
+                    Response hardening.
+                  </span>
+
+                </div>
+
+                <span
+                  class="admin-status-badge"
+                  id="settingSecurityHeaders"
+                >
+                  Enabled
+                </span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+        </div>
 
       </section>
 
@@ -1195,26 +1583,56 @@
 
 
   <!-- =====================================================
-       NEW ICON MODAL
+       GLOBAL TOAST
+       ===================================================== -->
+
+  <div
+    class="admin-toast"
+    id="adminToast"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    hidden
+  >
+    <span
+      class="admin-toast-icon"
+      id="adminToastIcon"
+    >
+      •
+    </span>
+
+    <span
+      class="admin-toast-message"
+      id="adminToastMessage"
+    >
+      Done
+    </span>
+
+  </div>
+
+
+  <!-- =====================================================
+       ICON MODAL
        ===================================================== -->
 
   <div
     class="admin-modal"
-    id="newIconModal"
+    id="iconModal"
     hidden
     aria-hidden="true"
   >
 
     <div
       class="admin-modal-backdrop"
-      data-close-icon-modal
+      data-close-modal="iconModal"
     ></div>
 
+
     <div
-      class="admin-modal-card"
+      class="admin-modal-card admin-modal-large"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="newIconModalTitle"
+      aria-labelledby="iconModalTitle"
     >
 
       <div class="admin-modal-head">
@@ -1227,21 +1645,22 @@
 
           <h2
             class="admin-modal-title"
-            id="newIconModalTitle"
+            id="iconModalTitle"
           >
             New Icon
           </h2>
 
           <p class="admin-modal-subtitle">
-            Add an icon to the UAsset library.
+            Create or edit a UAsset SVG icon.
           </p>
 
         </div>
 
+
         <button
           type="button"
           class="admin-modal-close"
-          id="closeNewIcon"
+          data-close-modal="iconModal"
           aria-label="Close"
         >
           ×
@@ -1252,23 +1671,25 @@
 
       <div class="admin-modal-body">
 
+
         <div class="admin-form-grid">
+
 
           <div class="admin-form-group">
 
             <label
-              for="iconName"
               class="admin-label"
+              for="formIconName"
             >
               Name
             </label>
 
             <input
               type="text"
-              id="iconName"
               class="admin-input"
-              placeholder="Example: Calendar"
-              maxlength="80"
+              id="formIconName"
+              maxlength="120"
+              placeholder="Calendar"
               autocomplete="off"
             >
 
@@ -1278,18 +1699,18 @@
           <div class="admin-form-group">
 
             <label
-              for="iconId"
               class="admin-label"
+              for="formIconId"
             >
               ID
             </label>
 
             <input
               type="text"
-              id="iconId"
               class="admin-input"
-              placeholder="calendar"
+              id="formIconId"
               maxlength="60"
+              placeholder="calendar"
               autocomplete="off"
             >
 
@@ -1299,19 +1720,22 @@
           <div class="admin-form-group">
 
             <label
-              for="iconCategory"
               class="admin-label"
+              for="formIconCategory"
             >
               Category
             </label>
 
-            <input
-              type="text"
-              id="iconCategory"
-              class="admin-input"
-              placeholder="business"
-              autocomplete="off"
+            <select
+              class="admin-select"
+              id="formIconCategory"
             >
+
+              <option value="">
+                Select Category
+              </option>
+
+            </select>
 
           </div>
 
@@ -1319,15 +1743,15 @@
           <div class="admin-form-group">
 
             <label
-              for="iconPlan"
               class="admin-label"
+              for="formIconPlan"
             >
               Plan
             </label>
 
             <select
-              id="iconPlan"
               class="admin-select"
+              id="formIconPlan"
             >
 
               <option value="free">
@@ -1346,16 +1770,17 @@
           <div class="admin-form-group admin-form-full">
 
             <label
-              for="iconTags"
               class="admin-label"
+              for="formIconTags"
             >
               Tags
             </label>
 
             <input
               type="text"
-              id="iconTags"
               class="admin-input"
+              id="formIconTags"
+              maxlength="500"
               placeholder="calendar, time, schedule"
               autocomplete="off"
             >
@@ -1366,18 +1791,18 @@
           <div class="admin-form-group admin-form-full">
 
             <label
-              for="iconDescription"
               class="admin-label"
+              for="formIconDescription"
             >
               Description
             </label>
 
             <textarea
-              id="iconDescription"
               class="admin-textarea"
-              placeholder="Describe this icon..."
+              id="formIconDescription"
               rows="4"
-              maxlength="500"
+              maxlength="1000"
+              placeholder="Describe this icon..."
             ></textarea>
 
           </div>
@@ -1386,18 +1811,18 @@
           <div class="admin-form-group admin-form-full">
 
             <label
-              for="iconSvg"
               class="admin-label"
+              for="formIconSvg"
             >
               SVG Code
             </label>
 
             <textarea
-              id="iconSvg"
               class="admin-textarea admin-code-input"
-              placeholder="<svg ...></svg>"
-              rows="12"
+              id="formIconSvg"
+              rows="13"
               spellcheck="false"
+              placeholder="<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; ...></svg>"
             ></textarea>
 
           </div>
@@ -1405,28 +1830,33 @@
         </div>
 
 
-        <!-- LIVE PREVIEW -->
+        <!-- PREVIEW -->
 
         <div class="admin-preview">
 
           <div class="admin-preview-head">
 
-            <span class="admin-panel-eyebrow">
+            <p class="admin-panel-eyebrow">
               LIVE PREVIEW
-            </span>
+            </p>
 
           </div>
+
 
           <div
             class="admin-preview-box"
-            id="iconLivePreview"
+            id="iconPreviewBox"
           >
+
             <span class="admin-preview-placeholder">
-              SVG preview
+              SVG Preview
             </span>
+
           </div>
 
+
           <div class="admin-preview-meta">
+
 
             <div>
 
@@ -1434,11 +1864,14 @@
                 NAME
               </span>
 
-              <strong id="previewName">
+              <strong
+                id="iconPreviewName"
+              >
                 New Icon
               </strong>
 
             </div>
+
 
             <div>
 
@@ -1446,11 +1879,14 @@
                 ID
               </span>
 
-              <strong id="previewId">
+              <strong
+                id="iconPreviewId"
+              >
                 —
               </strong>
 
             </div>
+
 
             <div>
 
@@ -1458,11 +1894,14 @@
                 PLAN
               </span>
 
-              <strong id="previewPlan">
+              <strong
+                id="iconPreviewPlan"
+              >
                 FREE
               </strong>
 
             </div>
+
 
           </div>
 
@@ -1476,17 +1915,517 @@
         <button
           type="button"
           class="admin-button"
-          id="cancelNewIcon"
+          data-close-modal="iconModal"
         >
           Cancel
         </button>
 
+
         <button
           type="button"
           class="admin-button primary"
-          id="saveNewIcon"
+          id="saveIconButton"
         >
           Save Icon
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       COLLECTION MODAL
+       ===================================================== -->
+
+  <div
+    class="admin-modal"
+    id="collectionModal"
+    hidden
+    aria-hidden="true"
+  >
+
+    <div
+      class="admin-modal-backdrop"
+      data-close-modal="collectionModal"
+    ></div>
+
+
+    <div
+      class="admin-modal-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="collectionModalTitle"
+    >
+
+      <div class="admin-modal-head">
+
+        <div>
+
+          <p class="admin-panel-eyebrow">
+            COLLECTION MANAGER
+          </p>
+
+          <h2
+            class="admin-modal-title"
+            id="collectionModalTitle"
+          >
+            New Collection
+          </h2>
+
+          <p class="admin-modal-subtitle">
+            Create a reusable collection of categories.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          data-close-modal="collectionModal"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="admin-modal-body">
+
+        <div class="admin-form-grid">
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="formCollectionName"
+            >
+              Name
+            </label>
+
+            <input
+              type="text"
+              class="admin-input"
+              id="formCollectionName"
+              maxlength="100"
+              placeholder="Business Essentials"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="formCollectionId"
+            >
+              ID
+            </label>
+
+            <input
+              type="text"
+              class="admin-input"
+              id="formCollectionId"
+              maxlength="60"
+              placeholder="business-essentials"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group admin-form-full">
+
+            <label
+              class="admin-label"
+              for="formCollectionCategories"
+            >
+              Categories
+            </label>
+
+            <input
+              type="text"
+              class="admin-input"
+              id="formCollectionCategories"
+              placeholder="business, office, finance"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group admin-form-full">
+
+            <label
+              class="admin-label"
+              for="formCollectionDescription"
+            >
+              Description
+            </label>
+
+            <textarea
+              class="admin-textarea"
+              id="formCollectionDescription"
+              rows="4"
+              maxlength="500"
+              placeholder="Describe this collection..."
+            ></textarea>
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="formCollectionStatus"
+            >
+              Status
+            </label>
+
+            <select
+              class="admin-select"
+              id="formCollectionStatus"
+            >
+
+              <option value="true">
+                Active
+              </option>
+
+              <option value="false">
+                Hidden
+              </option>
+
+            </select>
+
+          </div>
+
+
+        </div>
+
+      </div>
+
+
+      <div class="admin-modal-footer">
+
+        <button
+          type="button"
+          class="admin-button"
+          data-close-modal="collectionModal"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-button primary"
+          id="saveCollectionButton"
+        >
+          Save Collection
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       CATEGORY MODAL
+       ===================================================== -->
+
+  <div
+    class="admin-modal"
+    id="categoryModal"
+    hidden
+    aria-hidden="true"
+  >
+
+    <div
+      class="admin-modal-backdrop"
+      data-close-modal="categoryModal"
+    ></div>
+
+
+    <div
+      class="admin-modal-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="categoryModalTitle"
+    >
+
+      <div class="admin-modal-head">
+
+        <div>
+
+          <p class="admin-panel-eyebrow">
+            CATEGORY MANAGER
+          </p>
+
+          <h2
+            class="admin-modal-title"
+            id="categoryModalTitle"
+          >
+            New Category
+          </h2>
+
+          <p class="admin-modal-subtitle">
+            Create or edit a UAsset category.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          data-close-modal="categoryModal"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="admin-modal-body">
+
+        <div class="admin-form-grid">
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="formCategoryName"
+            >
+              Name
+            </label>
+
+            <input
+              type="text"
+              class="admin-input"
+              id="formCategoryName"
+              maxlength="80"
+              placeholder="Business"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="formCategoryId"
+            >
+              ID
+            </label>
+
+            <input
+              type="text"
+              class="admin-input"
+              id="formCategoryId"
+              maxlength="60"
+              placeholder="business"
+              autocomplete="off"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="formCategoryOrder"
+            >
+              Sort Order
+            </label>
+
+            <input
+              type="number"
+              class="admin-input"
+              id="formCategoryOrder"
+              value="0"
+              min="0"
+              step="1"
+            >
+
+          </div>
+
+
+          <div class="admin-form-group">
+
+            <label
+              class="admin-label"
+              for="formCategoryStatus"
+            >
+              Status
+            </label>
+
+            <select
+              class="admin-select"
+              id="formCategoryStatus"
+            >
+
+              <option value="true">
+                Active
+              </option>
+
+              <option value="false">
+                Hidden
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="admin-form-group admin-form-full">
+
+            <label
+              class="admin-label"
+              for="formCategoryDescription"
+            >
+              Description
+            </label>
+
+            <textarea
+              class="admin-textarea"
+              id="formCategoryDescription"
+              rows="4"
+              maxlength="500"
+              placeholder="Describe this category..."
+            ></textarea>
+
+          </div>
+
+
+        </div>
+
+      </div>
+
+
+      <div class="admin-modal-footer">
+
+        <button
+          type="button"
+          class="admin-button"
+          data-close-modal="categoryModal"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-button primary"
+          id="saveCategoryButton"
+        >
+          Save Category
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       CONFIRM MODAL
+       ===================================================== -->
+
+  <div
+    class="admin-modal"
+    id="confirmModal"
+    hidden
+    aria-hidden="true"
+  >
+
+    <div
+      class="admin-modal-backdrop"
+      data-close-modal="confirmModal"
+    ></div>
+
+
+    <div
+      class="admin-modal-card admin-modal-small"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmModalTitle"
+    >
+
+      <div class="admin-modal-head">
+
+        <div>
+
+          <p class="admin-panel-eyebrow">
+            CONFIRM ACTION
+          </p>
+
+          <h2
+            class="admin-modal-title"
+            id="confirmModalTitle"
+          >
+            Are you sure?
+          </h2>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          data-close-modal="confirmModal"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="admin-modal-body">
+
+        <p
+          class="admin-confirm-message"
+          id="confirmModalMessage"
+        >
+          This action cannot be undone.
+        </p>
+
+      </div>
+
+
+      <div class="admin-modal-footer">
+
+        <button
+          type="button"
+          class="admin-button"
+          data-close-modal="confirmModal"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-button danger"
+          id="confirmActionButton"
+        >
+          Confirm
         </button>
 
       </div>
@@ -1506,5 +2445,4 @@
   ></script>
 
 </body>
-
 </html>
