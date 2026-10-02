@@ -1,15 +1,7 @@
 /* =========================================================
-   UASSET ADMIN — CLEAN REBUILD
+   UASSET ADMIN
+   FINAL CLEAN REBUILD
    admin/admin.js
-
-   Sections:
-   - Dashboard
-   - Icons
-   - Collections
-   - Categories
-   - Uploads
-   - Settings
-
    ========================================================= */
 
 
@@ -31,13 +23,107 @@ function qsa(selector, root = document) {
 
 
 /* =========================================================
+   API
+   ========================================================= */
+
+const API = {
+  icons: {
+    list: "/api/admin/icons/list",
+    create: "/api/admin/icons/create",
+    update: "/api/admin/icons/update",
+    delete: "/api/admin/icons/delete"
+  },
+
+  collections: {
+    list: "/api/admin/collections/list",
+    create: "/api/admin/collections/create",
+    update: "/api/admin/collections/update",
+    delete: "/api/admin/collections/delete"
+  },
+
+  categories: {
+    list: "/api/admin/categories/list",
+    create: "/api/admin/categories/create",
+    update: "/api/admin/categories/update",
+    delete: "/api/admin/categories/delete"
+  }
+};
+
+
+/* =========================================================
+   SECTION META
+   ========================================================= */
+
+const SECTION_META = {
+  dashboard: {
+    title: "Dashboard",
+    subtitle:
+      "Manage your UAsset library and platform settings."
+  },
+
+  icons: {
+    title: "Icon Manager",
+    subtitle:
+      "Manage every icon in the UAsset library."
+  },
+
+  collections: {
+    title: "Collection Manager",
+    subtitle:
+      "Organize categories into reusable collections."
+  },
+
+  categories: {
+    title: "Category Manager",
+    subtitle:
+      "Control categories used throughout the library."
+  },
+
+  uploads: {
+    title: "Upload Manager",
+    subtitle:
+      "Upload SVG assets and prepare them for the library."
+  },
+
+  settings: {
+    title: "Settings",
+    subtitle:
+      "Review UAsset system configuration and security."
+  }
+};
+
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+const state = {
+  section: "dashboard",
+
+  icons: [],
+  collections: [],
+  categories: [],
+
+  loadingIcons: false,
+  loadingCollections: false,
+  loadingCategories: false,
+
+  editingIconId: null,
+  editingCollectionId: null,
+  editingCategoryId: null,
+
+  confirmAction: null
+};
+
+
+/* =========================================================
    PRIMARY ELEMENTS
    ========================================================= */
 
-const pageTitle =
+const adminPageTitle =
   $("adminPageTitle");
 
-const pageSubtitle =
+const adminPageSubtitle =
   $("adminPageSubtitle");
 
 const navLinks =
@@ -46,42 +132,36 @@ const navLinks =
 const sectionPanels =
   qsa("[data-section-panel]");
 
+const globalNewButton =
+  $("globalNewButton");
+
 const newIconButton =
   $("newIconButton");
 
-const iconsNewButton =
-  $("iconsNewButton");
-
-const manageIconsButton =
-  $("manageIconsButton");
-
-const refreshCollectionsButton =
-  $("refreshCollectionsButton");
-
-const refreshCategoriesButton =
-  $("refreshCategoriesButton");
+const refreshIconsButton =
+  $("refreshIconsButton");
 
 const newCollectionButton =
   $("newCollectionButton");
 
+const refreshCollectionsButton =
+  $("refreshCollectionsButton");
+
 const newCategoryButton =
   $("newCategoryButton");
 
-const quickNewIcon =
-  $("quickNewIcon");
+const refreshCategoriesButton =
+  $("refreshCategoriesButton");
 
-const quickUpload =
-  $("quickUpload");
+const mobileMenuButton =
+  $("adminMobileMenu");
 
-const quickCollection =
-  $("quickCollection");
-
-const quickCategory =
-  $("quickCategory");
+const sidebar =
+  $("adminSidebar");
 
 
 /* =========================================================
-   DASHBOARD
+   DASHBOARD ELEMENTS
    ========================================================= */
 
 const totalIcons =
@@ -96,17 +176,20 @@ const proIcons =
 const totalCollections =
   $("totalCollections");
 
-const adminAuthStatus =
-  $("adminAuthStatus");
+const statusAuth =
+  $("statusAuth");
 
-const adminIconsStatus =
-  $("adminIconsStatus");
+const statusIcons =
+  $("statusIcons");
 
-const adminCollectionsStatus =
-  $("adminCollectionsStatus");
+const statusCollections =
+  $("statusCollections");
 
-const adminCategoriesStatus =
-  $("adminCategoriesStatus");
+const statusCategories =
+  $("statusCategories");
+
+const statusStorage =
+  $("statusStorage");
 
 
 /* =========================================================
@@ -119,6 +202,9 @@ const adminIconsBody =
 const iconSearch =
   $("iconSearch");
 
+const iconCategoryFilter =
+  $("iconCategoryFilter");
+
 const iconPlanFilter =
   $("iconPlanFilter");
 
@@ -127,6 +213,20 @@ const iconStatusFilter =
 
 const iconResultsCount =
   $("iconResultsCount");
+
+
+/* =========================================================
+   COLLECTION ELEMENTS
+   ========================================================= */
+
+const adminCollectionsBody =
+  $("adminCollectionsBody");
+
+const collectionSearch =
+  $("collectionSearch");
+
+const collectionResultsCount =
+  $("collectionResultsCount");
 
 
 /* =========================================================
@@ -150,14 +250,14 @@ const categoryResultsCount =
    UPLOAD ELEMENTS
    ========================================================= */
 
-const adminUploadButton =
-  $("adminUploadButton");
+const adminUploadArea =
+  $("adminUploadArea");
+
+const adminChooseFilesButton =
+  $("adminChooseFilesButton");
 
 const adminFileInput =
   $("adminFileInput");
-
-const adminUploadArea =
-  $("adminUploadArea");
 
 const adminUploadList =
   $("adminUploadList");
@@ -167,337 +267,209 @@ const adminUploadList =
    ICON MODAL
    ========================================================= */
 
-const newIconModal =
-  $("newIconModal");
+const iconModal =
+  $("iconModal");
 
-const closeNewIcon =
-  $("closeNewIcon");
+const iconModalTitle =
+  $("iconModalTitle");
 
-const cancelNewIcon =
-  $("cancelNewIcon");
+const formIconName =
+  $("formIconName");
 
-const saveNewIcon =
-  $("saveNewIcon");
+const formIconId =
+  $("formIconId");
 
-const iconName =
-  $("iconName");
+const formIconCategory =
+  $("formIconCategory");
 
-const iconId =
-  $("iconId");
+const formIconPlan =
+  $("formIconPlan");
 
-const iconCategory =
-  $("iconCategory");
+const formIconTags =
+  $("formIconTags");
 
-const iconTags =
-  $("iconTags");
+const formIconDescription =
+  $("formIconDescription");
 
-const iconDescription =
-  $("iconDescription");
+const formIconSvg =
+  $("formIconSvg");
 
-const iconPlan =
-  $("iconPlan");
+const iconPreviewBox =
+  $("iconPreviewBox");
 
-const iconSvg =
-  $("iconSvg");
+const iconPreviewName =
+  $("iconPreviewName");
 
-const iconLivePreview =
-  $("iconLivePreview");
+const iconPreviewId =
+  $("iconPreviewId");
 
-const previewName =
-  $("previewName");
+const iconPreviewPlan =
+  $("iconPreviewPlan");
 
-const previewId =
-  $("previewId");
-
-const previewPlan =
-  $("previewPlan");
-
-const newIconModalTitle =
-  $("newIconModalTitle");
+const saveIconButton =
+  $("saveIconButton");
 
 
 /* =========================================================
-   API
+   COLLECTION MODAL
    ========================================================= */
 
-const API = {
+const collectionModal =
+  $("collectionModal");
 
-  icons: {
-    list:
-      "/api/admin/icons/list",
+const collectionModalTitle =
+  $("collectionModalTitle");
 
-    create:
-      "/api/admin/icons/create",
+const formCollectionName =
+  $("formCollectionName");
 
-    update:
-      "/api/admin/icons/update",
+const formCollectionId =
+  $("formCollectionId");
 
-    delete:
-      "/api/admin/icons/delete"
-  },
+const formCollectionCategories =
+  $("formCollectionCategories");
 
-  collections: {
-    list:
-      "/api/admin/collections/list",
+const formCollectionDescription =
+  $("formCollectionDescription");
 
-    create:
-      "/api/admin/collections/create",
+const formCollectionStatus =
+  $("formCollectionStatus");
 
-    update:
-      "/api/admin/collections/update",
-
-    delete:
-      "/api/admin/collections/delete"
-  },
-
-  categories: {
-    list:
-      "/api/admin/categories/list",
-
-    create:
-      "/api/admin/categories/create",
-
-    update:
-      "/api/admin/categories/update",
-
-    delete:
-      "/api/admin/categories/delete"
-  }
-
-};
+const saveCollectionButton =
+  $("saveCollectionButton");
 
 
 /* =========================================================
-   PAGE META
+   CATEGORY MODAL
    ========================================================= */
 
-const SECTION_META = {
+const categoryModal =
+  $("categoryModal");
 
-  dashboard: {
-    title:
-      "Dashboard",
+const categoryModalTitle =
+  $("categoryModalTitle");
 
-    subtitle:
-      "Manage icons, collections, categories, uploads and system settings."
-  },
+const formCategoryName =
+  $("formCategoryName");
 
-  icons: {
-    title:
-      "Icon Manager",
+const formCategoryId =
+  $("formCategoryId");
 
-    subtitle:
-      "Create, edit, hide and delete UAsset icons."
-  },
+const formCategoryOrder =
+  $("formCategoryOrder");
 
-  collections: {
-    title:
-      "Collections",
+const formCategoryStatus =
+  $("formCategoryStatus");
 
-    subtitle:
-      "Group categories into curated collections."
-  },
+const formCategoryDescription =
+  $("formCategoryDescription");
 
-  categories: {
-    title:
-      "Categories",
-
-    subtitle:
-      "Manage categories used by the UAsset library."
-  },
-
-  uploads: {
-    title:
-      "Uploads",
-
-    subtitle:
-      "Upload and manage UAsset files."
-  },
-
-  settings: {
-    title:
-      "Settings",
-
-    subtitle:
-      "UAsset admin and library configuration."
-  }
-
-};
+const saveCategoryButton =
+  $("saveCategoryButton");
 
 
 /* =========================================================
-   APPLICATION STATE
+   CONFIRM MODAL
    ========================================================= */
 
-const state = {
+const confirmModal =
+  $("confirmModal");
 
-  currentSection:
-    "dashboard",
+const confirmModalTitle =
+  $("confirmModalTitle");
 
-  icons:
-    [],
+const confirmModalMessage =
+  $("confirmModalMessage");
 
-  collections:
-    [],
-
-  categories:
-    [],
-
-  editingIconId:
-    null,
-
-  editingCollectionId:
-    null,
-
-  editingCategoryId:
-    null,
-
-  loadingIcons:
-    false,
-
-  loadingCollections:
-    false,
-
-  loadingCategories:
-    false
-
-};
+const confirmActionButton =
+  $("confirmActionButton");
 
 
 /* =========================================================
-   GENERIC HELPERS
+   TOAST
    ========================================================= */
 
-function escapeHtml(value) {
+const adminToast =
+  $("adminToast");
 
-  return String(
-    value ?? ""
-  )
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+const adminToastIcon =
+  $("adminToastIcon");
 
-}
+const adminToastMessage =
+  $("adminToastMessage");
 
+let toastTimer = null;
+
+
+/* =========================================================
+   BASIC HELPERS
+   ========================================================= */
 
 function cleanText(value) {
-
-  return String(
-    value ?? ""
-  ).trim();
-
+  return String(value ?? "").trim();
 }
 
 
 function normalizeId(value) {
-
-  return cleanText(
-    value
-  )
+  return cleanText(value)
     .toLowerCase()
-    .replace(
-      /&/g,
-      "and"
-    )
-    .replace(
-      /[^a-z0-9]+/g,
-      "-"
-    )
-    .replace(
-      /^-+|-+$/g,
-      ""
-    )
-    .slice(
-      0,
-      60
-    );
-
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 
 
 function parseCommaList(value) {
-
   return [
     ...new Set(
-      String(
-        value ?? ""
-      )
+      String(value ?? "")
         .split(",")
-        .map(
-          item =>
-            item.trim()
-        )
+        .map(item => item.trim())
         .filter(Boolean)
     )
   ];
+}
 
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 
 function formatDate(value) {
-
   if (!value) {
     return "—";
   }
 
-  const date =
-    new Date(
-      value
-    );
+  const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return "—";
   }
 
   return date.toLocaleDateString(
     undefined,
     {
-      year:
-        "numeric",
-
-      month:
-        "short",
-
-      day:
-        "numeric"
+      year: "numeric",
+      month: "short",
+      day: "numeric"
     }
   );
-
 }
 
 
-function setStatus(
-  element,
-  status,
-  text
-) {
-
+function setStatus(element, type, text) {
   if (!element) {
     return;
   }
 
-  element.textContent =
-    text;
+  element.textContent = text;
 
   element.classList.remove(
     "success",
@@ -505,74 +477,70 @@ function setStatus(
     "danger"
   );
 
-  if (
-    status ===
-    "success"
-  ) {
-
-    element.classList.add(
-      "success"
-    );
-
-  } else if (
-    status ===
-    "warning"
-  ) {
-
-    element.classList.add(
-      "warning"
-    );
-
-  } else if (
-    status ===
-    "danger"
-  ) {
-
-    element.classList.add(
-      "danger"
-    );
-
+  if (type) {
+    element.classList.add(type);
   }
-
 }
 
 
-async function readResponse(
-  response
+function setButtonLoading(
+  button,
+  loading,
+  loadingText,
+  normalText
 ) {
-
-  let data = {};
-
-  try {
-
-    data =
-      await response.json();
-
-  } catch {
-
-    data = {};
-
+  if (!button) {
+    return;
   }
 
-  return {
-    response,
-    data
-  };
-
+  if (loading) {
+    button.disabled = true;
+    button.dataset.normalText =
+      normalText || button.textContent;
+    button.textContent = loadingText;
+  } else {
+    button.disabled = false;
+    button.textContent =
+      normalText ||
+      button.dataset.normalText ||
+      button.textContent;
+  }
 }
 
 
-function getErrorMessage(
-  data,
-  fallback
-) {
+/* =========================================================
+   TOAST
+   ========================================================= */
 
-  return (
-    data?.error ||
-    data?.message ||
-    fallback
+function showToast(
+  message,
+  type = "success"
+) {
+  if (!adminToast) {
+    return;
+  }
+
+  clearTimeout(toastTimer);
+
+  adminToast.hidden = false;
+
+  adminToastMessage.textContent =
+    message;
+
+  if (type === "success") {
+    adminToastIcon.textContent = "✓";
+  } else if (type === "error") {
+    adminToastIcon.textContent = "!";
+  } else {
+    adminToastIcon.textContent = "•";
+  }
+
+  toastTimer = setTimeout(
+    () => {
+      adminToast.hidden = true;
+    },
+    3200
   );
-
 }
 
 
@@ -584,18 +552,17 @@ async function apiRequest(
   url,
   options = {}
 ) {
-
   const response =
     await fetch(
       url,
       {
+        ...options,
+
         credentials:
           "same-origin",
 
         cache:
           "no-store",
-
-        ...options,
 
         headers: {
           Accept:
@@ -606,26 +573,34 @@ async function apiRequest(
       }
     );
 
-  const result =
-    await readResponse(
-      response
-    );
+  let data = {};
 
-  if (
-    !result.response.ok
-  ) {
-
-    throw new Error(
-      getErrorMessage(
-        result.data,
-        `Request failed (${result.response.status})`
-      )
-    );
-
+  try {
+    data =
+      await response.json();
+  } catch {
+    data = {};
   }
 
-  return result.data;
+  if (!response.ok) {
+    const message =
+      data?.error ||
+      data?.message ||
+      `Request failed (${response.status})`;
 
+    const error =
+      new Error(message);
+
+    error.status =
+      response.status;
+
+    error.data =
+      data;
+
+    throw error;
+  }
+
+  return data;
 }
 
 
@@ -633,234 +608,230 @@ async function apiRequest(
    SECTION NAVIGATION
    ========================================================= */
 
-function activateSection(
-  section
-) {
+function getInitialSection() {
+  const hash =
+    window.location.hash
+      .replace("#", "")
+      .trim();
 
-  if (
-    !SECTION_META[
-      section
-    ]
-  ) {
-    section =
-      "dashboard";
+  return SECTION_META[hash]
+    ? hash
+    : "dashboard";
+}
+
+
+function closeMobileSidebar() {
+  sidebar?.classList.remove(
+    "open"
+  );
+
+  mobileMenuButton?.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+}
+
+
+function activateSection(
+  section,
+  updateHash = true
+) {
+  if (!SECTION_META[section]) {
+    section = "dashboard";
   }
 
-  state.currentSection =
+  state.section =
     section;
 
   sectionPanels.forEach(
     panel => {
-
-      const isActive =
-        panel.dataset.sectionPanel ===
-        section;
-
       panel.hidden =
-        !isActive;
-
+        panel.dataset.sectionPanel !==
+        section;
     }
   );
 
   navLinks.forEach(
     link => {
-
-      const isActive =
-        link.dataset.section ===
-        section;
-
       link.classList.toggle(
         "active",
-        isActive
+        link.dataset.section ===
+          section
       );
-
     }
   );
 
   const meta =
-    SECTION_META[
-      section
-    ];
+    SECTION_META[section];
 
-  if (pageTitle) {
-    pageTitle.textContent =
+  if (adminPageTitle) {
+    adminPageTitle.textContent =
       meta.title;
   }
 
-  if (pageSubtitle) {
-    pageSubtitle.textContent =
+  if (adminPageSubtitle) {
+    adminPageSubtitle.textContent =
       meta.subtitle;
   }
 
-  window.history.replaceState(
-    null,
-    "",
-    `#${section}`
-  );
+  if (updateHash) {
+    window.history.replaceState(
+      null,
+      "",
+      `#${section}`
+    );
+  }
 
-  if (
-    section ===
-    "icons"
-  ) {
+  closeMobileSidebar();
 
+  if (section === "icons") {
     loadIcons();
-
   }
 
-  if (
-    section ===
-    "collections"
-  ) {
-
+  if (section === "collections") {
     loadCollections();
-
   }
 
-  if (
-    section ===
-    "categories"
-  ) {
-
+  if (section === "categories") {
     loadCategories();
-
   }
-
 }
 
 
-function readInitialSection() {
-
-  const hash =
-    window.location.hash
-      .replace(
-        "#",
-        ""
-      )
-      .trim();
-
-  if (
-    SECTION_META[
-      hash
-    ]
-  ) {
-
-    return hash;
-
-  }
-
-  return "dashboard";
-
-}
-
+/* =========================================================
+   NAV EVENTS
+   ========================================================= */
 
 navLinks.forEach(
   link => {
-
     link.addEventListener(
       "click",
       event => {
-
         event.preventDefault();
 
         activateSection(
           link.dataset.section
         );
-
       }
     );
+  }
+);
 
+
+window.addEventListener(
+  "hashchange",
+  () => {
+    activateSection(
+      getInitialSection(),
+      false
+    );
   }
 );
 
 
 /* =========================================================
-   DASHBOARD LOAD
+   MOBILE MENU
+   ========================================================= */
+
+mobileMenuButton?.addEventListener(
+  "click",
+  () => {
+    const open =
+      sidebar?.classList.toggle(
+        "open"
+      );
+
+    mobileMenuButton.setAttribute(
+      "aria-expanded",
+      open ? "true" : "false"
+    );
+  }
+);
+
+
+/* =========================================================
+   DASHBOARD
    ========================================================= */
 
 async function loadDashboard() {
+  await loadDashboardIcons();
+  await loadDashboardCollections();
+  await loadDashboardCategories();
+}
 
+
+async function loadDashboardIcons() {
   setStatus(
-    adminAuthStatus,
+    statusIcons,
     "warning",
     "Checking"
   );
-
-  setStatus(
-    adminIconsStatus,
-    "warning",
-    "Checking"
-  );
-
-  setStatus(
-    adminCollectionsStatus,
-    "warning",
-    "Checking"
-  );
-
-  setStatus(
-    adminCategoriesStatus,
-    "warning",
-    "Checking"
-  );
-
 
   try {
-
     const data =
       await apiRequest(
         API.icons.list
       );
 
     state.icons =
-      Array.isArray(
-        data.icons
-      )
+      Array.isArray(data.icons)
         ? data.icons
         : [];
 
     updateIconStats();
 
     setStatus(
-      adminAuthStatus,
+      statusAuth,
       "success",
       "Active"
     );
 
     setStatus(
-      adminIconsStatus,
+      statusIcons,
       "success",
       "Online"
     );
 
-  } catch (
-    error
-  ) {
+    if (
+      state.section ===
+      "icons"
+    ) {
+      renderIcons();
+    }
 
+  } catch (error) {
     setStatus(
-      adminAuthStatus,
+      statusAuth,
       "warning",
       "Unknown"
     );
 
     setStatus(
-      adminIconsStatus,
+      statusIcons,
       "danger",
       "Error"
     );
 
     console.error(
-      "Dashboard icon load failed:",
+      "Dashboard icon load error:",
       error
     );
-
   }
+}
 
+
+async function loadDashboardCollections() {
+  setStatus(
+    statusCollections,
+    "warning",
+    "Checking"
+  );
 
   try {
-
     const data =
       await apiRequest(
-        API.collections.list
+        API.collections.list +
+        "?include_inactive=true"
       );
 
     state.collections =
@@ -874,37 +845,48 @@ async function loadDashboard() {
       );
 
     setStatus(
-      adminCollectionsStatus,
+      statusCollections,
       "success",
       "Online"
     );
 
-  } catch (
-    error
-  ) {
+    if (
+      state.section ===
+      "collections"
+    ) {
+      renderCollections();
+    }
 
+  } catch (error) {
     totalCollections.textContent =
       "0";
 
     setStatus(
-      adminCollectionsStatus,
+      statusCollections,
       "warning",
       "Unavailable"
     );
 
-    console.warn(
-      "Dashboard collection load failed:",
+    console.error(
+      "Dashboard collection load error:",
       error
     );
-
   }
+}
 
+
+async function loadDashboardCategories() {
+  setStatus(
+    statusCategories,
+    "warning",
+    "Checking"
+  );
 
   try {
-
     const data =
       await apiRequest(
-        API.categories.list
+        API.categories.list +
+        "?include_inactive=true"
       );
 
     state.categories =
@@ -913,37 +895,33 @@ async function loadDashboard() {
       );
 
     setStatus(
-      adminCategoriesStatus,
+      statusCategories,
       "success",
       "Online"
     );
 
-  } catch (
-    error
-  ) {
-
+  } catch (error) {
     setStatus(
-      adminCategoriesStatus,
+      statusCategories,
       "warning",
       "Unavailable"
     );
 
-    console.warn(
-      "Dashboard category load failed:",
+    console.error(
+      "Dashboard category load error:",
       error
     );
-
   }
 
+  setStatus(
+    statusStorage,
+    "success",
+    "Configured"
+  );
 }
 
 
-/* =========================================================
-   ICON STATS
-   ========================================================= */
-
 function updateIconStats() {
-
   const icons =
     state.icons;
 
@@ -953,41 +931,90 @@ function updateIconStats() {
   const free =
     icons.filter(
       icon =>
-        icon.plan ===
-        "free"
+        icon.plan === "free"
     ).length;
 
   const pro =
     icons.filter(
       icon =>
-        icon.plan ===
-        "pro"
+        icon.plan === "pro"
     ).length;
 
-  if (totalIcons) {
-    totalIcons.textContent =
-      String(total);
-  }
+  totalIcons.textContent =
+    String(total);
 
-  if (freeIcons) {
-    freeIcons.textContent =
-      String(free);
-  }
+  freeIcons.textContent =
+    String(free);
 
-  if (proIcons) {
-    proIcons.textContent =
-      String(pro);
-  }
-
+  proIcons.textContent =
+    String(pro);
 }
 
 
 /* =========================================================
-   ICONS — LOAD
+   ICON CATEGORIES DROPDOWN
+   ========================================================= */
+
+function updateIconCategoryFilter() {
+  if (!iconCategoryFilter) {
+    return;
+  }
+
+  const current =
+    iconCategoryFilter.value;
+
+  const categories =
+    [
+      ...new Set(
+        state.icons
+          .map(
+            icon =>
+              cleanText(
+                icon.category
+              )
+          )
+          .filter(Boolean)
+      )
+    ]
+      .sort(
+        (a, b) =>
+          a.localeCompare(b)
+      );
+
+  iconCategoryFilter.innerHTML = `
+    <option value="">
+      All Categories
+    </option>
+    ${
+      categories
+        .map(
+          category =>
+            `<option value="${escapeHtml(
+              category
+            )}">${escapeHtml(
+              category
+            )}</option>`
+        )
+        .join("")
+    }
+  `;
+
+  if (
+    categories.includes(
+      current
+    )
+  ) {
+    iconCategoryFilter.value =
+      current;
+  }
+}
+
+
+/* =========================================================
+   ICONS LOAD
    ========================================================= */
 
 async function loadIcons() {
-
   if (
     state.loadingIcons
   ) {
@@ -1000,50 +1027,91 @@ async function loadIcons() {
   renderIconLoading();
 
   try {
-
     const data =
       await apiRequest(
         API.icons.list
       );
 
     state.icons =
-      Array.isArray(
-        data.icons
-      )
+      Array.isArray(data.icons)
         ? data.icons
         : [];
 
     updateIconStats();
-
+    updateIconCategoryFilter();
     renderIcons();
 
     setStatus(
-      adminIconsStatus,
+      statusIcons,
       "success",
       "Online"
     );
 
-  } catch (
-    error
-  ) {
-
+  } catch (error) {
     renderIconError(
       error.message
     );
 
     setStatus(
-      adminIconsStatus,
+      statusIcons,
       "danger",
       "Error"
     );
 
-  } finally {
+    console.error(
+      "Icon load error:",
+      error
+    );
 
+  } finally {
     state.loadingIcons =
       false;
+  }
+}
 
+
+function renderIconLoading() {
+  if (!adminIconsBody) {
+    return;
   }
 
+  adminIconsBody.innerHTML = `
+    <tr>
+      <td
+        colspan="7"
+        class="admin-table-empty"
+      >
+        Loading icons...
+      </td>
+    </tr>
+  `;
+
+}
+
+
+function renderIconError(
+  message
+) {
+  if (!adminIconsBody) {
+    return;
+  }
+
+  adminIconsBody.innerHTML = `
+    <tr>
+      <td
+        colspan="7"
+        class="admin-table-empty"
+      >
+        ${escapeHtml(
+          message ||
+          "Unable to load icons."
+        )}
+      </td>
+    </tr>
+  `;
+
+  iconResultsCount.textContent =
+    "0 icons";
 }
 
 
@@ -1052,20 +1120,25 @@ async function loadIcons() {
    ========================================================= */
 
 function getFilteredIcons() {
-
   const search =
     cleanText(
       iconSearch?.value
-    )
-      .toLowerCase();
+    ).toLowerCase();
+
+  const category =
+    cleanText(
+      iconCategoryFilter?.value
+    ).toLowerCase();
 
   const plan =
-    iconPlanFilter?.value ||
-    "";
+    cleanText(
+      iconPlanFilter?.value
+    ).toLowerCase();
 
   const status =
-    iconStatusFilter?.value ||
-    "active";
+    cleanText(
+      iconStatusFilter?.value
+    ).toLowerCase();
 
   return state.icons.filter(
     icon => {
@@ -1080,7 +1153,7 @@ function getFilteredIcons() {
           icon.id
         ).toLowerCase();
 
-      const category =
+      const iconCategory =
         cleanText(
           icon.category
         ).toLowerCase();
@@ -1098,8 +1171,13 @@ function getFilteredIcons() {
         !search ||
         name.includes(search) ||
         id.includes(search) ||
-        category.includes(search) ||
+        iconCategory.includes(search) ||
         tags.includes(search);
+
+      const matchesCategory =
+        !category ||
+        iconCategory ===
+          category;
 
       const matchesPlan =
         !plan ||
@@ -1107,36 +1185,32 @@ function getFilteredIcons() {
           plan;
 
       const active =
-        icon.isActive ===
-        true;
+        icon.isActive !==
+        false;
 
       const matchesStatus =
-        status ===
-          "all"
+        status === "all"
           ? true
-          : status ===
-              "active"
+          : status === "active"
             ? active
             : !active;
 
       return (
         matchesSearch &&
+        matchesCategory &&
         matchesPlan &&
         matchesStatus
       );
-
     }
   );
-
 }
 
 
 /* =========================================================
-   ICONS — RENDER
+   ICON RENDER
    ========================================================= */
 
 function renderIcons() {
-
   if (!adminIconsBody) {
     return;
   }
@@ -1144,25 +1218,18 @@ function renderIcons() {
   const icons =
     getFilteredIcons();
 
-  if (iconResultsCount) {
+  iconResultsCount.textContent =
+    `${icons.length} ${
+      icons.length === 1
+        ? "icon"
+        : "icons"
+    }`;
 
-    iconResultsCount.textContent =
-      `${icons.length} ${
-        icons.length === 1
-          ? "icon"
-          : "icons"
-      }`;
-
-  }
-
-  if (
-    !icons.length
-  ) {
-
+  if (!icons.length) {
     adminIconsBody.innerHTML = `
       <tr>
         <td
-          colspan="6"
+          colspan="7"
           class="admin-table-empty"
         >
           No icons found.
@@ -1171,92 +1238,23 @@ function renderIcons() {
     `;
 
     return;
-
   }
 
-
   adminIconsBody.innerHTML =
-    icons.map(
-      icon =>
-        renderIconRow(
-          icon
-        )
-    ).join("");
-
-  qsa(
-    "[data-icon-edit]",
-    adminIconsBody
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          const id =
-            button.dataset.iconEdit;
-
-          openEditIcon(
-            id
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  qsa(
-    "[data-icon-toggle]",
-    adminIconsBody
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          toggleIcon(
-            button.dataset.iconToggle,
-            button.dataset.iconActive ===
-              "true"
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  qsa(
-    "[data-icon-delete]",
-    adminIconsBody
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          deleteIcon(
-            button.dataset.iconDelete
-          );
-
-        }
-      );
-
-    }
-  );
-
+    icons
+      .map(
+        icon =>
+          renderIconRow(
+            icon
+          )
+      )
+      .join("");
 }
 
 
 function renderIconRow(
   icon
 ) {
-
   const id =
     escapeHtml(
       icon.id
@@ -1264,12 +1262,14 @@ function renderIconRow(
 
   const name =
     escapeHtml(
-      icon.name
+      icon.name ||
+      "Untitled"
     );
 
   const category =
     escapeHtml(
-      icon.category
+      icon.category ||
+      "—"
     );
 
   const plan =
@@ -1279,41 +1279,33 @@ function renderIconRow(
       : "free";
 
   const active =
-    icon.isActive ===
-    true;
+    icon.isActive !==
+    false;
 
-  const statusClass =
-    active
-      ? "active"
-      : "inactive";
-
-  const statusLabel =
+  const status =
     active
       ? "ACTIVE"
       : "HIDDEN";
-
-  const actionLabel =
-    active
-      ? "Hide"
-      : "Unhide";
-
 
   return `
     <tr>
 
       <td>
 
-        <div class="admin-icon-cell">
+        <div
+          class="admin-icon-cell"
+        >
 
           <div
             class="admin-icon-preview"
-            data-svg-preview="${id}"
           >
-            ${getSafeSvgPreview(
-              icon.previewSvg ||
+
+            ${renderSvg(
               icon.svg ||
+              icon.previewSvg ||
               ""
             )}
+
           </div>
 
         </div>
@@ -1323,11 +1315,15 @@ function renderIconRow(
 
       <td>
 
-        <div class="admin-icon-name">
+        <div
+          class="admin-icon-name"
+        >
           ${name}
         </div>
 
-        <div class="admin-icon-id">
+        <div
+          class="admin-icon-id"
+        >
           ${id}
         </div>
 
@@ -1335,8 +1331,10 @@ function renderIconRow(
 
 
       <td>
-        <span class="admin-muted">
-          ${category || "—"}
+        <span
+          class="admin-muted"
+        >
+          ${category}
         </span>
       </td>
 
@@ -1355,9 +1353,13 @@ function renderIconRow(
       <td>
 
         <span
-          class="admin-badge ${statusClass}"
+          class="admin-badge ${
+            active
+              ? "active"
+              : "inactive"
+          }"
         >
-          ${statusLabel}
+          ${status}
         </span>
 
       </td>
@@ -1365,12 +1367,29 @@ function renderIconRow(
 
       <td>
 
-        <div class="admin-icon-actions">
+        <span
+          class="admin-muted"
+        >
+          ${formatDate(
+            icon.updatedAt ||
+            icon.updated_at
+          )}
+        </span>
+
+      </td>
+
+
+      <td>
+
+        <div
+          class="admin-icon-actions"
+        >
 
           <button
             type="button"
             class="admin-icon-action"
-            data-icon-edit="${id}"
+            data-action="edit-icon"
+            data-id="${id}"
           >
             Edit
           </button>
@@ -1378,16 +1397,22 @@ function renderIconRow(
           <button
             type="button"
             class="admin-icon-action"
-            data-icon-toggle="${id}"
-            data-icon-active="${active}"
+            data-action="toggle-icon"
+            data-id="${id}"
+            data-active="${active}"
           >
-            ${actionLabel}
+            ${
+              active
+                ? "Hide"
+                : "Unhide"
+            }
           </button>
 
           <button
             type="button"
             class="admin-icon-action danger"
-            data-icon-delete="${id}"
+            data-action="delete-icon"
+            data-id="${id}"
           >
             Delete
           </button>
@@ -1398,65 +1423,52 @@ function renderIconRow(
 
     </tr>
   `;
-
 }
 
 
 /* =========================================================
-   SAFE SVG PREVIEW
+   SVG SANITIZATION
    ========================================================= */
 
-function getSafeSvgPreview(
+function renderSvg(
   svg
 ) {
-
   const value =
-    cleanText(
-      svg
-    );
+    cleanText(svg);
 
   if (!value) {
-
-    return `
-      <span
-        class="admin-muted"
-      >
-        —
-      </span>
-    `;
-
+    return "";
   }
 
   try {
-
     const parser =
       new DOMParser();
 
-    const documentNode =
+    const doc =
       parser.parseFromString(
         value,
         "image/svg+xml"
       );
 
     const root =
-      documentNode.documentElement;
+      doc.documentElement;
 
     if (
       !root ||
       root.tagName.toLowerCase() !==
         "svg"
     ) {
-
       return "";
-
     }
 
-    root.querySelectorAll(
-      "script, foreignObject"
-    ).forEach(
-      node =>
-        node.remove()
-    );
+    root
+      .querySelectorAll(
+        "script,foreignObject"
+      )
+      .forEach(
+        node =>
+          node.remove()
+      );
 
     root.setAttribute(
       "width",
@@ -1473,73 +1485,11 @@ function getSafeSvgPreview(
       "true"
     );
 
-    root.setAttribute(
-      "focusable",
-      "false"
-    );
-
     return root.outerHTML;
 
   } catch {
-
     return "";
-
   }
-
-}
-
-
-/* =========================================================
-   ICON LOADING / ERROR
-   ========================================================= */
-
-function renderIconLoading() {
-
-  if (!adminIconsBody) {
-    return;
-  }
-
-  adminIconsBody.innerHTML = `
-    <tr>
-      <td
-        colspan="6"
-        class="admin-table-empty"
-      >
-        Loading icons...
-      </td>
-    </tr>
-  `;
-
-}
-
-
-function renderIconError(
-  message
-) {
-
-  if (!adminIconsBody) {
-    return;
-  }
-
-  adminIconsBody.innerHTML = `
-    <tr>
-      <td
-        colspan="6"
-        class="admin-table-empty"
-      >
-        ${escapeHtml(
-          message ||
-          "Unable to load icons."
-        )}
-      </td>
-    </tr>
-  `;
-
-  if (iconResultsCount) {
-    iconResultsCount.textContent =
-      "0 icons";
-  }
-
 }
 
 
@@ -1547,625 +1497,378 @@ function renderIconError(
    ICON MODAL
    ========================================================= */
 
-function clearIconForm() {
-
-  iconName.value =
-    "";
-
-  iconId.value =
-    "";
-
-  iconCategory.value =
-    "";
-
-  iconTags.value =
-    "";
-
-  iconDescription.value =
-    "";
-
-  iconPlan.value =
-    "free";
-
-  iconSvg.value =
-    "";
-
+function resetIconForm() {
   state.editingIconId =
     null;
 
-  if (newIconModalTitle) {
+  iconModalTitle.textContent =
+    "New Icon";
 
-    newIconModalTitle.textContent =
-      "New Icon";
-
-  }
-
-  if (saveNewIcon) {
-
-    saveNewIcon.textContent =
-      "Save Icon";
-
-  }
-
-  updateIconPreview();
-
-}
-
-
-function fillIconForm(
-  icon
-) {
-
-  iconName.value =
-    icon.name ||
+  formIconName.value =
     "";
 
-  iconId.value =
-    icon.id ||
+  formIconId.value =
     "";
 
-  iconCategory.value =
-    icon.category ||
+  formIconCategory.value =
     "";
 
-  iconTags.value =
-    Array.isArray(
-      icon.tags
-    )
-      ? icon.tags.join(
-          ", "
-        )
-      : "";
+  formIconPlan.value =
+    "free";
 
-  iconDescription.value =
-    icon.description ||
+  formIconTags.value =
     "";
 
-  iconPlan.value =
-    icon.plan ===
-      "pro"
-      ? "pro"
-      : "free";
-
-  iconSvg.value =
-    icon.svg ||
+  formIconDescription.value =
     "";
 
-  state.editingIconId =
-    icon.id;
+  formIconSvg.value =
+    "";
 
-  if (newIconModalTitle) {
-
-    newIconModalTitle.textContent =
-      "Edit Icon";
-
-  }
-
-  if (saveNewIcon) {
-
-    saveNewIcon.textContent =
-      "Update Icon";
-
-  }
-
-  updateIconPreview();
-
-}
-
-
-function openNewIcon() {
-
-  clearIconForm();
-
-  openIconModal();
-
-}
-
-
-function openEditIcon(
-  id
-) {
-
-  const icon =
-    state.icons.find(
-      item =>
-        String(
-          item.id
-        ) ===
-        String(id)
-    );
-
-  if (!icon) {
-
-    alert(
-      "Icon not found."
-    );
-
-    return;
-
-  }
-
-  fillIconForm(
-    icon
-  );
-
-  openIconModal();
-
-}
-
-
-function openIconModal() {
-
-  if (!newIconModal) {
-    return;
-  }
-
-  newIconModal.hidden =
+  formIconId.disabled =
     false;
 
-  newIconModal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
+  saveIconButton.textContent =
+    "Save Icon";
 
-  document.body.classList.add(
-    "uasset-modal-open"
+  updateIconPreview();
+}
+
+
+function openIconModal(
+  id = null
+) {
+  resetIconForm();
+
+  if (id) {
+    const icon =
+      state.icons.find(
+        item =>
+          String(
+            item.id
+          ) ===
+          String(id)
+      );
+
+    if (!icon) {
+      showToast(
+        "Icon not found.",
+        "error"
+      );
+
+      return;
+    }
+
+    state.editingIconId =
+      icon.id;
+
+    iconModalTitle.textContent =
+      "Edit Icon";
+
+    formIconName.value =
+      icon.name || "";
+
+    formIconId.value =
+      icon.id || "";
+
+    formIconCategory.value =
+      icon.category || "";
+
+    formIconPlan.value =
+      icon.plan === "pro"
+        ? "pro"
+        : "free";
+
+    formIconTags.value =
+      Array.isArray(
+        icon.tags
+      )
+        ? icon.tags.join(
+            ", "
+          )
+        : "";
+
+    formIconDescription.value =
+      icon.description || "";
+
+    formIconSvg.value =
+      icon.svg || "";
+
+    formIconId.disabled =
+      true;
+
+    saveIconButton.textContent =
+      "Update Icon";
+  }
+
+  openModal(
+    iconModal
   );
 
   setTimeout(
-    () => {
-
-      iconName?.focus();
-
-    },
-    30
-  );
-
-}
-
-
-function closeIconModal() {
-
-  if (!newIconModal) {
-    return;
-  }
-
-  newIconModal.hidden =
-    true;
-
-  newIconModal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  document.body.classList.remove(
-    "uasset-modal-open"
+    () =>
+      formIconName?.focus(),
+    40
   );
 
 }
 
 
 function updateIconPreview() {
-
-  if (!iconLivePreview) {
-    return;
-  }
-
   const name =
     cleanText(
-      iconName.value
+      formIconName.value
     );
 
   const id =
     normalizeId(
-      iconId.value ||
+      formIconId.value ||
       name
     );
 
   const plan =
-    iconPlan.value ===
+    formIconPlan.value ===
       "pro"
       ? "PRO"
       : "FREE";
 
-  if (previewName) {
-    previewName.textContent =
-      name ||
-      "New Icon";
-  }
-
-  if (previewId) {
-    previewId.textContent =
-      id ||
-      "—";
-  }
-
-  if (previewPlan) {
-    previewPlan.textContent =
-      plan;
-  }
-
   const svg =
     cleanText(
-      iconSvg.value
+      formIconSvg.value
     );
 
-  const preview =
-    getSafeSvgPreview(
+  iconPreviewName.textContent =
+    name ||
+    "New Icon";
+
+  iconPreviewId.textContent =
+    id ||
+    "—";
+
+  iconPreviewPlan.textContent =
+    plan;
+
+  iconPreviewBox.innerHTML =
+    renderSvg(
       svg
-    );
-
-  iconLivePreview.innerHTML =
-    preview ||
+    ) ||
     `
       <span
         class="admin-preview-placeholder"
       >
-        SVG preview
+        SVG Preview
       </span>
     `;
-
 }
 
 
 /* =========================================================
-   ICON CREATE
+   ICON SAVE
    ========================================================= */
 
-async function createIcon() {
-
+async function saveIcon() {
   const name =
     cleanText(
-      iconName.value
+      formIconName.value
     );
 
   const id =
     normalizeId(
-      iconId.value ||
+      formIconId.value ||
       name
     );
 
   const category =
     cleanText(
-      iconCategory.value
-    );
-
-  const tags =
-    parseCommaList(
-      iconTags.value
-    );
-
-  const description =
-    cleanText(
-      iconDescription.value
+      formIconCategory.value
     );
 
   const plan =
-    iconPlan.value ===
+    formIconPlan.value ===
       "pro"
       ? "pro"
       : "free";
 
+  const tags =
+    parseCommaList(
+      formIconTags.value
+    );
+
+  const description =
+    cleanText(
+      formIconDescription.value
+    );
+
   const svg =
     cleanText(
-      iconSvg.value
+      formIconSvg.value
     );
-
 
   if (!name) {
-
-    alert(
-      "Icon name is required."
+    showToast(
+      "Icon name is required.",
+      "error"
     );
 
-    iconName.focus();
+    formIconName.focus();
 
     return;
-
   }
-
 
   if (!id) {
-
-    alert(
-      "Valid icon ID is required."
+    showToast(
+      "Icon ID is required.",
+      "error"
     );
 
-    iconId.focus();
+    formIconId.focus();
 
     return;
-
   }
-
 
   if (!category) {
-
-    alert(
-      "Icon category is required."
+    showToast(
+      "Category is required.",
+      "error"
     );
 
-    iconCategory.focus();
+    formIconCategory.focus();
 
     return;
-
   }
-
 
   if (!svg) {
-
-    alert(
-      "SVG code is required."
+    showToast(
+      "SVG code is required.",
+      "error"
     );
 
-    iconSvg.focus();
+    formIconSvg.focus();
 
     return;
-
   }
 
+  const editing =
+    !!state.editingIconId;
 
   setButtonLoading(
-    saveNewIcon,
+    saveIconButton,
     true,
-    "Saving..."
+    editing
+      ? "Updating..."
+      : "Saving...",
+    editing
+      ? "Update Icon"
+      : "Save Icon"
   );
 
-
   try {
+    const payload = {
+      id,
+      name,
+      category,
+      plan,
+      tags,
+      description,
+      svg
+    };
 
-    await apiRequest(
-      API.icons.create,
-      {
-        method:
-          "POST",
+    if (editing) {
+      await apiRequest(
+        API.icons.update,
+        {
+          method:
+            "PATCH",
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-        body:
-          JSON.stringify({
-            id,
-            name,
-            category,
-            tags,
-            description,
-            plan,
-            svg
-          })
-      }
-    );
+          body:
+            JSON.stringify(
+              payload
+            )
+        }
+      );
 
+      showToast(
+        "Icon updated successfully."
+      );
 
-    alert(
-      "Icon created successfully."
-    );
+    } else {
+      await apiRequest(
+        API.icons.create,
+        {
+          method:
+            "POST",
 
-    closeIconModal();
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify(
+              payload
+            )
+        }
+      );
+
+      showToast(
+        "Icon created successfully."
+      );
+    }
+
+    closeAllModals();
 
     await loadIcons();
 
-  } catch (
-    error
-  ) {
+    updateIconStats();
 
-    alert(
+  } catch (error) {
+    showToast(
       error.message ||
-      "Unable to create icon."
+      "Unable to save icon.",
+      "error"
     );
 
   } finally {
-
     setButtonLoading(
-      saveNewIcon,
+      saveIconButton,
       false,
-      state.editingIconId
+      "",
+      editing
         ? "Update Icon"
         : "Save Icon"
     );
-
   }
-
 }
 
 
 /* =========================================================
-   ICON UPDATE
-   ========================================================= */
-
-async function updateIcon() {
-
-  const existingId =
-    state.editingIconId;
-
-  if (!existingId) {
-
-    await createIcon();
-
-    return;
-
-  }
-
-
-  const name =
-    cleanText(
-      iconName.value
-    );
-
-  const category =
-    cleanText(
-      iconCategory.value
-    );
-
-  const tags =
-    parseCommaList(
-      iconTags.value
-    );
-
-  const description =
-    cleanText(
-      iconDescription.value
-    );
-
-  const plan =
-    iconPlan.value ===
-      "pro"
-      ? "pro"
-      : "free";
-
-  const svg =
-    cleanText(
-      iconSvg.value
-    );
-
-
-  if (!name) {
-
-    alert(
-      "Icon name is required."
-    );
-
-    return;
-
-  }
-
-
-  if (!category) {
-
-    alert(
-      "Icon category is required."
-    );
-
-    return;
-
-  }
-
-
-  if (!svg) {
-
-    alert(
-      "SVG code is required."
-    );
-
-    return;
-
-  }
-
-
-  setButtonLoading(
-    saveNewIcon,
-    true,
-    "Updating..."
-  );
-
-
-  try {
-
-    await apiRequest(
-      API.icons.update,
-      {
-        method:
-          "PATCH",
-
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
-
-        body:
-          JSON.stringify({
-            id:
-              existingId,
-
-            name,
-            category,
-            tags,
-            description,
-            plan,
-            svg
-          })
-      }
-    );
-
-
-    alert(
-      "Icon updated successfully."
-    );
-
-    closeIconModal();
-
-    await loadIcons();
-
-  } catch (
-    error
-  ) {
-
-    alert(
-      error.message ||
-      "Unable to update icon."
-    );
-
-  } finally {
-
-    setButtonLoading(
-      saveNewIcon,
-      false,
-      "Update Icon"
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   ICON SAVE ROUTER
-   ========================================================= */
-
-async function saveIcon() {
-
-  if (
-    state.editingIconId
-  ) {
-
-    await updateIcon();
-
-  } else {
-
-    await createIcon();
-
-  }
-
-}
-
-
-/* =========================================================
-   ICON TOGGLE
+   ICON STATUS
    ========================================================= */
 
 async function toggleIcon(
   id,
-  currentlyActive
+  active
 ) {
-
-  const action =
-    currentlyActive
+  const label =
+    active
       ? "hide"
       : "unhide";
 
   const confirmed =
     window.confirm(
-      `Are you sure you want to ${action} this icon?`
+      `Are you sure you want to ${label} this icon?`
     );
 
   if (!confirmed) {
     return;
   }
 
-
   try {
-
     await apiRequest(
       API.icons.update,
       {
@@ -2181,25 +1884,26 @@ async function toggleIcon(
           JSON.stringify({
             id,
             is_active:
-              !currentlyActive
+              !active
           })
       }
     );
 
+    showToast(
+      active
+        ? "Icon hidden."
+        : "Icon restored."
+    );
 
     await loadIcons();
 
-  } catch (
-    error
-  ) {
-
-    alert(
+  } catch (error) {
+    showToast(
       error.message ||
-      "Unable to update icon status."
+      "Unable to update icon.",
+      "error"
     );
-
   }
-
 }
 
 
@@ -2210,7 +1914,6 @@ async function toggleIcon(
 async function deleteIcon(
   id
 ) {
-
   const icon =
     state.icons.find(
       item =>
@@ -2233,9 +1936,7 @@ async function deleteIcon(
     return;
   }
 
-
   try {
-
     await apiRequest(
       `${API.icons.delete}?id=${encodeURIComponent(id)}`,
       {
@@ -2244,20 +1945,19 @@ async function deleteIcon(
       }
     );
 
+    showToast(
+      "Icon deleted."
+    );
 
     await loadIcons();
 
-  } catch (
-    error
-  ) {
-
-    alert(
+  } catch (error) {
+    showToast(
       error.message ||
-      "Unable to delete icon."
+      "Unable to delete icon.",
+      "error"
     );
-
   }
-
 }
 
 
@@ -2268,38 +1968,29 @@ async function deleteIcon(
 function normalizeCollections(
   data
 ) {
-
   if (
     Array.isArray(
       data?.collections
     )
   ) {
-
     return data.collections;
-
   }
 
   if (
-    Array.isArray(
-      data
-    )
+    Array.isArray(data)
   ) {
-
     return data;
-
   }
 
   return [];
-
 }
 
 
 /* =========================================================
-   COLLECTIONS — LOAD
+   COLLECTIONS LOAD
    ========================================================= */
 
 async function loadCollections() {
-
   if (
     state.loadingCollections
   ) {
@@ -2309,10 +2000,9 @@ async function loadCollections() {
   state.loadingCollections =
     true;
 
-  renderCollectionsLoading();
+  renderCollectionLoading();
 
   try {
-
     const data =
       await apiRequest(
         API.collections.list +
@@ -2332,53 +2022,94 @@ async function loadCollections() {
     renderCollections();
 
     setStatus(
-      adminCollectionsStatus,
+      statusCollections,
       "success",
       "Online"
     );
 
-  } catch (
-    error
-  ) {
-
-    renderCollectionsError(
+  } catch (error) {
+    renderCollectionError(
       error.message
     );
 
     setStatus(
-      adminCollectionsStatus,
+      statusCollections,
       "danger",
       "Error"
     );
 
-  } finally {
+    console.error(
+      "Collection load error:",
+      error
+    );
 
+  } finally {
     state.loadingCollections =
       false;
-
   }
-
 }
 
 
 /* =========================================================
-   COLLECTIONS — RENDER
+   COLLECTION FILTER
+   ========================================================= */
+
+function getFilteredCollections() {
+  const search =
+    cleanText(
+      collectionSearch?.value
+    ).toLowerCase();
+
+  return state.collections.filter(
+    collection => {
+
+      const name =
+        cleanText(
+          collection.name
+        ).toLowerCase();
+
+      const id =
+        cleanText(
+          collection.id
+        ).toLowerCase();
+
+      const description =
+        cleanText(
+          collection.description
+        ).toLowerCase();
+
+      return (
+        !search ||
+        name.includes(search) ||
+        id.includes(search) ||
+        description.includes(search)
+      );
+    }
+  );
+}
+
+
+/* =========================================================
+   COLLECTION RENDER
    ========================================================= */
 
 function renderCollections() {
-
-  const body =
-    $("adminCollectionsBody");
-
-  if (!body) {
+  if (!adminCollectionsBody) {
     return;
   }
 
-  if (
-    !state.collections.length
-  ) {
+  const collections =
+    getFilteredCollections();
 
-    body.innerHTML = `
+  collectionResultsCount.textContent =
+    `${collections.length} ${
+      collections.length === 1
+        ? "collection"
+        : "collections"
+    }`;
+
+  if (!collections.length) {
+    adminCollectionsBody.innerHTML = `
       <tr>
         <td
           colspan="6"
@@ -2390,12 +2121,10 @@ function renderCollections() {
     `;
 
     return;
-
   }
 
-
-  body.innerHTML =
-    state.collections
+  adminCollectionsBody.innerHTML =
+    collections
       .map(
         collection => {
 
@@ -2404,12 +2133,6 @@ function renderCollections() {
               collection.categories
             )
               ? collection.categories
-                  .map(
-                    category =>
-                      escapeHtml(
-                        category
-                      )
-                  )
                   .join(", ")
               : "—";
 
@@ -2430,7 +2153,9 @@ function renderCollections() {
               </td>
 
               <td>
-                <span class="admin-icon-id">
+                <span
+                  class="admin-icon-id"
+                >
                   ${escapeHtml(
                     collection.id ||
                     "—"
@@ -2439,8 +2164,12 @@ function renderCollections() {
               </td>
 
               <td>
-                <span class="admin-muted">
-                  ${categories}
+                <span
+                  class="admin-muted"
+                >
+                  ${escapeHtml(
+                    categories
+                  )}
                 </span>
               </td>
 
@@ -2461,7 +2190,9 @@ function renderCollections() {
               </td>
 
               <td>
-                <span class="admin-muted">
+                <span
+                  class="admin-muted"
+                >
                   ${formatDate(
                     collection.created_at ||
                     collection.createdAt
@@ -2471,16 +2202,17 @@ function renderCollections() {
 
               <td>
 
-                <div class="admin-icon-actions">
+                <div
+                  class="admin-icon-actions"
+                >
 
                   <button
                     type="button"
                     class="admin-icon-action"
-                    data-collection-edit="${
-                      escapeHtml(
-                        collection.id
-                      )
-                    }"
+                    data-action="edit-collection"
+                    data-id="${escapeHtml(
+                      collection.id
+                    )}"
                   >
                     Edit
                   </button>
@@ -2488,14 +2220,11 @@ function renderCollections() {
                   <button
                     type="button"
                     class="admin-icon-action"
-                    data-collection-toggle="${
-                      escapeHtml(
-                        collection.id
-                      )
-                    }"
-                    data-collection-active="${
-                      active
-                    }"
+                    data-action="toggle-collection"
+                    data-id="${escapeHtml(
+                      collection.id
+                    )}"
+                    data-active="${active}"
                   >
                     ${
                       active
@@ -2507,11 +2236,10 @@ function renderCollections() {
                   <button
                     type="button"
                     class="admin-icon-action danger"
-                    data-collection-delete="${
-                      escapeHtml(
-                        collection.id
-                      )
-                    }"
+                    data-action="delete-collection"
+                    data-id="${escapeHtml(
+                      collection.id
+                    )}"
                   >
                     Delete
                   </button>
@@ -2522,89 +2250,14 @@ function renderCollections() {
 
             </tr>
           `;
-
         }
       )
       .join("");
-
-
-  qsa(
-    "[data-collection-edit]",
-    body
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          openCollectionModal(
-            button.dataset.collectionEdit
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  qsa(
-    "[data-collection-toggle]",
-    body
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          toggleCollection(
-            button.dataset.collectionToggle,
-            button.dataset.collectionActive ===
-              "true"
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  qsa(
-    "[data-collection-delete]",
-    body
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          deleteCollection(
-            button.dataset.collectionDelete
-          );
-
-        }
-      );
-
-    }
-  );
-
 }
 
 
-function renderCollectionsLoading() {
-
-  const body =
-    $("adminCollectionsBody");
-
-  if (!body) {
-    return;
-  }
-
-  body.innerHTML = `
+function renderCollectionLoading() {
+  adminCollectionsBody.innerHTML = `
     <tr>
       <td
         colspan="6"
@@ -2614,22 +2267,13 @@ function renderCollectionsLoading() {
       </td>
     </tr>
   `;
-
 }
 
 
-function renderCollectionsError(
+function renderCollectionError(
   message
 ) {
-
-  const body =
-    $("adminCollectionsBody");
-
-  if (!body) {
-    return;
-  }
-
-  body.innerHTML = `
+  adminCollectionsBody.innerHTML = `
     <tr>
       <td
         colspan="6"
@@ -2643,6 +2287,8 @@ function renderCollectionsError(
     </tr>
   `;
 
+  collectionResultsCount.textContent =
+    "0 collections";
 }
 
 
@@ -2650,291 +2296,42 @@ function renderCollectionsError(
    COLLECTION MODAL
    ========================================================= */
 
-function ensureCollectionModal() {
+function resetCollectionForm() {
+  state.editingCollectionId =
+    null;
 
-  if (
-    $("uassetCollectionModal")
-  ) {
+  collectionModalTitle.textContent =
+    "New Collection";
 
-    return;
+  formCollectionName.value =
+    "";
 
-  }
+  formCollectionId.value =
+    "";
 
+  formCollectionCategories.value =
+    "";
 
-  const modal =
-    document.createElement(
-      "div"
-    );
+  formCollectionDescription.value =
+    "";
 
-  modal.id =
-    "uassetCollectionModal";
+  formCollectionStatus.value =
+    "true";
 
-  modal.className =
-    "admin-modal";
+  formCollectionId.disabled =
+    false;
 
-  modal.hidden =
-    true;
-
-  modal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  modal.innerHTML = `
-    <div
-      class="admin-modal-backdrop"
-      data-collection-close
-    ></div>
-
-    <div
-      class="admin-modal-card"
-      role="dialog"
-      aria-modal="true"
-    >
-
-      <div class="admin-modal-head">
-
-        <div>
-
-          <p class="admin-panel-eyebrow">
-            COLLECTION MANAGER
-          </p>
-
-          <h2
-            class="admin-modal-title"
-            id="uassetCollectionModalTitle"
-          >
-            New Collection
-          </h2>
-
-          <p class="admin-modal-subtitle">
-            Create a curated category collection.
-          </p>
-
-        </div>
-
-        <button
-          type="button"
-          class="admin-modal-close"
-          id="uassetCollectionClose"
-          aria-label="Close"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <div class="admin-modal-body">
-
-        <div class="admin-form-grid">
-
-          <div class="admin-form-group">
-
-            <label
-              class="admin-label"
-              for="uassetCollectionName"
-            >
-              Name
-            </label>
-
-            <input
-              id="uassetCollectionName"
-              class="admin-input"
-              type="text"
-              maxlength="100"
-              placeholder="Business Essentials"
-            >
-
-          </div>
-
-
-          <div class="admin-form-group">
-
-            <label
-              class="admin-label"
-              for="uassetCollectionId"
-            >
-              ID
-            </label>
-
-            <input
-              id="uassetCollectionId"
-              class="admin-input"
-              type="text"
-              maxlength="60"
-              placeholder="business-essentials"
-            >
-
-          </div>
-
-
-          <div class="admin-form-group admin-form-full">
-
-            <label
-              class="admin-label"
-              for="uassetCollectionCategories"
-            >
-              Categories
-            </label>
-
-            <input
-              id="uassetCollectionCategories"
-              class="admin-input"
-              type="text"
-              placeholder="business, office, finance"
-            >
-
-          </div>
-
-
-          <div class="admin-form-group admin-form-full">
-
-            <label
-              class="admin-label"
-              for="uassetCollectionDescription"
-            >
-              Description
-            </label>
-
-            <textarea
-              id="uassetCollectionDescription"
-              class="admin-textarea"
-              rows="4"
-              maxlength="500"
-              placeholder="Professional business icon collection."
-            ></textarea>
-
-          </div>
-
-
-          <div class="admin-form-group">
-
-            <label
-              class="admin-label"
-              for="uassetCollectionActive"
-            >
-              Status
-            </label>
-
-            <select
-              id="uassetCollectionActive"
-              class="admin-select"
-            >
-
-              <option value="true">
-                Active
-              </option>
-
-              <option value="false">
-                Hidden
-              </option>
-
-            </select>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <div class="admin-modal-footer">
-
-        <button
-          type="button"
-          class="admin-button"
-          id="uassetCollectionCancel"
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          class="admin-button primary"
-          id="uassetCollectionSave"
-        >
-          Save Collection
-        </button>
-
-      </div>
-
-    </div>
-  `;
-
-
-  document.body.appendChild(
-    modal
-  );
-
-
-  $("uassetCollectionClose")
-    .addEventListener(
-      "click",
-      closeCollectionModal
-    );
-
-  $("uassetCollectionCancel")
-    .addEventListener(
-      "click",
-      closeCollectionModal
-    );
-
-  $("uassetCollectionSave")
-    .addEventListener(
-      "click",
-      saveCollection
-    );
-
-  qs(
-    "[data-collection-close]",
-    modal
-  ).addEventListener(
-    "click",
-    closeCollectionModal
-  );
-
+  saveCollectionButton.textContent =
+    "Save Collection";
 }
 
-
-/* =========================================================
-   COLLECTION MODAL OPEN
-   ========================================================= */
 
 function openCollectionModal(
   id = null
 ) {
-
-  ensureCollectionModal();
-
-  const modal =
-    $("uassetCollectionModal");
-
-  const title =
-    $("uassetCollectionModalTitle");
-
-  const name =
-    $("uassetCollectionName");
-
-  const collectionId =
-    $("uassetCollectionId");
-
-  const categories =
-    $("uassetCollectionCategories");
-
-  const description =
-    $("uassetCollectionDescription");
-
-  const active =
-    $("uassetCollectionActive");
-
-
-  state.editingCollectionId =
-    null;
-
+  resetCollectionForm();
 
   if (id) {
-
     const collection =
       state.collections.find(
         item =>
@@ -2945,30 +2342,27 @@ function openCollectionModal(
       );
 
     if (!collection) {
-
-      alert(
-        "Collection not found."
+      showToast(
+        "Collection not found.",
+        "error"
       );
 
       return;
-
     }
 
     state.editingCollectionId =
       collection.id;
 
-    title.textContent =
+    collectionModalTitle.textContent =
       "Edit Collection";
 
-    name.value =
-      collection.name ||
-      "";
+    formCollectionName.value =
+      collection.name || "";
 
-    collectionId.value =
-      collection.id ||
-      "";
+    formCollectionId.value =
+      collection.id || "";
 
-    categories.value =
+    formCollectionCategories.value =
       Array.isArray(
         collection.categories
       )
@@ -2977,88 +2371,31 @@ function openCollectionModal(
           )
         : "";
 
-    description.value =
-      collection.description ||
-      "";
+    formCollectionDescription.value =
+      collection.description || "";
 
-    active.value =
+    formCollectionStatus.value =
       collection.is_active ===
         false
         ? "false"
         : "true";
 
-    collectionId.disabled =
+    formCollectionId.disabled =
       true;
 
-  } else {
-
-    title.textContent =
-      "New Collection";
-
-    name.value =
-      "";
-
-    collectionId.value =
-      "";
-
-    categories.value =
-      "";
-
-    description.value =
-      "";
-
-    active.value =
-      "true";
-
-    collectionId.disabled =
-      false;
-
+    saveCollectionButton.textContent =
+      "Update Collection";
   }
 
-
-  modal.hidden =
-    false;
-
-  modal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-  document.body.classList.add(
-    "uasset-modal-open"
+  openModal(
+    collectionModal
   );
 
   setTimeout(
-    () => {
-      name.focus();
-    },
-    30
+    () =>
+      formCollectionName?.focus(),
+    40
   );
-
-}
-
-
-function closeCollectionModal() {
-
-  const modal =
-    $("uassetCollectionModal");
-
-  if (!modal) {
-    return;
-  }
-
-  modal.hidden =
-    true;
-
-  modal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  document.body.classList.remove(
-    "uasset-modal-open"
-  );
-
 }
 
 
@@ -3067,85 +2404,74 @@ function closeCollectionModal() {
    ========================================================= */
 
 async function saveCollection() {
-
   const name =
     cleanText(
-      $("uassetCollectionName").value
+      formCollectionName.value
     );
 
   const id =
     normalizeId(
-      $("uassetCollectionId").value ||
+      formCollectionId.value ||
       name
     );
 
   const categories =
     parseCommaList(
-      $("uassetCollectionCategories").value
+      formCollectionCategories.value
     );
 
   const description =
     cleanText(
-      $("uassetCollectionDescription").value
+      formCollectionDescription.value
     );
 
   const isActive =
-    $("uassetCollectionActive").value !==
+    formCollectionStatus.value !==
     "false";
 
-  const editingId =
-    state.editingCollectionId;
-
+  const editing =
+    !!state.editingCollectionId;
 
   if (!name) {
-
-    alert(
-      "Collection name is required."
+    showToast(
+      "Collection name is required.",
+      "error"
     );
 
     return;
-
   }
-
 
   if (!id) {
-
-    alert(
-      "Collection ID is required."
+    showToast(
+      "Collection ID is required.",
+      "error"
     );
 
     return;
-
   }
 
-
-  if (
-    !categories.length
-  ) {
-
-    alert(
-      "At least one category is required."
+  if (!categories.length) {
+    showToast(
+      "At least one category is required.",
+      "error"
     );
 
     return;
-
   }
-
-
-  const button =
-    $("uassetCollectionSave");
-
 
   setButtonLoading(
-    button,
+    saveCollectionButton,
     true,
-    "Saving..."
+    editing
+      ? "Updating..."
+      : "Saving...",
+    editing
+      ? "Update Collection"
+      : "Save Collection"
   );
 
-
   try {
-
-    if (editingId) {
+    if (editing) {
 
       await apiRequest(
         API.collections.update,
@@ -3161,18 +2487,22 @@ async function saveCollection() {
           body:
             JSON.stringify({
               id:
-                editingId,
+                state.editingCollectionId,
 
               name,
 
-              description,
-
               categories,
+
+              description,
 
               is_active:
                 isActive
             })
         }
+      );
+
+      showToast(
+        "Collection updated."
       );
 
     } else {
@@ -3191,67 +2521,53 @@ async function saveCollection() {
           body:
             JSON.stringify({
               id,
-
               name,
-
-              description,
-
               categories,
-
+              description,
               is_active:
                 isActive
             })
         }
       );
 
+      showToast(
+        "Collection created."
+      );
     }
 
-
-    alert(
-      editingId
-        ? "Collection updated successfully."
-        : "Collection created successfully."
-    );
-
-    closeCollectionModal();
+    closeAllModals();
 
     await loadCollections();
 
-  } catch (
-    error
-  ) {
-
-    alert(
+  } catch (error) {
+    showToast(
       error.message ||
-      "Unable to save collection."
+      "Unable to save collection.",
+      "error"
     );
 
   } finally {
-
     setButtonLoading(
-      button,
+      saveCollectionButton,
       false,
-      editingId
+      "",
+      editing
         ? "Update Collection"
         : "Save Collection"
     );
-
   }
-
 }
 
 
 /* =========================================================
-   COLLECTION TOGGLE
+   COLLECTION STATUS
    ========================================================= */
 
 async function toggleCollection(
   id,
   active
 ) {
-
   try {
-
     await apiRequest(
       API.collections.update,
       {
@@ -3273,19 +2589,21 @@ async function toggleCollection(
       }
     );
 
-    await loadCollections();
-
-  } catch (
-    error
-  ) {
-
-    alert(
-      error.message ||
-      "Unable to update collection."
+    showToast(
+      active
+        ? "Collection hidden."
+        : "Collection restored."
     );
 
-  }
+    await loadCollections();
 
+  } catch (error) {
+    showToast(
+      error.message ||
+      "Unable to update collection.",
+      "error"
+    );
+  }
 }
 
 
@@ -3296,7 +2614,6 @@ async function toggleCollection(
 async function deleteCollection(
   id
 ) {
-
   const collection =
     state.collections.find(
       item =>
@@ -3319,9 +2636,7 @@ async function deleteCollection(
     return;
   }
 
-
   try {
-
     await apiRequest(
       `${API.collections.delete}?id=${encodeURIComponent(id)}`,
       {
@@ -3330,19 +2645,19 @@ async function deleteCollection(
       }
     );
 
-    await loadCollections();
-
-  } catch (
-    error
-  ) {
-
-    alert(
-      error.message ||
-      "Unable to delete collection."
+    showToast(
+      "Collection deleted."
     );
 
-  }
+    await loadCollections();
 
+  } catch (error) {
+    showToast(
+      error.message ||
+      "Unable to delete collection.",
+      "error"
+    );
+  }
 }
 
 
@@ -3353,38 +2668,29 @@ async function deleteCollection(
 function normalizeCategories(
   data
 ) {
-
   if (
     Array.isArray(
       data?.categories
     )
   ) {
-
     return data.categories;
-
   }
 
   if (
-    Array.isArray(
-      data
-    )
+    Array.isArray(data)
   ) {
-
     return data;
-
   }
 
   return [];
-
 }
 
 
 /* =========================================================
-   CATEGORIES — LOAD
+   CATEGORIES LOAD
    ========================================================= */
 
 async function loadCategories() {
-
   if (
     state.loadingCategories
   ) {
@@ -3394,10 +2700,9 @@ async function loadCategories() {
   state.loadingCategories =
     true;
 
-  renderCategoriesLoading();
+  renderCategoryLoading();
 
   try {
-
     const data =
       await apiRequest(
         API.categories.list +
@@ -3411,33 +2716,94 @@ async function loadCategories() {
 
     renderCategories();
 
+    populateCategorySelect();
+
     setStatus(
-      adminCategoriesStatus,
+      statusCategories,
       "success",
       "Online"
     );
 
-  } catch (
-    error
-  ) {
-
-    renderCategoriesError(
+  } catch (error) {
+    renderCategoryError(
       error.message
     );
 
     setStatus(
-      adminCategoriesStatus,
+      statusCategories,
       "danger",
       "Error"
     );
 
-  } finally {
+    console.error(
+      "Category load error:",
+      error
+    );
 
+  } finally {
     state.loadingCategories =
       false;
-
   }
+}
 
+
+/* =========================================================
+   CATEGORY SELECT
+   ========================================================= */
+
+function populateCategorySelect() {
+  const current =
+    formIconCategory.value;
+
+  formIconCategory.innerHTML = `
+    <option value="">
+      Select Category
+    </option>
+  `;
+
+  state.categories
+    .filter(
+      category =>
+        category.is_active !==
+        false
+    )
+    .sort(
+      (a, b) =>
+        Number(
+          a.sort_order || 0
+        ) -
+        Number(
+          b.sort_order || 0
+        )
+    )
+    .forEach(
+      category => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+        option.value =
+          category.name ||
+          category.id;
+
+        option.textContent =
+          category.name ||
+          category.id;
+
+        formIconCategory.appendChild(
+          option
+        );
+      }
+    );
+
+  if (
+    current
+  ) {
+    formIconCategory.value =
+      current;
+  }
 }
 
 
@@ -3446,17 +2812,15 @@ async function loadCategories() {
    ========================================================= */
 
 function getFilteredCategories() {
-
   const search =
     cleanText(
       categorySearch?.value
-    )
-      .toLowerCase();
+    ).toLowerCase();
 
   const status =
-    categoryStatusFilter?.value ||
-    "active";
-
+    cleanText(
+      categoryStatusFilter?.value
+    );
 
   return state.categories.filter(
     category => {
@@ -3476,28 +2840,20 @@ function getFilteredCategories() {
           category.description
         ).toLowerCase();
 
-      const matchesSearch =
-        !search ||
-        name.includes(
-          search
-        ) ||
-        id.includes(
-          search
-        ) ||
-        description.includes(
-          search
-        );
-
       const active =
         category.is_active !==
         false;
 
+      const matchesSearch =
+        !search ||
+        name.includes(search) ||
+        id.includes(search) ||
+        description.includes(search);
+
       const matchesStatus =
-        status ===
-          "all"
+        status === "all"
           ? true
-          : status ===
-              "active"
+          : status === "active"
             ? active
             : !active;
 
@@ -3505,19 +2861,16 @@ function getFilteredCategories() {
         matchesSearch &&
         matchesStatus
       );
-
     }
   );
-
 }
 
 
 /* =========================================================
-   CATEGORIES — RENDER
+   CATEGORY RENDER
    ========================================================= */
 
 function renderCategories() {
-
   if (!adminCategoriesBody) {
     return;
   }
@@ -3525,22 +2878,14 @@ function renderCategories() {
   const categories =
     getFilteredCategories();
 
-  if (categoryResultsCount) {
+  categoryResultsCount.textContent =
+    `${categories.length} ${
+      categories.length === 1
+        ? "category"
+        : "categories"
+    }`;
 
-    categoryResultsCount.textContent =
-      `${categories.length} ${
-        categories.length === 1
-          ? "category"
-          : "categories"
-      }`;
-
-  }
-
-
-  if (
-    !categories.length
-  ) {
-
+  if (!categories.length) {
     adminCategoriesBody.innerHTML = `
       <tr>
         <td
@@ -3553,9 +2898,7 @@ function renderCategories() {
     `;
 
     return;
-
   }
-
 
   adminCategoriesBody.innerHTML =
     categories
@@ -3570,40 +2913,58 @@ function renderCategories() {
             <tr>
 
               <td>
+
                 <strong>
                   ${escapeHtml(
                     category.name ||
                     "Untitled"
                   )}
                 </strong>
+
               </td>
 
+
               <td>
-                <span class="admin-icon-id">
+
+                <span
+                  class="admin-icon-id"
+                >
                   ${escapeHtml(
                     category.id ||
                     "—"
                   )}
                 </span>
+
               </td>
 
+
               <td>
-                <span class="admin-muted">
+
+                <span
+                  class="admin-muted"
+                >
                   ${escapeHtml(
                     category.description ||
                     "—"
                   )}
                 </span>
+
               </td>
 
+
               <td>
-                <span class="admin-muted">
+
+                <span
+                  class="admin-muted"
+                >
                   ${escapeHtml(
                     category.sort_order ??
                     0
                   )}
                 </span>
+
               </td>
+
 
               <td>
 
@@ -3623,33 +2984,33 @@ function renderCategories() {
 
               </td>
 
+
               <td>
 
-                <div class="admin-icon-actions">
+                <div
+                  class="admin-icon-actions"
+                >
 
                   <button
                     type="button"
                     class="admin-icon-action"
-                    data-category-edit="${
-                      escapeHtml(
-                        category.id
-                      )
-                    }"
+                    data-action="edit-category"
+                    data-id="${escapeHtml(
+                      category.id
+                    )}"
                   >
                     Edit
                   </button>
 
+
                   <button
                     type="button"
                     class="admin-icon-action"
-                    data-category-toggle="${
-                      escapeHtml(
-                        category.id
-                      )
-                    }"
-                    data-category-active="${
-                      active
-                    }"
+                    data-action="toggle-category"
+                    data-id="${escapeHtml(
+                      category.id
+                    )}"
+                    data-active="${active}"
                   >
                     ${
                       active
@@ -3658,14 +3019,14 @@ function renderCategories() {
                     }
                   </button>
 
+
                   <button
                     type="button"
                     class="admin-icon-action danger"
-                    data-category-delete="${
-                      escapeHtml(
-                        category.id
-                      )
-                    }"
+                    data-action="delete-category"
+                    data-id="${escapeHtml(
+                      category.id
+                    )}"
                   >
                     Delete
                   </button>
@@ -3676,85 +3037,13 @@ function renderCategories() {
 
             </tr>
           `;
-
         }
       )
       .join("");
-
-
-  qsa(
-    "[data-category-edit]",
-    adminCategoriesBody
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          openCategoryModal(
-            button.dataset.categoryEdit
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  qsa(
-    "[data-category-toggle]",
-    adminCategoriesBody
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          toggleCategory(
-            button.dataset.categoryToggle,
-            button.dataset.categoryActive ===
-              "true"
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-  qsa(
-    "[data-category-delete]",
-    adminCategoriesBody
-  ).forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          deleteCategory(
-            button.dataset.categoryDelete
-          );
-
-        }
-      );
-
-    }
-  );
-
 }
 
 
-function renderCategoriesLoading() {
-
-  if (!adminCategoriesBody) {
-    return;
-  }
-
+function renderCategoryLoading() {
   adminCategoriesBody.innerHTML = `
     <tr>
       <td
@@ -3765,18 +3054,12 @@ function renderCategoriesLoading() {
       </td>
     </tr>
   `;
-
 }
 
 
-function renderCategoriesError(
+function renderCategoryError(
   message
 ) {
-
-  if (!adminCategoriesBody) {
-    return;
-  }
-
   adminCategoriesBody.innerHTML = `
     <tr>
       <td
@@ -3791,6 +3074,8 @@ function renderCategoriesError(
     </tr>
   `;
 
+  categoryResultsCount.textContent =
+    "0 categories";
 }
 
 
@@ -3798,291 +3083,42 @@ function renderCategoriesError(
    CATEGORY MODAL
    ========================================================= */
 
-function ensureCategoryModal() {
+function resetCategoryForm() {
+  state.editingCategoryId =
+    null;
 
-  if (
-    $("uassetCategoryModal")
-  ) {
+  categoryModalTitle.textContent =
+    "New Category";
 
-    return;
+  formCategoryName.value =
+    "";
 
-  }
+  formCategoryId.value =
+    "";
 
+  formCategoryOrder.value =
+    "0";
 
-  const modal =
-    document.createElement(
-      "div"
-    );
+  formCategoryStatus.value =
+    "true";
 
-  modal.id =
-    "uassetCategoryModal";
+  formCategoryDescription.value =
+    "";
 
-  modal.className =
-    "admin-modal";
+  formCategoryId.disabled =
+    false;
 
-  modal.hidden =
-    true;
-
-  modal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  modal.innerHTML = `
-    <div
-      class="admin-modal-backdrop"
-      data-category-close
-    ></div>
-
-    <div
-      class="admin-modal-card"
-      role="dialog"
-      aria-modal="true"
-    >
-
-      <div class="admin-modal-head">
-
-        <div>
-
-          <p class="admin-panel-eyebrow">
-            CATEGORY MANAGER
-          </p>
-
-          <h2
-            class="admin-modal-title"
-            id="uassetCategoryModalTitle"
-          >
-            New Category
-          </h2>
-
-          <p class="admin-modal-subtitle">
-            Manage a UAsset icon category.
-          </p>
-
-        </div>
-
-        <button
-          type="button"
-          class="admin-modal-close"
-          id="uassetCategoryClose"
-          aria-label="Close"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <div class="admin-modal-body">
-
-        <div class="admin-form-grid">
-
-          <div class="admin-form-group">
-
-            <label
-              class="admin-label"
-              for="uassetCategoryName"
-            >
-              Name
-            </label>
-
-            <input
-              id="uassetCategoryName"
-              class="admin-input"
-              type="text"
-              maxlength="80"
-              placeholder="Business"
-            >
-
-          </div>
-
-
-          <div class="admin-form-group">
-
-            <label
-              class="admin-label"
-              for="uassetCategoryId"
-            >
-              ID
-            </label>
-
-            <input
-              id="uassetCategoryId"
-              class="admin-input"
-              type="text"
-              maxlength="60"
-              placeholder="business"
-            >
-
-          </div>
-
-
-          <div class="admin-form-group">
-
-            <label
-              class="admin-label"
-              for="uassetCategoryOrder"
-            >
-              Sort Order
-            </label>
-
-            <input
-              id="uassetCategoryOrder"
-              class="admin-input"
-              type="number"
-              value="0"
-            >
-
-          </div>
-
-
-          <div class="admin-form-group">
-
-            <label
-              class="admin-label"
-              for="uassetCategoryActive"
-            >
-              Status
-            </label>
-
-            <select
-              id="uassetCategoryActive"
-              class="admin-select"
-            >
-
-              <option value="true">
-                Active
-              </option>
-
-              <option value="false">
-                Hidden
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <div class="admin-form-group admin-form-full">
-
-            <label
-              class="admin-label"
-              for="uassetCategoryDescription"
-            >
-              Description
-            </label>
-
-            <textarea
-              id="uassetCategoryDescription"
-              class="admin-textarea"
-              rows="4"
-              maxlength="500"
-              placeholder="Describe this category."
-            ></textarea>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <div class="admin-modal-footer">
-
-        <button
-          type="button"
-          class="admin-button"
-          id="uassetCategoryCancel"
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          class="admin-button primary"
-          id="uassetCategorySave"
-        >
-          Save Category
-        </button>
-
-      </div>
-
-    </div>
-  `;
-
-
-  document.body.appendChild(
-    modal
-  );
-
-
-  $("uassetCategoryClose")
-    .addEventListener(
-      "click",
-      closeCategoryModal
-    );
-
-  $("uassetCategoryCancel")
-    .addEventListener(
-      "click",
-      closeCategoryModal
-    );
-
-  $("uassetCategorySave")
-    .addEventListener(
-      "click",
-      saveCategory
-    );
-
-  qs(
-    "[data-category-close]",
-    modal
-  ).addEventListener(
-    "click",
-    closeCategoryModal
-  );
-
+  saveCategoryButton.textContent =
+    "Save Category";
 }
 
-
-/* =========================================================
-   CATEGORY MODAL OPEN
-   ========================================================= */
 
 function openCategoryModal(
   id = null
 ) {
-
-  ensureCategoryModal();
-
-  const modal =
-    $("uassetCategoryModal");
-
-  const title =
-    $("uassetCategoryModalTitle");
-
-  const name =
-    $("uassetCategoryName");
-
-  const categoryId =
-    $("uassetCategoryId");
-
-  const description =
-    $("uassetCategoryDescription");
-
-  const order =
-    $("uassetCategoryOrder");
-
-  const active =
-    $("uassetCategoryActive");
-
-
-  state.editingCategoryId =
-    null;
-
+  resetCategoryForm();
 
   if (id) {
-
     const category =
       state.categories.find(
         item =>
@@ -4093,117 +3129,58 @@ function openCategoryModal(
       );
 
     if (!category) {
-
-      alert(
-        "Category not found."
+      showToast(
+        "Category not found.",
+        "error"
       );
 
       return;
-
     }
 
     state.editingCategoryId =
       category.id;
 
-    title.textContent =
+    categoryModalTitle.textContent =
       "Edit Category";
 
-    name.value =
-      category.name ||
-      "";
+    formCategoryName.value =
+      category.name || "";
 
-    categoryId.value =
-      category.id ||
-      "";
+    formCategoryId.value =
+      category.id || "";
 
-    description.value =
-      category.description ||
-      "";
-
-    order.value =
+    formCategoryOrder.value =
       Number(
-        category.sort_order ??
+        category.sort_order ||
         0
       );
 
-    active.value =
+    formCategoryStatus.value =
       category.is_active ===
         false
         ? "false"
         : "true";
 
-    categoryId.disabled =
+    formCategoryDescription.value =
+      category.description ||
+      "";
+
+    formCategoryId.disabled =
       true;
 
-  } else {
-
-    title.textContent =
-      "New Category";
-
-    name.value =
-      "";
-
-    categoryId.value =
-      "";
-
-    description.value =
-      "";
-
-    order.value =
-      "0";
-
-    active.value =
-      "true";
-
-    categoryId.disabled =
-      false;
-
+    saveCategoryButton.textContent =
+      "Update Category";
   }
 
-
-  modal.hidden =
-    false;
-
-  modal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-  document.body.classList.add(
-    "uasset-modal-open"
+  openModal(
+    categoryModal
   );
 
   setTimeout(
-    () => {
-      name.focus();
-    },
-    30
+    () =>
+      formCategoryName?.focus(),
+    40
   );
-
-}
-
-
-function closeCategoryModal() {
-
-  const modal =
-    $("uassetCategoryModal");
-
-  if (!modal) {
-    return;
-  }
-
-  modal.hidden =
-    true;
-
-  modal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  document.body.classList.remove(
-    "uasset-modal-open"
-  );
-
 }
 
 
@@ -4212,87 +3189,78 @@ function closeCategoryModal() {
    ========================================================= */
 
 async function saveCategory() {
-
   const name =
     cleanText(
-      $("uassetCategoryName").value
+      formCategoryName.value
     );
 
   const id =
     normalizeId(
-      $("uassetCategoryId").value ||
+      formCategoryId.value ||
       name
-    );
-
-  const description =
-    cleanText(
-      $("uassetCategoryDescription").value
     );
 
   const sortOrder =
     Number(
-      $("uassetCategoryOrder").value
+      formCategoryOrder.value
     );
 
   const isActive =
-    $("uassetCategoryActive").value !==
+    formCategoryStatus.value !==
     "false";
 
-  const editingId =
-    state.editingCategoryId;
+  const description =
+    cleanText(
+      formCategoryDescription.value
+    );
 
+  const editing =
+    !!state.editingCategoryId;
 
   if (!name) {
-
-    alert(
-      "Category name is required."
+    showToast(
+      "Category name is required.",
+      "error"
     );
 
     return;
-
   }
-
 
   if (!id) {
-
-    alert(
-      "Category ID is required."
+    showToast(
+      "Category ID is required.",
+      "error"
     );
 
     return;
-
   }
-
 
   if (
     !Number.isFinite(
       sortOrder
     )
   ) {
-
-    alert(
-      "Sort order must be a valid number."
+    showToast(
+      "Sort order is invalid.",
+      "error"
     );
 
     return;
-
   }
 
-
-  const button =
-    $("uassetCategorySave");
-
-
   setButtonLoading(
-    button,
+    saveCategoryButton,
     true,
-    "Saving..."
+    editing
+      ? "Updating..."
+      : "Saving...",
+    editing
+      ? "Update Category"
+      : "Save Category"
   );
 
-
   try {
-
-    if (editingId) {
+    if (editing) {
 
       await apiRequest(
         API.categories.update,
@@ -4308,11 +3276,9 @@ async function saveCategory() {
           body:
             JSON.stringify({
               id:
-                editingId,
+                state.editingCategoryId,
 
               name,
-
-              description,
 
               sort_order:
                 Math.trunc(
@@ -4320,9 +3286,15 @@ async function saveCategory() {
                 ),
 
               is_active:
-                isActive
+                isActive,
+
+              description
             })
         }
+      );
+
+      showToast(
+        "Category updated."
       );
 
     } else {
@@ -4341,10 +3313,7 @@ async function saveCategory() {
           body:
             JSON.stringify({
               id,
-
               name,
-
-              description,
 
               sort_order:
                 Math.trunc(
@@ -4352,59 +3321,51 @@ async function saveCategory() {
                 ),
 
               is_active:
-                isActive
+                isActive,
+
+              description
             })
         }
       );
 
+      showToast(
+        "Category created."
+      );
     }
 
-
-    alert(
-      editingId
-        ? "Category updated successfully."
-        : "Category created successfully."
-    );
-
-    closeCategoryModal();
+    closeAllModals();
 
     await loadCategories();
 
-  } catch (
-    error
-  ) {
-
-    alert(
+  } catch (error) {
+    showToast(
       error.message ||
-      "Unable to save category."
+      "Unable to save category.",
+      "error"
     );
 
   } finally {
-
     setButtonLoading(
-      button,
+      saveCategoryButton,
       false,
-      editingId
+      "",
+      editing
         ? "Update Category"
         : "Save Category"
     );
-
   }
-
 }
 
 
 /* =========================================================
-   CATEGORY TOGGLE
+   CATEGORY STATUS
    ========================================================= */
 
 async function toggleCategory(
   id,
   active
 ) {
-
   try {
-
     await apiRequest(
       API.categories.update,
       {
@@ -4426,19 +3387,21 @@ async function toggleCategory(
       }
     );
 
-    await loadCategories();
-
-  } catch (
-    error
-  ) {
-
-    alert(
-      error.message ||
-      "Unable to update category."
+    showToast(
+      active
+        ? "Category hidden."
+        : "Category restored."
     );
 
-  }
+    await loadCategories();
 
+  } catch (error) {
+    showToast(
+      error.message ||
+      "Unable to update category.",
+      "error"
+    );
+  }
 }
 
 
@@ -4449,7 +3412,6 @@ async function toggleCategory(
 async function deleteCategory(
   id
 ) {
-
   const category =
     state.categories.find(
       item =>
@@ -4472,9 +3434,7 @@ async function deleteCategory(
     return;
   }
 
-
   try {
-
     await apiRequest(
       `${API.categories.delete}?id=${encodeURIComponent(id)}`,
       {
@@ -4483,162 +3443,189 @@ async function deleteCategory(
       }
     );
 
-    await loadCategories();
-
-  } catch (
-    error
-  ) {
-
-    alert(
-      error.message ||
-      "Unable to delete category."
+    showToast(
+      "Category deleted."
     );
 
-  }
+    await loadCategories();
 
+  } catch (error) {
+    showToast(
+      error.message ||
+      "Unable to delete category.",
+      "error"
+    );
+  }
 }
 
 
 /* =========================================================
-   BUTTON LOADING
+   MODAL HELPERS
    ========================================================= */
 
-function setButtonLoading(
-  button,
-  loading,
-  label
+function openModal(
+  modal
 ) {
-
-  if (!button) {
+  if (!modal) {
     return;
   }
 
-  if (loading) {
+  modal.hidden =
+    false;
 
-    button.disabled =
-      true;
+  modal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
 
-    button.dataset.originalText =
-      button.textContent;
+  document.body.classList.add(
+    "uasset-modal-open"
+  );
+}
 
-    button.textContent =
-      label;
 
-  } else {
-
-    button.disabled =
-      false;
-
-    button.textContent =
-      label ||
-      button.dataset.originalText ||
-      button.textContent;
-
+function closeModal(
+  modal
+) {
+  if (!modal) {
+    return;
   }
 
+  modal.hidden =
+    true;
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  document.body.classList.remove(
+    "uasset-modal-open"
+  );
 }
+
+
+function closeAllModals() {
+  closeModal(iconModal);
+  closeModal(collectionModal);
+  closeModal(categoryModal);
+  closeModal(confirmModal);
+}
+
+
+qsa(
+  "[data-close-modal]"
+).forEach(
+  button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        const id =
+          button.dataset.closeModal;
+
+        closeModal(
+          $(id)
+        );
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================================================
+   CONFIRM MODAL
+   ========================================================= */
+
+function openConfirm(
+  title,
+  message,
+  action
+) {
+  state.confirmAction =
+    typeof action ===
+    "function"
+      ? action
+      : null;
+
+  confirmModalTitle.textContent =
+    title;
+
+  confirmModalMessage.textContent =
+    message;
+
+  openModal(
+    confirmModal
+  );
+}
+
+
+confirmActionButton?.addEventListener(
+  "click",
+  async () => {
+
+    if (
+      typeof state.confirmAction !==
+      "function"
+    ) {
+      closeModal(
+        confirmModal
+      );
+
+      return;
+    }
+
+    const action =
+      state.confirmAction;
+
+    state.confirmAction =
+      null;
+
+    setButtonLoading(
+      confirmActionButton,
+      true,
+      "Working...",
+      "Confirm"
+    );
+
+    try {
+      await action();
+
+    } finally {
+      setButtonLoading(
+        confirmActionButton,
+        false,
+        "",
+        "Confirm"
+      );
+
+      closeModal(
+        confirmModal
+      );
+    }
+
+  }
+);
 
 
 /* =========================================================
    UPLOAD UI
    ========================================================= */
 
-function showUploadMessage(
-  message
-) {
-
-  if (!adminUploadList) {
-    return;
-  }
-
-  adminUploadList.innerHTML = `
-    <div
-      class="admin-table-empty"
-      style="padding:20px;"
-    >
-      ${escapeHtml(
-        message
-      )}
-    </div>
-  `;
-
-}
-
-
-function handleFiles(
-  files
-) {
-
-  const list =
-    Array.from(
-      files || []
-    );
-
-  if (!list.length) {
-
-    showUploadMessage(
-      "No files selected."
-    );
-
-    return;
-
-  }
-
-
-  if (!adminUploadList) {
-    return;
-  }
-
-
-  adminUploadList.innerHTML =
-    list
-      .map(
-        file => `
-          <div
-            class="admin-setting-card"
-            style="margin:10px 20px;"
-          >
-
-            <div class="admin-setting-copy">
-
-              <h3>
-                ${escapeHtml(
-                  file.name
-                )}
-              </h3>
-
-              <p>
-                ${escapeHtml(
-                  formatFileSize(
-                    file.size
-                  )
-                )}
-              </p>
-
-            </div>
-
-            <span class="admin-status-badge">
-              Selected
-            </span>
-
-          </div>
-        `
-      )
-      .join("");
-
-}
-
-
 function formatFileSize(
   bytes
 ) {
-
   const value =
-    Number(
-      bytes
-    );
+    Number(bytes);
 
-  if (!Number.isFinite(value)) {
+  if (
+    !Number.isFinite(
+      value
+    )
+  ) {
     return "0 B";
   }
 
@@ -4663,16 +3650,74 @@ function formatFileSize(
     value /
     (1024 * 1024)
   ).toFixed(1)} MB`;
-
 }
 
 
-adminUploadButton?.addEventListener(
+function renderUploadFiles(
+  fileList
+) {
+  const files =
+    Array.from(
+      fileList || []
+    );
+
+  if (!adminUploadList) {
+    return;
+  }
+
+  if (!files.length) {
+    adminUploadList.innerHTML =
+      "";
+
+    return;
+  }
+
+  adminUploadList.innerHTML =
+    files
+      .map(
+        file => `
+          <div
+            class="admin-setting-row"
+            style="margin: 0 20px;"
+          >
+
+            <div
+              class="admin-setting-copy"
+            >
+
+              <strong>
+                ${escapeHtml(
+                  file.name
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  formatFileSize(
+                    file.size
+                  )
+                )}
+              </span>
+
+            </div>
+
+            <span
+              class="admin-status-badge success"
+            >
+              READY
+            </span>
+
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+adminChooseFilesButton?.addEventListener(
   "click",
   () => {
-
     adminFileInput?.click();
-
   }
 );
 
@@ -4680,11 +3725,9 @@ adminUploadButton?.addEventListener(
 adminFileInput?.addEventListener(
   "change",
   () => {
-
-    handleFiles(
+    renderUploadFiles(
       adminFileInput.files
     );
-
   }
 );
 
@@ -4692,12 +3735,10 @@ adminFileInput?.addEventListener(
 adminUploadArea?.addEventListener(
   "dragover",
   event => {
-
     event.preventDefault();
 
     adminUploadArea.style.borderColor =
       "#111111";
-
   }
 );
 
@@ -4705,10 +3746,8 @@ adminUploadArea?.addEventListener(
 adminUploadArea?.addEventListener(
   "dragleave",
   () => {
-
     adminUploadArea.style.borderColor =
       "";
-
   }
 );
 
@@ -4722,7 +3761,7 @@ adminUploadArea?.addEventListener(
     adminUploadArea.style.borderColor =
       "";
 
-    handleFiles(
+    renderUploadFiles(
       event.dataTransfer?.files
     );
 
@@ -4731,149 +3770,376 @@ adminUploadArea?.addEventListener(
 
 
 /* =========================================================
-   ICON EVENTS
+   EVENT DELEGATION
    ========================================================= */
+
+document.addEventListener(
+  "click",
+  event => {
+
+    const button =
+      event.target.closest(
+        "[data-action]"
+      );
+
+    if (!button) {
+      return;
+    }
+
+    const action =
+      button.dataset.action;
+
+    const id =
+      button.dataset.id;
+
+    if (
+      action ===
+      "new-icon"
+    ) {
+      activateSection(
+        "icons"
+      );
+
+      openIconModal();
+
+      return;
+    }
+
+    if (
+      action ===
+      "new-collection"
+    ) {
+      activateSection(
+        "collections"
+      );
+
+      openCollectionModal();
+
+      return;
+    }
+
+    if (
+      action ===
+      "new-category"
+    ) {
+      activateSection(
+        "categories"
+      );
+
+      openCategoryModal();
+
+      return;
+    }
+
+    if (
+      action ===
+      "upload"
+    ) {
+      activateSection(
+        "uploads"
+      );
+
+      adminFileInput?.click();
+
+      return;
+    }
+
+    if (
+      action ===
+      "edit-icon"
+    ) {
+      openIconModal(
+        id
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "toggle-icon"
+    ) {
+      toggleIcon(
+        id,
+        button.dataset.active ===
+          "true"
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "delete-icon"
+    ) {
+      deleteIcon(
+        id
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "edit-collection"
+    ) {
+      openCollectionModal(
+        id
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "toggle-collection"
+    ) {
+      toggleCollection(
+        id,
+        button.dataset.active ===
+          "true"
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "delete-collection"
+    ) {
+      deleteCollection(
+        id
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "edit-category"
+    ) {
+      openCategoryModal(
+        id
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "toggle-category"
+    ) {
+      toggleCategory(
+        id,
+        button.dataset.active ===
+          "true"
+      );
+
+      return;
+    }
+
+    if (
+      action ===
+      "delete-category"
+    ) {
+      deleteCategory(
+        id
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   QUICK ACTION CARDS
+   ========================================================= */
+
+qsa(
+  "[data-action]"
+).forEach(
+  element => {
+
+    if (
+      element.closest(
+        "tbody"
+      )
+    ) {
+      return;
+    }
+
+    element.addEventListener(
+      "click",
+      () => {
+
+        const action =
+          element.dataset.action;
+
+        if (
+          action ===
+          "new-icon"
+        ) {
+
+          activateSection(
+            "icons"
+          );
+
+          openIconModal();
+
+        }
+
+        if (
+          action ===
+          "new-collection"
+        ) {
+
+          activateSection(
+            "collections"
+          );
+
+          openCollectionModal();
+
+        }
+
+        if (
+          action ===
+          "new-category"
+        ) {
+
+          activateSection(
+            "categories"
+          );
+
+          openCategoryModal();
+
+        }
+
+        if (
+          action ===
+          "upload"
+        ) {
+
+          activateSection(
+            "uploads"
+          );
+
+          adminFileInput?.click();
+
+        }
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================================================
+   TOP BUTTONS
+   ========================================================= */
+
+globalNewButton?.addEventListener(
+  "click",
+  () => {
+
+    if (
+      state.section ===
+      "collections"
+    ) {
+
+      openCollectionModal();
+
+      return;
+    }
+
+    if (
+      state.section ===
+      "categories"
+    ) {
+
+      openCategoryModal();
+
+      return;
+    }
+
+    openIconModal();
+
+  }
+);
+
 
 newIconButton?.addEventListener(
   "click",
-  openNewIcon
+  () =>
+    openIconModal()
 );
 
-iconsNewButton?.addEventListener(
+
+refreshIconsButton?.addEventListener(
   "click",
-  openNewIcon
+  () =>
+    loadIcons()
 );
 
-manageIconsButton?.addEventListener(
-  "click",
-  loadIcons
-);
-
-quickNewIcon?.addEventListener(
-  "click",
-  openNewIcon
-);
-
-quickUpload?.addEventListener(
-  "click",
-  () => {
-
-    activateSection(
-      "uploads"
-    );
-
-    adminFileInput?.click();
-
-  }
-);
-
-quickCollection?.addEventListener(
-  "click",
-  () => {
-
-    activateSection(
-      "collections"
-    );
-
-    openCollectionModal();
-
-  }
-);
-
-quickCategory?.addEventListener(
-  "click",
-  () => {
-
-    activateSection(
-      "categories"
-    );
-
-    openCategoryModal();
-
-  }
-);
-
-
-/* =========================================================
-   COLLECTION EVENTS
-   ========================================================= */
-
-refreshCollectionsButton?.addEventListener(
-  "click",
-  loadCollections
-);
 
 newCollectionButton?.addEventListener(
   "click",
-  () => {
-
-    openCollectionModal();
-
-  }
+  () =>
+    openCollectionModal()
 );
 
 
-/* =========================================================
-   CATEGORY EVENTS
-   ========================================================= */
-
-refreshCategoriesButton?.addEventListener(
+refreshCollectionsButton?.addEventListener(
   "click",
-  loadCategories
+  () =>
+    loadCollections()
 );
+
 
 newCategoryButton?.addEventListener(
   "click",
-  () => {
+  () =>
+    openCategoryModal()
+);
 
-    openCategoryModal();
 
-  }
+refreshCategoriesButton?.addEventListener(
+  "click",
+  () =>
+    loadCategories()
 );
 
 
 /* =========================================================
-   ICON MODAL EVENTS
+   FORM BUTTONS
    ========================================================= */
 
-closeNewIcon?.addEventListener(
-  "click",
-  closeIconModal
-);
-
-cancelNewIcon?.addEventListener(
-  "click",
-  closeIconModal
-);
-
-saveNewIcon?.addEventListener(
+saveIconButton?.addEventListener(
   "click",
   saveIcon
 );
 
+saveCollectionButton?.addEventListener(
+  "click",
+  saveCollection
+);
 
-qsa(
-  "[data-close-icon-modal]"
-).forEach(
-  element => {
-
-    element.addEventListener(
-      "click",
-      closeIconModal
-    );
-
-  }
+saveCategoryButton?.addEventListener(
+  "click",
+  saveCategory
 );
 
 
+/* =========================================================
+   LIVE PREVIEW
+   ========================================================= */
+
 [
-  iconName,
-  iconId,
-  iconCategory,
-  iconTags,
-  iconDescription,
-  iconPlan,
-  iconSvg
+  formIconName,
+  formIconId,
+  formIconPlan,
+  formIconSvg
 ]
   .filter(Boolean)
   .forEach(
@@ -4893,18 +4159,18 @@ qsa(
   );
 
 
-iconName?.addEventListener(
+formIconName?.addEventListener(
   "input",
   () => {
 
     if (
       !state.editingIconId &&
-      !iconId.value.trim()
+      !formIconId.value.trim()
     ) {
 
-      iconId.value =
+      formIconId.value =
         normalizeId(
-          iconName.value
+          formIconName.value
         );
 
     }
@@ -4916,11 +4182,12 @@ iconName?.addEventListener(
 
 
 /* =========================================================
-   ICON FILTER EVENTS
+   FILTER EVENTS
    ========================================================= */
 
 [
   iconSearch,
+  iconCategoryFilter,
   iconPlanFilter,
   iconStatusFilter
 ]
@@ -4942,9 +4209,21 @@ iconName?.addEventListener(
   );
 
 
-/* =========================================================
-   CATEGORY FILTER EVENTS
-   ========================================================= */
+[
+  collectionSearch
+]
+  .filter(Boolean)
+  .forEach(
+    element => {
+
+      element.addEventListener(
+        "input",
+        renderCollections
+      );
+
+    }
+  );
+
 
 [
   categorySearch,
@@ -4969,7 +4248,7 @@ iconName?.addEventListener(
 
 
 /* =========================================================
-   KEYBOARD
+   ESC KEY
    ========================================================= */
 
 document.addEventListener(
@@ -4980,117 +4259,79 @@ document.addEventListener(
       event.key !==
       "Escape"
     ) {
-
       return;
-
     }
 
-    if (
-      newIconModal &&
-      !newIconModal.hidden
-    ) {
-
-      closeIconModal();
-
-      return;
-
-    }
-
-    const collectionModal =
-      $("uassetCollectionModal");
-
-    if (
-      collectionModal &&
-      !collectionModal.hidden
-    ) {
-
-      closeCollectionModal();
-
-      return;
-
-    }
-
-    const categoryModal =
-      $("uassetCategoryModal");
-
-    if (
-      categoryModal &&
-      !categoryModal.hidden
-    ) {
-
-      closeCategoryModal();
-
-    }
+    closeAllModals();
+    closeMobileSidebar();
 
   }
 );
 
 
 /* =========================================================
-   GLOBAL CLICK SAFETY
+   MODAL BACKDROP
    ========================================================= */
 
-document.addEventListener(
-  "click",
-  event => {
+[
+  iconModal,
+  collectionModal,
+  categoryModal,
+  confirmModal
+]
+  .filter(Boolean)
+  .forEach(
+    modal => {
 
-    const target =
-      event.target;
+      modal.addEventListener(
+        "click",
+        event => {
 
-    if (
-      target instanceof
-      HTMLElement &&
-      target.matches(
-        ".admin-modal"
-      )
-    {
+          if (
+            event.target ===
+            modal
+          ) {
+            closeModal(
+              modal
+            );
+          }
 
-      if (
-        target.id ===
-        "newIconModal"
-      ) {
-
-        closeIconModal();
-
-      }
-
-      if (
-        target.id ===
-        "uassetCollectionModal"
-      ) {
-
-        closeCollectionModal();
-
-      }
-
-      if (
-        target.id ===
-        "uassetCategoryModal"
-      ) {
-
-        closeCategoryModal();
-
-      }
+        }
+      );
 
     }
-
-  }
-);
+  );
 
 
 /* =========================================================
-   INITIALIZATION
+   INIT
    ========================================================= */
 
 async function initAdmin() {
 
   activateSection(
-    readInitialSection()
+    getInitialSection()
   );
+
+  updateIconPreview();
 
   await loadDashboard();
 
 }
 
 
-initAdmin();
+if (
+  document.readyState ===
+  "loading"
+) {
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    initAdmin
+  );
+
+} else {
+
+  initAdmin();
+
+}
