@@ -6,6 +6,9 @@
   "engines": {
     "node": "24.x"
   },
+  "scripts": {
+    "build": "echo Build complete"
+  },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",
     "argon2": "0.45.1"
