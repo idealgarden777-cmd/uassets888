@@ -1,0 +1,13 @@
+{
+  "name": "uassets888",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "argon2": "0.45.1"
+  }
+}
