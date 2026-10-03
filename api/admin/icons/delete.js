@@ -3,8 +3,13 @@
    Bean authentication
    Server-side admin authorization
    Supabase database + storage
-   Delete icon metadata
-   Delete SVG storage file
+
+   SAFE DELETE FLOW:
+   1. Authenticate Bean user
+   2. Verify admin
+   3. Load icon
+   4. Delete storage file
+   5. Delete database row
    ========================================================= */
 
 const ACCOUNTS_SESSION_URL =
@@ -16,23 +21,13 @@ const ACCOUNTS_SESSION_URL =
    ========================================================= */
 
 function requiredEnv(name) {
+  const value = process.env[name];
 
-  const value =
-    process.env[name];
-
-  if (
-    !value ||
-    !String(value).trim()
-  ) {
-
-    throw new Error(
-      `${name} is missing`
-    );
+  if (!value || !String(value).trim()) {
+    throw new Error(`${name} is missing`);
   }
 
-  return String(
-    value
-  ).trim();
+  return String(value).trim();
 }
 
 
@@ -40,25 +35,12 @@ function requiredEnv(name) {
    JSON ERROR
    ========================================================= */
 
-function jsonError(
-  res,
-  status,
-  error,
-  code
-) {
-
-  return res
-    .status(status)
-    .json({
-
-      success:
-        false,
-
-      error,
-
-      code
-
-    });
+function jsonError(res, status, error, code) {
+  return res.status(status).json({
+    success: false,
+    error,
+    code
+  });
 }
 
 
@@ -66,57 +48,38 @@ function jsonError(
    BEAN SESSION
    ========================================================= */
 
-async function getBeanUser(
-  req
-) {
-
-  const cookie =
-    req.headers.cookie;
+async function getBeanUser(req) {
+  const cookie = req.headers.cookie;
 
   if (!cookie) {
     return null;
   }
 
+  const response = await fetch(
+    ACCOUNTS_SESSION_URL,
+    {
+      method: "GET",
 
-  const response =
-    await fetch(
-      ACCOUNTS_SESSION_URL,
-      {
-        method:
-          "GET",
+      headers: {
+        Accept: "application/json",
+        Cookie: cookie
+      },
 
-        headers: {
+      cache: "no-store"
+    }
+  );
 
-          Accept:
-            "application/json",
-
-          Cookie:
-            cookie
-        },
-
-        cache:
-          "no-store"
-      }
-    );
-
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => ({})
-      );
-
+  const data = await response
+    .json()
+    .catch(() => ({}));
 
   if (
     !response.ok ||
     !data.authenticated ||
     !data.user
   ) {
-
     return null;
   }
-
 
   return data.user;
 }
@@ -126,33 +89,19 @@ async function getBeanUser(
    ADMIN CHECK
    ========================================================= */
 
-function isAdminUser(
-  user
-) {
-
+function isAdminUser(user) {
   const raw =
-    process.env.UASSET_ADMIN_BEAN_IDS ||
-    "";
+    process.env.UASSET_ADMIN_BEAN_IDS || "";
 
-
-  const allowedIds =
-    raw
-      .split(",")
-      .map(
-        value =>
-          value.trim()
-      )
-      .filter(Boolean);
-
+  const allowedIds = raw
+    .split(",")
+    .map(value => value.trim())
+    .filter(Boolean);
 
   return (
     !!user &&
     !!user.id &&
-    allowedIds.includes(
-      String(
-        user.id
-      )
-    )
+    allowedIds.includes(String(user.id))
   );
 }
 
@@ -165,29 +114,21 @@ async function supabaseRequest(
   path,
   options = {}
 ) {
-
   const supabaseUrl =
-    requiredEnv(
-      "SUPABASE_URL"
-    );
-
+    requiredEnv("SUPABASE_URL");
 
   const serviceRoleKey =
     requiredEnv(
       "SUPABASE_SERVICE_ROLE_KEY"
     );
 
-
   return fetch(
     supabaseUrl + path,
     {
-
       ...options,
 
       headers: {
-
-        apikey:
-          serviceRoleKey,
+        apikey: serviceRoleKey,
 
         Authorization:
           "Bearer " +
@@ -196,8 +137,7 @@ async function supabaseRequest(
         ...(options.headers || {})
       },
 
-      cache:
-        "no-store"
+      cache: "no-store"
     }
   );
 }
@@ -207,13 +147,9 @@ async function supabaseRequest(
    GET ICON
    ========================================================= */
 
-async function getIcon(
-  id
-) {
-
+async function getIcon(id) {
   const query =
     new URLSearchParams();
-
 
   query.set(
     "select",
@@ -227,74 +163,54 @@ async function getIcon(
     ].join(",")
   );
 
-
   query.set(
     "id",
     `eq.${id}`
   );
-
 
   query.set(
     "limit",
     "1"
   );
 
-
   const response =
     await supabaseRequest(
       `/rest/v1/uasset_icons?${query.toString()}`,
       {
-        method:
-          "GET",
+        method: "GET",
 
         headers: {
-
-          Accept:
-            "application/json"
-
+          Accept: "application/json"
         }
       }
     );
 
-
   const data =
     await response
       .json()
-      .catch(
-        () => null
-      );
+      .catch(() => null);
 
-
-  if (
-    !response.ok
-  ) {
-
+  if (!response.ok) {
     const error =
       new Error(
         `Database lookup failed (${response.status})`
       );
 
-
     error.status =
       response.status;
-
 
     error.data =
       data;
 
-
     throw error;
   }
-
 
   if (
     !Array.isArray(data) ||
     !data[0]
   ) {
-
     return null;
   }
-
 
   return data[0];
 }
@@ -308,92 +224,58 @@ async function deleteStorageFile(
   bucket,
   filePath
 ) {
-
-  if (
-    !bucket ||
-    !filePath
-  ) {
-
+  if (!bucket || !filePath) {
     return {
-      success:
-        true,
-
-      skipped:
-        true
+      success: true,
+      skipped: true
     };
   }
 
-
   const safePath =
-    String(
-      filePath
-    )
+    String(filePath)
       .split("/")
-      .map(
-        part =>
-          encodeURIComponent(
-            part
-          )
+      .map(part =>
+        encodeURIComponent(part)
       )
       .join("/");
-
 
   const response =
     await supabaseRequest(
       "/storage/v1/object/" +
-        encodeURIComponent(
-          bucket
-        ) +
+        encodeURIComponent(bucket) +
         "/" +
         safePath,
       {
-        method:
-          "DELETE",
+        method: "DELETE",
 
         headers: {
-
-          Accept:
-            "application/json"
-
+          Accept: "application/json"
         }
       }
     );
 
-
   const data =
     await response
       .json()
-      .catch(
-        () => null
-      );
+      .catch(() => null);
 
-
-  if (
-    !response.ok
-  ) {
-
+  if (!response.ok) {
     const error =
       new Error(
         `Storage delete failed (${response.status})`
       );
 
-
     error.status =
       response.status;
-
 
     error.data =
       data;
 
-
     throw error;
   }
 
-
   return {
-    success:
-      true,
-
+    success: true,
     data
   };
 }
@@ -403,71 +285,47 @@ async function deleteStorageFile(
    DELETE DATABASE ROW
    ========================================================= */
 
-async function deleteIconRow(
-  id
-) {
-
+async function deleteIconRow(id) {
   const encodedId =
-    encodeURIComponent(
-      id
-    );
-
+    encodeURIComponent(id);
 
   const response =
     await supabaseRequest(
       `/rest/v1/uasset_icons?id=eq.${encodedId}`,
       {
-        method:
-          "DELETE",
+        method: "DELETE",
 
         headers: {
-
-          Accept:
-            "application/json",
+          Accept: "application/json",
 
           Prefer:
             "return=representation"
-
         }
       }
     );
 
-
   const data =
     await response
       .json()
-      .catch(
-        () => null
-      );
+      .catch(() => null);
 
-
-  if (
-    !response.ok
-  ) {
-
+  if (!response.ok) {
     const error =
       new Error(
         `Database delete failed (${response.status})`
       );
 
-
     error.status =
       response.status;
-
 
     error.data =
       data;
 
-
     throw error;
   }
 
-
-  return Array.isArray(
-    data
-  )
-    ? data[0] ||
-      null
+  return Array.isArray(data)
+    ? data[0] || null
     : data;
 }
 
@@ -476,40 +334,26 @@ async function deleteIconRow(
    GET REQUEST ID
    ========================================================= */
 
-function getRequestedId(
-  req
-) {
-
+function getRequestedId(req) {
   let id =
-    req.query?.id ||
-    "";
-
+    req.query?.id || "";
 
   if (
     !id &&
     req.body &&
-    typeof req.body ===
-      "object"
+    typeof req.body === "object"
   ) {
-
     id =
-      req.body.id ||
-      "";
+      req.body.id || "";
   }
 
-
   if (
-    typeof id ===
-    "object"
+    typeof id === "object"
   ) {
-
     id = "";
   }
 
-
-  return String(
-    id
-  )
+  return String(id)
     .trim()
     .toLowerCase();
 }
@@ -557,12 +401,10 @@ export default async function handler(
     req.method !== "DELETE" &&
     req.method !== "POST"
   ) {
-
     res.setHeader(
       "Allow",
       "DELETE, POST"
     );
-
 
     return jsonError(
       res,
@@ -579,21 +421,15 @@ export default async function handler(
 
   let user;
 
-
   try {
-
     user =
-      await getBeanUser(
-        req
-      );
+      await getBeanUser(req);
 
   } catch (error) {
-
     console.error(
       "UAsset admin Bean verification failed:",
       error
     );
-
 
     return jsonError(
       res,
@@ -603,9 +439,7 @@ export default async function handler(
     );
   }
 
-
   if (!user) {
-
     return jsonError(
       res,
       401,
@@ -619,12 +453,7 @@ export default async function handler(
      ADMIN AUTHORIZATION
      ======================================================= */
 
-  if (
-    !isAdminUser(
-      user
-    )
-  ) {
-
+  if (!isAdminUser(user)) {
     return jsonError(
       res,
       403,
@@ -639,18 +468,12 @@ export default async function handler(
      ======================================================= */
 
   const id =
-    getRequestedId(
-      req
-    );
-
+    getRequestedId(req);
 
   if (
     !id ||
-    !/^[a-z0-9-]+$/.test(
-      id
-    )
+    !/^[a-z0-9-]+$/.test(id)
   ) {
-
     return jsonError(
       res,
       400,
@@ -666,21 +489,15 @@ export default async function handler(
 
   let existingIcon;
 
-
   try {
-
     existingIcon =
-      await getIcon(
-        id
-      );
+      await getIcon(id);
 
   } catch (error) {
-
     console.error(
       "UAsset icon lookup failed:",
       error
     );
-
 
     return jsonError(
       res,
@@ -690,11 +507,7 @@ export default async function handler(
     );
   }
 
-
-  if (
-    !existingIcon
-  ) {
-
+  if (!existingIcon) {
     return jsonError(
       res,
       404,
@@ -709,66 +522,20 @@ export default async function handler(
      ======================================================= */
 
   const bucket =
-    existingIcon.storage_bucket ||
-    "";
-
+    existingIcon.storage_bucket || "";
 
   const storagePath =
-    existingIcon.storage_path ||
-    "";
+    existingIcon.storage_path || "";
 
 
   /* =======================================================
-     DELETE DATABASE FIRST
-     ======================================================= */
-
-  let deletedRow;
-
-
-  try {
-
-    deletedRow =
-      await deleteIconRow(
-        id
-      );
-
-  } catch (error) {
-
-    console.error(
-      "UAsset icon database delete failed:",
-      {
-        id,
-
-        message:
-          error?.message,
-
-        status:
-          error?.status,
-
-        data:
-          error?.data
-      }
-    );
-
-
-    return jsonError(
-      res,
-      500,
-      "Icon could not be deleted from database",
-      "DATABASE_DELETE_FAILED"
-    );
-  }
-
-
-  /* =======================================================
-     DELETE STORAGE FILE
+     SAFE STORAGE DELETE
      ======================================================= */
 
   if (
     bucket &&
     storagePath
   ) {
-
     try {
 
       await deleteStorageFile(
@@ -778,58 +545,93 @@ export default async function handler(
 
     } catch (error) {
 
-      /*
-        Database row is already deleted.
-
-        The asset can no longer be served through
-        the database-driven UAsset API.
-
-        The remaining storage object is therefore
-        an orphaned file and is logged for cleanup.
-      */
-
       console.error(
-        "UAsset orphaned storage file:",
+        "UAsset storage delete failed:",
         {
           id,
-
           bucket,
-
           storagePath,
-
-          message:
-            error?.message,
-
-          status:
-            error?.status,
-
-          data:
-            error?.data
+          message: error?.message,
+          status: error?.status,
+          data: error?.data
         }
       );
 
+      /*
+        IMPORTANT:
 
-      return res
-        .status(200)
-        .json({
+        Database row is intentionally NOT deleted.
 
-          success:
-            true,
+        This prevents the database from saying
+        the icon is gone while the storage asset
+        still exists.
+      */
 
-          deleted:
-            true,
-
-          storageCleanup:
-            false,
-
-          warning:
-            "Icon deleted from database but storage cleanup failed",
-
-          icon:
-            deletedRow
-
-        });
+      return jsonError(
+        res,
+        500,
+        "Icon storage could not be deleted. Database record was kept.",
+        "STORAGE_DELETE_FAILED"
+      );
     }
+  }
+
+
+  /* =======================================================
+     DELETE DATABASE ROW
+     ======================================================= */
+
+  let deletedRow;
+
+  try {
+
+    deletedRow =
+      await deleteIconRow(id);
+
+  } catch (error) {
+
+    console.error(
+      "UAsset icon database delete failed:",
+      {
+        id,
+        message: error?.message,
+        status: error?.status,
+        data: error?.data
+      }
+    );
+
+    /*
+      Storage was already deleted.
+
+      The database row may remain as an orphaned
+      metadata record, but the actual SVG asset
+      is gone.
+
+      This is reported explicitly so the admin
+      knows the operation was only partially completed.
+    */
+
+    return res
+      .status(500)
+      .json({
+
+        success: false,
+
+        deleted: false,
+
+        storageCleanup: true,
+
+        databaseCleanup: false,
+
+        error:
+          "Storage was deleted but database record could not be deleted.",
+
+        code:
+          "DATABASE_DELETE_FAILED",
+
+        iconId:
+          id
+      });
   }
 
 
@@ -841,17 +643,15 @@ export default async function handler(
     .status(200)
     .json({
 
-      success:
-        true,
+      success: true,
 
-      deleted:
-        true,
+      deleted: true,
 
-      storageCleanup:
-        true,
+      storageCleanup: true,
+
+      databaseCleanup: true,
 
       icon:
         deletedRow
-
     });
 }
