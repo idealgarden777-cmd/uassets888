@@ -1,6 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -10,518 +12,837 @@
 
   <meta
     name="description"
-    content="UAsset — a premium library of beautiful SVG icons for modern digital products."
+    content="UAsset — premium SVG icons for modern products."
   >
 
   <meta
     name="theme-color"
-    content="#ffffff"
+    content="#f7f7f5"
   >
 
-  <title>UAsset — Premium SVG Icons</title>
+  <title>UAsset — SVG Icons</title>
 
-  <link rel="stylesheet" href="/styles/tokens.css">
-  <link rel="stylesheet" href="/styles/base.css">
-  <link rel="stylesheet" href="/styles/components.css">
-  <link rel="stylesheet" href="/styles/pages.css">
+
+  <!-- =====================================================
+       FONTS
+       ===================================================== -->
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap"
+    rel="stylesheet"
+  >
+
+
+  <!-- =====================================================
+       STYLES
+       ===================================================== -->
+
+  <link
+    rel="stylesheet"
+    href="css/tokens.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="css/app.css"
+  >
+
 </head>
+
 
 <body>
 
-  <div id="app">
 
-    <!-- =====================================================
-         HEADER
-         ===================================================== -->
+  <!-- =====================================================
+       HEADER
+       ===================================================== -->
 
-    <header
-      id="site-header"
-      class="header"
+  <header class="header">
+
+    <a
+      class="brand"
+      href="#"
+      aria-label="UAsset home"
     >
-      <div class="container header-inner">
 
-        <a
-          href="/"
-          class="brand"
-          aria-label="UAsset home"
+      <span class="brand-logo">
+        U
+      </span>
+
+      <span>
+        UAsset
+      </span>
+
+    </a>
+
+
+    <nav
+      class="nav"
+      aria-label="Primary navigation"
+    >
+
+      <a
+        class="nav-link active"
+        href="#library"
+      >
+        Icons
+      </a>
+
+
+      <a
+        class="nav-link"
+        href="#collections"
+      >
+        Collections
+      </a>
+
+
+      <a
+        class="nav-link"
+        href="#pricing"
+      >
+        Pricing
+      </a>
+
+    </nav>
+
+
+    <button
+      class="bean-button"
+      id="openBean"
+      type="button"
+      aria-label="Login with Bean ID"
+    >
+
+      <span class="bean-dot"></span>
+
+      Login with Bean ID
+
+    </button>
+
+  </header>
+
+
+  <!-- =====================================================
+       MAIN
+       ===================================================== -->
+
+  <main>
+
+
+    <!-- ===================================================
+         HERO
+         =================================================== -->
+
+    <section class="hero">
+
+      <p class="eyebrow">
+        SIGNATURESI / UASSET
+      </p>
+
+
+      <h1>
+        SVG icons for<br>
+        <span>modern products.</span>
+      </h1>
+
+
+      <p class="hero-text">
+        Original, minimal and developer-ready icons
+        for clean product interfaces.
+      </p>
+
+
+      <div class="hero-search">
+
+        <span
+          class="search-symbol"
+          aria-hidden="true"
         >
-          UAsset
-        </a>
+          ⌕
+        </span>
 
-        <nav
-          class="nav"
-          aria-label="Main navigation"
+
+        <input
+          id="heroSearch"
+          type="search"
+          placeholder="Search icons..."
+          autocomplete="off"
+          aria-label="Search icons"
         >
-          <a href="#library">
-            Library
-          </a>
 
-          <a href="#collections">
-            Collections
-          </a>
 
-          <a href="#pricing">
-            Pro
-          </a>
-
-          <button
-            id="openBean"
-            class="bean-button"
-            type="button"
-          >
-            <span
-              class="bean-dot"
-              aria-hidden="true"
-            ></span>
-
-            Login with Bean ID
-          </button>
-        </nav>
+        <kbd>
+          /
+        </kbd>
 
       </div>
-    </header>
 
 
-    <!-- =====================================================
-         MAIN
-         ===================================================== -->
+      <div class="specs">
 
-    <main id="main-content">
+        <span>
+          24×24
+        </span>
 
-      <!-- ===================================================
-           HERO
-           =================================================== -->
+        <span>
+          •
+        </span>
 
-      <section
-        id="hero"
-        class="hero"
-      >
-        <div class="container hero-inner">
+        <span>
+          2px
+        </span>
+
+        <span>
+          •
+        </span>
+
+        <span>
+          currentColor
+        </span>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         ICON LIBRARY
+         =================================================== -->
+
+    <section
+      class="section"
+      id="library"
+    >
+
+      <div class="section-head">
+
+        <div>
 
           <p class="eyebrow">
-            Premium SVG Icon Library
+            ICON LIBRARY
           </p>
 
-          <h1>
-            Beautiful icons.
-            <br>
-            Ready to use.
-          </h1>
-
-          <p class="hero-description">
-            A focused collection of clean SVG icons
-            for modern digital products.
-          </p>
-
-          <div class="hero-search">
-            <label
-              for="heroSearch"
-              class="sr-only"
-            >
-              Search icons
-            </label>
-
-            <input
-              id="heroSearch"
-              type="search"
-              placeholder="Search icons..."
-              autocomplete="off"
-              spellcheck="false"
-            >
-          </div>
+          <h2>
+            Essential icons.
+          </h2>
 
         </div>
-      </section>
 
 
-      <!-- ===================================================
-           LIBRARY
-           =================================================== -->
+        <div class="mini-search">
 
-      <section
-        id="library"
-        class="section library"
-        aria-labelledby="library-title"
+          <span
+            class="search-symbol"
+            aria-hidden="true"
+          >
+            ⌕
+          </span>
+
+
+          <input
+            id="librarySearch"
+            type="search"
+            placeholder="Search..."
+            autocomplete="off"
+            aria-label="Search icon library"
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- =================================================
+           FILTERS
+           ================================================= -->
+
+      <div
+        class="filters"
+        id="filters"
+      ></div>
+
+
+      <!-- =================================================
+           COLLECTION CONTEXT
+           ================================================= -->
+
+      <div
+        class="collection-context hidden"
+        id="collectionContext"
+        aria-live="polite"
       >
-        <div class="container">
 
-          <div class="section-header">
+        <div class="collection-context-copy">
 
-            <div>
-              <p class="eyebrow">
-                Library
-              </p>
+          <span class="collection-context-label">
+            COLLECTION
+          </span>
 
-              <h2 id="library-title">
-                Explore icons
-              </h2>
-            </div>
+          <strong id="collectionContextName">
+          </strong>
 
-            <div class="library-search">
+        </div>
 
-              <label
-                for="librarySearch"
-                class="sr-only"
-              >
-                Search library
-              </label>
 
-              <input
-                id="librarySearch"
-                type="search"
-                placeholder="Search..."
-                autocomplete="off"
-                spellcheck="false"
-              >
+        <button
+          class="collection-context-clear"
+          id="clearCollection"
+          type="button"
+        >
+          Clear
+        </button>
 
-            </div>
+      </div>
 
+
+      <!-- =================================================
+           ICON GRID
+           ================================================= -->
+
+      <div
+        class="icon-grid"
+        id="iconGrid"
+      ></div>
+
+
+      <!-- =================================================
+           EMPTY STATE
+           ================================================= -->
+
+      <div
+        class="empty hidden"
+        id="emptyState"
+      >
+
+        <strong>
+          No icons found.
+        </strong>
+
+        <span>
+          Try a different search.
+        </span>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         COLLECTIONS
+         =================================================== -->
+
+    <section
+      class="section"
+      id="collections"
+    >
+
+      <div class="section-head simple">
+
+        <div>
+
+          <p class="eyebrow">
+            COLLECTIONS
+          </p>
+
+          <h2>
+            Curated sets.
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div class="collection-grid">
+
+
+        <!-- COLLECTION 1 -->
+
+        <button
+          class="collection-card"
+          type="button"
+          data-collection="essential-ui"
+          aria-label="View Essential UI collection"
+        >
+
+          <div class="collection-mark">
+            ◌
           </div>
 
 
-          <!-- Collection context -->
+          <div>
 
-          <div
-            id="collectionContext"
-            class="collection-context hidden"
-          >
-            <div>
-              <span class="collection-context-label">
-                Collection
-              </span>
-
-              <strong id="collectionContextName">
-                Collection
-              </strong>
-            </div>
-
-            <button
-              id="clearCollection"
-              type="button"
-              class="button button-secondary"
-            >
-              Clear
-            </button>
-          </div>
-
-
-          <!-- Filters -->
-
-          <div
-            id="filters"
-            class="filters"
-            aria-label="Icon categories"
-          ></div>
-
-
-          <!-- Icon grid -->
-
-          <div
-            id="iconGrid"
-            class="icon-grid"
-          ></div>
-
-
-          <!-- Empty state -->
-
-          <div
-            id="emptyState"
-            class="empty-state hidden"
-          >
             <h3>
-              No icons found
+              Essential UI
             </h3>
 
             <p>
-              Try a different search or category.
+              Navigation, actions and system basics.
             </p>
+
           </div>
+
+
+          <small>
+            12 icons
+          </small>
+
+        </button>
+
+
+        <!-- COLLECTION 2 -->
+
+        <button
+          class="collection-card"
+          type="button"
+          data-collection="time-calendar"
+          aria-label="View Time and Calendar collection"
+        >
+
+          <div class="collection-mark">
+            ◷
+          </div>
+
+
+          <div>
+
+            <h3>
+              Time &amp; Calendar
+            </h3>
+
+            <p>
+              Time, recent activity and date states.
+            </p>
+
+          </div>
+
+
+          <small>
+            3 icons
+          </small>
+
+        </button>
+
+
+        <!-- COLLECTION 3 -->
+
+        <button
+          class="collection-card"
+          type="button"
+          data-collection="files-product"
+          aria-label="View Files and Product collection"
+        >
+
+          <div class="collection-mark">
+            ▦
+          </div>
+
+
+          <div>
+
+            <h3>
+              Files &amp; Product
+            </h3>
+
+            <p>
+              Useful patterns for product interfaces.
+            </p>
+
+          </div>
+
+
+          <small>
+            8 icons
+          </small>
+
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         PRICING / PRO
+         =================================================== -->
+
+    <section
+      class="section pricing"
+      id="pricing"
+    >
+
+
+      <div>
+
+        <p class="eyebrow">
+          UASSET PRO
+        </p>
+
+
+        <h2>
+          More assets. More speed.
+        </h2>
+
+
+        <p
+          class="muted"
+          id="proPlanDescription"
+        >
+          Your current plan controls access to
+          future premium UAsset assets.
+        </p>
+
+
+        <div
+          class="pro-feature-list"
+          aria-label="UAsset Pro features"
+        >
+
+
+          <!-- FEATURE 1 -->
+
+          <div class="pro-feature">
+
+            <span class="pro-feature-mark">
+              +
+            </span>
+
+            <div>
+
+              <strong>
+                Premium packs
+              </strong>
+
+              <span>
+                Access premium icon collections.
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <!-- FEATURE 2 -->
+
+          <div class="pro-feature">
+
+            <span class="pro-feature-mark">
+              ◇
+            </span>
+
+            <div>
+
+              <strong>
+                Pro access
+              </strong>
+
+              <span>
+                Premium content is separated from
+                the free library.
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <!-- FEATURE 3 -->
+
+          <div class="pro-feature">
+
+            <span class="pro-feature-mark">
+              ✓
+            </span>
+
+            <div>
+
+              <strong>
+                Bean account based
+              </strong>
+
+              <span>
+                Your UAsset plan follows your
+                central Bean account.
+              </span>
+
+            </div>
+
+          </div>
+
 
         </div>
-      </section>
+
+      </div>
 
 
-      <!-- ===================================================
-           COLLECTIONS
-           =================================================== -->
+      <!-- =================================================
+           PRO PRICE BOX
+           ================================================= -->
 
-      <section
-        id="collections"
-        class="section collections"
-        aria-labelledby="collections-title"
+      <div
+        class="price-box"
+        id="proPlanBox"
       >
-        <div class="container">
 
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">
-                Curated sets
-              </p>
+        <div class="price-head">
 
-              <h2 id="collections-title">
-                Collections
-              </h2>
-            </div>
-          </div>
+          <span class="eyebrow">
+            PLAN
+          </span>
 
 
-          <div class="collection-grid">
-
-            <button
-              type="button"
-              class="collection-card"
-              data-collection="product"
-            >
-              <span class="collection-card-title">
-                Product
-              </span>
-
-              <span class="collection-card-description">
-                Essential icons for digital products.
-              </span>
-            </button>
-
-
-            <button
-              type="button"
-              class="collection-card"
-              data-collection="interface"
-            >
-              <span class="collection-card-title">
-                Interface
-              </span>
-
-              <span class="collection-card-description">
-                Clean UI icons for everyday interfaces.
-              </span>
-            </button>
-
-
-            <button
-              type="button"
-              class="collection-card"
-              data-collection="business"
-            >
-              <span class="collection-card-title">
-                Business
-              </span>
-
-              <span class="collection-card-description">
-                Professional icons for business products.
-              </span>
-            </button>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ===================================================
-           PRICING
-           =================================================== -->
-
-      <section
-        id="pricing"
-        class="section pricing"
-        aria-labelledby="pricing-title"
-      >
-        <div class="container">
-
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">
-                UAsset Pro
-              </p>
-
-              <h2 id="pricing-title">
-                Unlock the full library
-              </h2>
-            </div>
-          </div>
-
-
-          <div
-            id="proPlanBox"
-            class="pricing-card"
+          <span
+            class="plan-badge free"
+            id="proPlanBadge"
           >
-
-            <div class="pricing-card-content">
-
-              <div class="pricing-card-heading">
-
-                <span
-                  id="proPlanBadge"
-                  class="pricing-badge"
-                >
-                  PRO
-                </span>
-
-                <h3>
-                  UAsset Pro
-                </h3>
-
-                <p id="proPlanDescription">
-                  Get access to premium icons
-                  and downloadable SVG assets.
-                </p>
-
-              </div>
-
-
-              <div class="pricing-card-price">
-
-                <span
-                  id="proPrice"
-                  class="price"
-                >
-                  —
-                </span>
-
-              </div>
-
-
-              <div class="pricing-card-action">
-
-                <button
-                  id="proButton"
-                  type="button"
-                  class="button button-primary"
-                >
-                  Get Pro
-                </button>
-
-                <p
-                  id="proPlanStatus"
-                  class="pricing-status"
-                  aria-live="polite"
-                ></p>
-
-              </div>
-
-            </div>
-
-          </div>
+            FREE
+          </span>
 
         </div>
-      </section>
-
-    </main>
 
 
-    <!-- =====================================================
-         ICON DETAIL MODAL
-         ===================================================== -->
+        <div
+          class="price"
+          id="proPrice"
+        >
+
+          $9
+
+          <small>
+            / month
+          </small>
+
+        </div>
+
+
+        <p
+          class="plan-status"
+          id="proPlanStatus"
+        >
+          Current plan: Free
+        </p>
+
+
+        <button
+          class="dark-button"
+          id="proButton"
+          type="button"
+        >
+          View UAsset Pro
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =====================================================
+       FOOTER
+       ===================================================== -->
+
+  <footer class="footer">
+
+    <span>
+      © 2026 UAsset / Signaturesi
+    </span>
+
+    <span>
+      Premium digital assets.
+    </span>
+
+  </footer>
+
+
+  <!-- =====================================================
+       ICON DETAIL MODAL
+       ===================================================== -->
+
+  <div
+    class="overlay hidden"
+    id="iconOverlay"
+  >
 
     <div
-      id="iconOverlay"
-      class="overlay hidden"
+      class="modal icon-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="detailName"
     >
 
-      <div class="modal icon-modal">
 
-        <button
-          type="button"
-          class="modal-close"
-          data-close="iconOverlay"
-          aria-label="Close icon details"
-        >
-          ×
-        </button>
+      <!-- CLOSE -->
 
-
-        <div
-          id="iconPreview"
-          class="icon-preview"
-        ></div>
+      <button
+        class="close"
+        data-close="iconOverlay"
+        aria-label="Close"
+        type="button"
+      >
+        ×
+      </button>
 
 
-        <div class="icon-detail">
+      <!-- =================================================
+           DETAIL LAYOUT
+           ================================================= -->
 
-          <p
-            id="detailCategory"
-            class="eyebrow"
-          ></p>
+      <div class="detail-layout">
 
-          <h2 id="detailName"></h2>
 
-          <p id="detailDescription"></p>
+        <!-- PREVIEW -->
+
+        <div class="detail-preview">
 
           <div
-            id="detailTags"
-            class="tags"
+            class="preview"
+            id="iconPreview"
           ></div>
 
-        </div>
 
+          <div class="preview-meta">
 
-        <div class="code-panel">
+            <span>
+              24×24
+            </span>
 
-          <div class="code-panel-header">
+            <span>
+              •
+            </span>
 
-            <div
-              class="code-tabs"
-              role="tablist"
-              aria-label="Code format"
-            >
+            <span>
+              2px
+            </span>
 
-              <button
-                type="button"
-                class="code-tab active"
-                data-code-tab="svg"
-                role="tab"
-              >
-                SVG
-              </button>
+            <span>
+              •
+            </span>
 
-              <button
-                type="button"
-                class="code-tab"
-                data-code-tab="react"
-                role="tab"
-              >
-                React
-              </button>
-
-              <button
-                type="button"
-                class="code-tab"
-                data-code-tab="html"
-                role="tab"
-              >
-                HTML
-              </button>
-
-            </div>
-
-
-            <span id="codeLabel">
+            <span>
               SVG
             </span>
 
           </div>
 
+        </div>
 
-          <pre class="code-block"><code id="svgCode"></code></pre>
+
+        <!-- DETAILS -->
+
+        <div class="detail-content">
+
+          <p
+            class="eyebrow"
+            id="detailCategory"
+          ></p>
 
 
-          <div class="code-actions">
+          <h2 id="detailName">
+          </h2>
+
+
+          <p
+            class="detail-description"
+            id="detailDescription"
+          ></p>
+
+
+          <div
+            class="tags"
+            id="detailTags"
+          ></div>
+
+
+          <!-- SPECIFICATIONS -->
+
+          <div class="detail-specs">
+
+
+            <div class="spec-item">
+
+              <span>
+                Format
+              </span>
+
+              <strong>
+                SVG
+              </strong>
+
+            </div>
+
+
+            <div class="spec-item">
+
+              <span>
+                Canvas
+              </span>
+
+              <strong>
+                24×24
+              </strong>
+
+            </div>
+
+
+            <div class="spec-item">
+
+              <span>
+                Stroke
+              </span>
+
+              <strong>
+                2px
+              </strong>
+
+            </div>
+
+
+            <div class="spec-item">
+
+              <span>
+                Color
+              </span>
+
+              <strong>
+                currentColor
+              </strong>
+
+            </div>
+
+
+          </div>
+
+
+          <!-- ACTIONS -->
+
+          <div class="actions">
 
             <button
+              class="dark-button"
               id="copySvg"
               type="button"
-              class="button button-secondary"
             >
-              Copy
+              Copy SVG
             </button>
 
+
             <button
+              class="light-button"
               id="downloadSvg"
               type="button"
-              class="button button-primary"
             >
               Download SVG
             </button>
@@ -532,43 +853,99 @@
 
       </div>
 
+
+      <!-- =================================================
+           CODE
+           ================================================= -->
+
+      <div class="code-section">
+
+
+        <!-- CODE TABS -->
+
+        <div class="code-tabs">
+
+
+          <button
+            type="button"
+            class="code-tab active"
+            data-code-tab="svg"
+          >
+            SVG
+          </button>
+
+
+          <button
+            type="button"
+            class="code-tab"
+            data-code-tab="react"
+          >
+            React
+          </button>
+
+
+          <button
+            type="button"
+            class="code-tab"
+            data-code-tab="html"
+          >
+            HTML
+          </button>
+
+
+        </div>
+
+
+        <!-- CODE PANEL -->
+
+        <div class="code">
+
+          <div class="code-head">
+
+            <span id="codeLabel">
+              SVG
+            </span>
+
+            <span>
+              24×24 / 2px
+            </span>
+
+          </div>
+
+
+          <pre id="svgCode"></pre>
+
+        </div>
+
+      </div>
+
+
     </div>
-
-
-    <!-- =====================================================
-         TOAST
-         ===================================================== -->
-
-    <div
-      id="toast"
-      class="toast hidden"
-      role="status"
-      aria-live="polite"
-    ></div>
 
   </div>
 
 
-  <!-- =======================================================
-       NOSCRIPT
-       ======================================================= -->
+  <!-- =====================================================
+       TOAST
+       ===================================================== -->
 
-  <noscript>
-    <p>
-      UAsset requires JavaScript to browse and use
-      the icon library. Please enable JavaScript.
-    </p>
-  </noscript>
+  <div
+    class="toast hidden"
+    id="toast"
+    role="status"
+    aria-live="polite"
+  ></div>
 
 
-  <!-- =======================================================
-       APP
-       ======================================================= -->
+  <!-- =====================================================
+       SCRIPTS
+       ===================================================== -->
 
-  <script
-    type="module"
-    src="/frontend/app.js"
-  ></script>
+  <script src="js/icons.js"></script>
+
+  <script src="js/app.js"></script>
+
 
 </body>
+
 </html>
