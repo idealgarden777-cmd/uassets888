@@ -27,29 +27,548 @@
 </head>
 
 <body>
+
   <div id="app">
-    <header id="site-header"></header>
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <header
+      id="site-header"
+      class="header"
+    >
+      <div class="container header-inner">
+
+        <a
+          href="/"
+          class="brand"
+          aria-label="UAsset home"
+        >
+          UAsset
+        </a>
+
+        <nav
+          class="nav"
+          aria-label="Main navigation"
+        >
+          <a href="#library">
+            Library
+          </a>
+
+          <a href="#collections">
+            Collections
+          </a>
+
+          <a href="#pricing">
+            Pro
+          </a>
+
+          <button
+            id="openBean"
+            class="bean-button"
+            type="button"
+          >
+            <span
+              class="bean-dot"
+              aria-hidden="true"
+            ></span>
+
+            Login with Bean ID
+          </button>
+        </nav>
+
+      </div>
+    </header>
+
+
+    <!-- =====================================================
+         MAIN
+         ===================================================== -->
 
     <main id="main-content">
+
+      <!-- ===================================================
+           HERO
+           =================================================== -->
+
       <section
-        id="icon-library"
-        aria-label="SVG icon library"
+        id="hero"
+        class="hero"
       >
-        <div id="icon-library-content"></div>
+        <div class="container hero-inner">
+
+          <p class="eyebrow">
+            Premium SVG Icon Library
+          </p>
+
+          <h1>
+            Beautiful icons.
+            <br>
+            Ready to use.
+          </h1>
+
+          <p class="hero-description">
+            A focused collection of clean SVG icons
+            for modern digital products.
+          </p>
+
+          <div class="hero-search">
+            <label
+              for="heroSearch"
+              class="sr-only"
+            >
+              Search icons
+            </label>
+
+            <input
+              id="heroSearch"
+              type="search"
+              placeholder="Search icons..."
+              autocomplete="off"
+              spellcheck="false"
+            >
+          </div>
+
+        </div>
       </section>
+
+
+      <!-- ===================================================
+           LIBRARY
+           =================================================== -->
+
+      <section
+        id="library"
+        class="section library"
+        aria-labelledby="library-title"
+      >
+        <div class="container">
+
+          <div class="section-header">
+
+            <div>
+              <p class="eyebrow">
+                Library
+              </p>
+
+              <h2 id="library-title">
+                Explore icons
+              </h2>
+            </div>
+
+            <div class="library-search">
+
+              <label
+                for="librarySearch"
+                class="sr-only"
+              >
+                Search library
+              </label>
+
+              <input
+                id="librarySearch"
+                type="search"
+                placeholder="Search..."
+                autocomplete="off"
+                spellcheck="false"
+              >
+
+            </div>
+
+          </div>
+
+
+          <!-- Collection context -->
+
+          <div
+            id="collectionContext"
+            class="collection-context hidden"
+          >
+            <div>
+              <span class="collection-context-label">
+                Collection
+              </span>
+
+              <strong id="collectionContextName">
+                Collection
+              </strong>
+            </div>
+
+            <button
+              id="clearCollection"
+              type="button"
+              class="button button-secondary"
+            >
+              Clear
+            </button>
+          </div>
+
+
+          <!-- Filters -->
+
+          <div
+            id="filters"
+            class="filters"
+            aria-label="Icon categories"
+          ></div>
+
+
+          <!-- Icon grid -->
+
+          <div
+            id="iconGrid"
+            class="icon-grid"
+          ></div>
+
+
+          <!-- Empty state -->
+
+          <div
+            id="emptyState"
+            class="empty-state hidden"
+          >
+            <h3>
+              No icons found
+            </h3>
+
+            <p>
+              Try a different search or category.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ===================================================
+           COLLECTIONS
+           =================================================== -->
+
+      <section
+        id="collections"
+        class="section collections"
+        aria-labelledby="collections-title"
+      >
+        <div class="container">
+
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">
+                Curated sets
+              </p>
+
+              <h2 id="collections-title">
+                Collections
+              </h2>
+            </div>
+          </div>
+
+
+          <div class="collection-grid">
+
+            <button
+              type="button"
+              class="collection-card"
+              data-collection="product"
+            >
+              <span class="collection-card-title">
+                Product
+              </span>
+
+              <span class="collection-card-description">
+                Essential icons for digital products.
+              </span>
+            </button>
+
+
+            <button
+              type="button"
+              class="collection-card"
+              data-collection="interface"
+            >
+              <span class="collection-card-title">
+                Interface
+              </span>
+
+              <span class="collection-card-description">
+                Clean UI icons for everyday interfaces.
+              </span>
+            </button>
+
+
+            <button
+              type="button"
+              class="collection-card"
+              data-collection="business"
+            >
+              <span class="collection-card-title">
+                Business
+              </span>
+
+              <span class="collection-card-description">
+                Professional icons for business products.
+              </span>
+            </button>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ===================================================
+           PRICING
+           =================================================== -->
+
+      <section
+        id="pricing"
+        class="section pricing"
+        aria-labelledby="pricing-title"
+      >
+        <div class="container">
+
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">
+                UAsset Pro
+              </p>
+
+              <h2 id="pricing-title">
+                Unlock the full library
+              </h2>
+            </div>
+          </div>
+
+
+          <div
+            id="proPlanBox"
+            class="pricing-card"
+          >
+
+            <div class="pricing-card-content">
+
+              <div class="pricing-card-heading">
+
+                <span
+                  id="proPlanBadge"
+                  class="pricing-badge"
+                >
+                  PRO
+                </span>
+
+                <h3>
+                  UAsset Pro
+                </h3>
+
+                <p id="proPlanDescription">
+                  Get access to premium icons
+                  and downloadable SVG assets.
+                </p>
+
+              </div>
+
+
+              <div class="pricing-card-price">
+
+                <span
+                  id="proPrice"
+                  class="price"
+                >
+                  —
+                </span>
+
+              </div>
+
+
+              <div class="pricing-card-action">
+
+                <button
+                  id="proButton"
+                  type="button"
+                  class="button button-primary"
+                >
+                  Get Pro
+                </button>
+
+                <p
+                  id="proPlanStatus"
+                  class="pricing-status"
+                  aria-live="polite"
+                ></p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
     </main>
 
-    <div id="icon-modal"></div>
-    <div id="toast-container" aria-live="polite"></div>
+
+    <!-- =====================================================
+         ICON DETAIL MODAL
+         ===================================================== -->
+
+    <div
+      id="iconOverlay"
+      class="overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detailName"
+    >
+
+      <div class="modal icon-modal">
+
+        <button
+          type="button"
+          class="modal-close"
+          data-close="iconOverlay"
+          aria-label="Close icon details"
+        >
+          ×
+        </button>
+
+
+        <div
+          id="iconPreview"
+          class="icon-preview"
+        ></div>
+
+
+        <div class="icon-detail">
+
+          <p
+            id="detailCategory"
+            class="eyebrow"
+          ></p>
+
+          <h2 id="detailName"></h2>
+
+          <p id="detailDescription"></p>
+
+          <div
+            id="detailTags"
+            class="tags"
+          ></div>
+
+        </div>
+
+
+        <div class="code-panel">
+
+          <div class="code-panel-header">
+
+            <div
+              class="code-tabs"
+              role="tablist"
+              aria-label="Code format"
+            >
+
+              <button
+                type="button"
+                class="code-tab active"
+                data-code-tab="svg"
+                role="tab"
+              >
+                SVG
+              </button>
+
+              <button
+                type="button"
+                class="code-tab"
+                data-code-tab="react"
+                role="tab"
+              >
+                React
+              </button>
+
+              <button
+                type="button"
+                class="code-tab"
+                data-code-tab="html"
+                role="tab"
+              >
+                HTML
+              </button>
+
+            </div>
+
+
+            <span id="codeLabel">
+              SVG
+            </span>
+
+          </div>
+
+
+          <pre class="code-block"><code id="svgCode"></code></pre>
+
+
+          <div class="code-actions">
+
+            <button
+              id="copySvg"
+              type="button"
+              class="button button-secondary"
+            >
+              Copy
+            </button>
+
+            <button
+              id="downloadSvg"
+              type="button"
+              class="button button-primary"
+            >
+              Download SVG
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TOAST
+         ===================================================== -->
+
+    <div
+      id="toast"
+      class="toast hidden"
+      role="status"
+      aria-live="polite"
+    ></div>
+
   </div>
+
+
+  <!-- =======================================================
+       NOSCRIPT
+       ======================================================= -->
 
   <noscript>
     <p>
-      UAsset requires JavaScript to browse and use the icon library.
-      Please enable JavaScript in your browser.
+      UAsset requires JavaScript to browse and use
+      the icon library. Please enable JavaScript.
     </p>
   </noscript>
 
-  <script type="module" src="/frontend/app.js"></script>
+
+  <!-- =======================================================
+       APP
+       ======================================================= -->
+
+  <script
+    type="module"
+    src="/frontend/app.js"
+  ></script>
+
 </body>
 </html>
