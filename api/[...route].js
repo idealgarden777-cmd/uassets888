@@ -32,6 +32,10 @@ import billingWebhookHandler
   from "../server/uasset/billing/webhook.js";
 
 
+/* =======================================================
+   ADMIN — ICONS
+   ======================================================= */
+
 import adminIconsCreateHandler
   from "../server/uasset/admin/icons/create.js";
 
@@ -44,6 +48,10 @@ import adminIconsListHandler
 import adminIconsUpdateHandler
   from "../server/uasset/admin/icons/update.js";
 
+
+/* =======================================================
+   ADMIN — COLLECTIONS
+   ======================================================= */
 
 import adminCollectionsCreateHandler
   from "../server/uasset/admin/collections/create.js";
@@ -59,14 +67,31 @@ import adminCollectionsUpdateHandler
 
 
 /* =======================================================
+   ADMIN — CATEGORIES
+   ======================================================= */
+
+import adminCategoriesCreateHandler
+  from "../server/uasset/admin/categories/create.js";
+
+import adminCategoriesDeleteHandler
+  from "../server/uasset/admin/categories/delete.js";
+
+import adminCategoriesListHandler
+  from "../server/uasset/admin/categories/list.js";
+
+import adminCategoriesUpdateHandler
+  from "../server/uasset/admin/categories/update.js";
+
+
+/* =======================================================
    ROUTE TABLE
    ======================================================= */
 
 const ROUTES = new Map([
 
-  /*
-  PUBLIC ICONS
-  */
+  /* =====================================================
+     PUBLIC ICONS
+     ===================================================== */
 
   [
     "GET /api/icons",
@@ -74,9 +99,9 @@ const ROUTES = new Map([
   ],
 
 
-  /*
-  PRO ASSETS
-  */
+  /* =====================================================
+     PRO ASSETS
+     ===================================================== */
 
   [
     "GET /api/assets/pro",
@@ -84,9 +109,9 @@ const ROUTES = new Map([
   ],
 
 
-  /*
-  BILLING
-  */
+  /* =====================================================
+     BILLING
+     ===================================================== */
 
   [
     "POST /api/billing/create-checkout",
@@ -104,9 +129,9 @@ const ROUTES = new Map([
   ],
 
 
-  /*
-  ADMIN — ICONS
-  */
+  /* =====================================================
+     ADMIN — ICONS
+     ===================================================== */
 
   [
     "POST /api/admin/icons/create",
@@ -139,9 +164,9 @@ const ROUTES = new Map([
   ],
 
 
-  /*
-  ADMIN — COLLECTIONS
-  */
+  /* =====================================================
+     ADMIN — COLLECTIONS
+     ===================================================== */
 
   [
     "POST /api/admin/collections/create",
@@ -171,6 +196,46 @@ const ROUTES = new Map([
   [
     "POST /api/admin/collections/delete",
     adminCollectionsDeleteHandler
+  ],
+
+
+  /* =====================================================
+     ADMIN — CATEGORIES
+     ===================================================== */
+
+  [
+    "POST /api/admin/categories/create",
+    adminCategoriesCreateHandler
+  ],
+
+  [
+    "GET /api/admin/categories/list",
+    adminCategoriesListHandler
+  ],
+
+  [
+    "PATCH /api/admin/categories/update",
+    adminCategoriesUpdateHandler
+  ],
+
+  [
+    "PUT /api/admin/categories/update",
+    adminCategoriesUpdateHandler
+  ],
+
+  [
+    "POST /api/admin/categories/update",
+    adminCategoriesUpdateHandler
+  ],
+
+  [
+    "DELETE /api/admin/categories/delete",
+    adminCategoriesDeleteHandler
+  ],
+
+  [
+    "POST /api/admin/categories/delete",
+    adminCategoriesDeleteHandler
   ]
 
 ]);
