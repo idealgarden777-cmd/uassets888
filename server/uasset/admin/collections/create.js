@@ -15,10 +15,16 @@ const ACCOUNTS_SESSION_URL =
    ========================================================= */
 
 function requiredEnv(name) {
-  const value = process.env[name];
+  const value =
+    process.env[name];
 
-  if (!value || !String(value).trim()) {
-    throw new Error(`${name} is missing`);
+  if (
+    !value ||
+    !String(value).trim()
+  ) {
+    throw new Error(
+      `${name} is missing`
+    );
   }
 
   return String(value).trim();
@@ -379,9 +385,8 @@ export default async function handler(
   const id =
     cleanText(
       body.id,
-      80
-    )
-      .toLowerCase();
+      60
+    ).toLowerCase();
 
   const name =
     cleanText(
@@ -395,15 +400,31 @@ export default async function handler(
       1000
     );
 
-  const slug =
-    cleanText(
-      body.slug || body.id,
-      80
+  const categories =
+    Array.isArray(
+      body.categories
     )
-      .toLowerCase();
+      ? [
+          ...new Set(
+            body.categories
+              .map(
+                category =>
+                  cleanText(
+                    category,
+                    80
+                  )
+              )
+              .filter(Boolean)
+          )
+        ].slice(
+          0,
+          50
+        )
+      : [];
 
   const isActive =
-    body.is_active !== false;
+    body.is_active !==
+    false;
 
 
   /* =======================================================
@@ -435,21 +456,19 @@ export default async function handler(
 
 
   if (
-    !/^[a-z0-9-]+$/.test(
-      slug
-    )
+    !categories.length
   ) {
     return jsonError(
       res,
       400,
-      "Collection slug must contain only lowercase letters, numbers and hyphens",
-      "INVALID_SLUG"
+      "At least one category is required",
+      "INVALID_CATEGORIES"
     );
   }
 
 
   /* =======================================================
-     CREATE
+     CREATE COLLECTION
      ======================================================= */
 
   try {
@@ -459,7 +478,7 @@ export default async function handler(
 
         name,
 
-        slug,
+        categories,
 
         description:
           description ||
@@ -499,9 +518,7 @@ export default async function handler(
         data:
           error?.data,
 
-        id,
-
-        slug
+        id
       }
     );
 
@@ -527,7 +544,7 @@ export default async function handler(
       return jsonError(
         res,
         500,
-        "Collection could not be saved to database",
+        "Collection metadata could not be saved to database",
         "DATABASE_INSERT_FAILED"
       );
     }
