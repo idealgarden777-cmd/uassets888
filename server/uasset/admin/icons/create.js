@@ -8,91 +8,61 @@
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
-const DEFAULT_FREE_BUCKET =
-  "uasset-free";
-
-const DEFAULT_PRO_BUCKET =
-  "uasset-pro";
-
+const DEFAULT_FREE_BUCKET = "uasset-free";
+const DEFAULT_PRO_BUCKET = "uasset-pro";
 
 /* =========================================================
    REQUIRED ENV
    ========================================================= */
 
 function requiredEnv(name) {
-  const value =
-    process.env[name];
+  const value = process.env[name];
 
-  if (
-    !value ||
-    !String(value).trim()
-  ) {
-    throw new Error(
-      `${name} is missing`
-    );
+  if (!value || !String(value).trim()) {
+    throw new Error(`${name} is missing`);
   }
 
   return String(value).trim();
 }
 
-
 /* =========================================================
    JSON ERROR
    ========================================================= */
 
-function jsonError(
-  res,
-  status,
-  error,
-  code
-) {
-  return res
-    .status(status)
-    .json({
-      success: false,
-      error,
-      code
-    });
+function jsonError(res, status, error, code) {
+  return res.status(status).json({
+    success: false,
+    error,
+    code
+  });
 }
-
 
 /* =========================================================
    BEAN SESSION
    ========================================================= */
 
 async function getBeanUser(req) {
-  const cookie =
-    req.headers.cookie;
+  const cookie = req.headers.cookie;
 
   if (!cookie) {
     return null;
   }
 
-  const response =
-    await fetch(
-      ACCOUNTS_SESSION_URL,
-      {
-        method: "GET",
+  const response = await fetch(
+    ACCOUNTS_SESSION_URL,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Cookie: cookie
+      },
+      cache: "no-store"
+    }
+  );
 
-        headers: {
-          Accept:
-            "application/json",
-
-          Cookie:
-            cookie
-        },
-
-        cache:
-          "no-store"
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => ({})
-      );
+  const data = await response
+    .json()
+    .catch(() => ({}));
 
   if (
     !response.ok ||
@@ -105,120 +75,78 @@ async function getBeanUser(req) {
   return data.user;
 }
 
-
 /* =========================================================
    ADMIN CHECK
    ========================================================= */
 
 function isAdminUser(user) {
   const raw =
-    process.env.UASSET_ADMIN_BEAN_IDS ||
-    "";
+    process.env.UASSET_ADMIN_BEAN_IDS || "";
 
-  const allowedIds =
-    raw
-      .split(",")
-      .map(
-        value =>
-          value.trim()
-      )
-      .filter(Boolean);
+  const allowedIds = raw
+    .split(",")
+    .map(value => value.trim())
+    .filter(Boolean);
 
   return (
     !!user &&
     !!user.id &&
-    allowedIds.includes(
-      String(user.id)
-    )
+    allowedIds.includes(String(user.id))
   );
 }
-
 
 /* =========================================================
    CLEAN TEXT
    ========================================================= */
 
-function cleanText(
-  value,
-  maxLength
-) {
-  return String(
-    value || ""
-  )
+function cleanText(value, maxLength) {
+  return String(value || "")
     .trim()
-    .slice(
-      0,
-      maxLength
-    );
+    .slice(0, maxLength);
 }
-
 
 /* =========================================================
    SVG VALIDATION
    ========================================================= */
 
 function validateSvg(svg) {
-  const value =
-    String(
-      svg || ""
-    ).trim();
+  const value = String(svg || "").trim();
 
   return (
     value.length > 0 &&
     value.length <= 200000 &&
-    /^<svg\b/i.test(
-      value
-    ) &&
-    /<\/svg>\s*$/i.test(
-      value
-    )
+    /^<svg\b/i.test(value) &&
+    /<\/svg>\s*$/i.test(value)
   );
 }
-
 
 /* =========================================================
    SUPABASE REQUEST
    ========================================================= */
 
-async function supabaseRequest(
-  path,
-  options = {}
-) {
+async function supabaseRequest(path, options = {}) {
   const supabaseUrl =
-    requiredEnv(
-      "SUPABASE_URL"
-    );
+    requiredEnv("SUPABASE_URL");
 
   const serviceRoleKey =
-    requiredEnv(
-      "SUPABASE_SERVICE_ROLE_KEY"
-    );
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-  const response =
-    await fetch(
-      supabaseUrl + path,
-      {
-        ...options,
-
-        headers: {
-          apikey:
-            serviceRoleKey,
-
-          Authorization:
-            "Bearer " +
-            serviceRoleKey,
-
-          ...(options.headers || {})
-        },
-
-        cache:
-          "no-store"
-      }
-    );
+  const response = await fetch(
+    supabaseUrl + path,
+    {
+      ...options,
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization:
+          "Bearer " + serviceRoleKey,
+        ...(options.headers || {})
+      },
+      cache: "no-store"
+    }
+  );
 
   return response;
 }
-
 
 /* =========================================================
    UPLOAD SVG
@@ -229,70 +157,47 @@ async function uploadSvg(
   filePath,
   svg
 ) {
-  const safePath =
-    filePath
-      .split("/")
-      .map(
-        part =>
-          encodeURIComponent(
-            part
-          )
-      )
-      .join("/");
+  const safePath = filePath
+    .split("/")
+    .map(part =>
+      encodeURIComponent(part)
+    )
+    .join("/");
 
-  const response =
-    await supabaseRequest(
-      "/storage/v1/object/" +
-        encodeURIComponent(
-          bucket
-        ) +
-        "/" +
-        safePath,
-      {
-        method: "POST",
+  const response = await supabaseRequest(
+    "/storage/v1/object/" +
+      encodeURIComponent(bucket) +
+      "/" +
+      safePath,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "image/svg+xml",
+        "x-upsert": "false"
+      },
+      body: svg
+    }
+  );
 
-        headers: {
-          "Content-Type":
-            "image/svg+xml",
+  const data = await response
+    .json()
+    .catch(() => null);
 
-          "x-upsert":
-            "false"
-        },
-
-        body:
-          svg
-      }
+  if (!response.ok) {
+    const error = new Error(
+      "Storage upload failed (" +
+        response.status +
+        ")"
     );
 
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
-
-  if (
-    !response.ok
-  ) {
-    const error =
-      new Error(
-        "Storage upload failed (" +
-          response.status +
-          ")"
-      );
-
-    error.status =
-      response.status;
-
-    error.data =
-      data;
+    error.status = response.status;
+    error.data = data;
 
     throw error;
   }
 
   return data;
 }
-
 
 /* =========================================================
    REMOVE SVG
@@ -303,30 +208,22 @@ async function removeSvg(
   filePath
 ) {
   try {
-    const safePath =
-      filePath
-        .split("/")
-        .map(
-          part =>
-            encodeURIComponent(
-              part
-            )
-        )
-        .join("/");
+    const safePath = filePath
+      .split("/")
+      .map(part =>
+        encodeURIComponent(part)
+      )
+      .join("/");
 
     await supabaseRequest(
       "/storage/v1/object/" +
-        encodeURIComponent(
-          bucket
-        ) +
+        encodeURIComponent(bucket) +
         "/" +
         safePath,
       {
-        method:
-          "DELETE"
+        method: "DELETE"
       }
     );
-
   } catch (error) {
     console.error(
       "UAsset storage cleanup failed:",
@@ -335,68 +232,46 @@ async function removeSvg(
   }
 }
 
-
 /* =========================================================
    DATABASE INSERT
    ========================================================= */
 
-async function insertIcon(
-  icon
-) {
-  const response =
-    await supabaseRequest(
-      "/rest/v1/uasset_icons",
-      {
-        method: "POST",
+async function insertIcon(icon) {
+  const response = await supabaseRequest(
+    "/rest/v1/uasset_icons",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+        Prefer:
+          "return=representation"
+      },
+      body: JSON.stringify(icon)
+    }
+  );
 
-        headers: {
-          "Content-Type":
-            "application/json",
+  const data = await response
+    .json()
+    .catch(() => null);
 
-          Prefer:
-            "return=representation"
-        },
-
-        body:
-          JSON.stringify(
-            icon
-          )
-      }
+  if (!response.ok) {
+    const error = new Error(
+      "Database insert failed (" +
+        response.status +
+        ")"
     );
 
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
-
-  if (
-    !response.ok
-  ) {
-    const error =
-      new Error(
-        "Database insert failed (" +
-          response.status +
-          ")"
-      );
-
-    error.status =
-      response.status;
-
-    error.data =
-      data;
+    error.status = response.status;
+    error.data = data;
 
     throw error;
   }
 
-  return Array.isArray(
-    data
-  )
+  return Array.isArray(data)
     ? data[0]
     : data;
 }
-
 
 /* =========================================================
    MAIN HANDLER
@@ -406,7 +281,6 @@ export default async function handler(
   req,
   res
 ) {
-
   res.setHeader(
     "Cache-Control",
     "no-store, private"
@@ -427,11 +301,7 @@ export default async function handler(
     "DENY"
   );
 
-
-  if (
-    req.method !==
-    "POST"
-  ) {
+  if (req.method !== "POST") {
     res.setHeader(
       "Allow",
       "POST"
@@ -445,18 +315,11 @@ export default async function handler(
     );
   }
 
-
   let user;
 
   try {
-
-    user =
-      await getBeanUser(
-        req
-      );
-
+    user = await getBeanUser(req);
   } catch (error) {
-
     console.error(
       "UAsset admin Bean verification failed:",
       error
@@ -470,9 +333,7 @@ export default async function handler(
     );
   }
 
-
   if (!user) {
-
     return jsonError(
       res,
       401,
@@ -481,13 +342,7 @@ export default async function handler(
     );
   }
 
-
-  if (
-    !isAdminUser(
-      user
-    )
-  ) {
-
+  if (!isAdminUser(user)) {
     return jsonError(
       res,
       403,
@@ -496,98 +351,62 @@ export default async function handler(
     );
   }
 
-
   let body =
-    req.body ||
-    {};
+    req.body || {};
 
-
-  if (
-    typeof body ===
-    "string"
-  ) {
+  if (typeof body === "string") {
     try {
-
-      body =
-        JSON.parse(
-          body
-        );
-
+      body = JSON.parse(body);
     } catch {
-
-      body =
-        {};
+      body = {};
     }
   }
 
+  const id = cleanText(
+    body.id,
+    60
+  ).toLowerCase();
 
-  const id =
-    cleanText(
-      body.id,
-      60
-    ).toLowerCase();
+  const name = cleanText(
+    body.name,
+    120
+  );
 
-  const name =
-    cleanText(
-      body.name,
-      120
-    );
+  const category = cleanText(
+    body.category,
+    80
+  );
 
-  const category =
-    cleanText(
-      body.category,
-      80
-    );
-
-  const description =
-    cleanText(
-      body.description,
-      1000
-    );
+  const description = cleanText(
+    body.description,
+    1000
+  );
 
   const plan =
     String(
-      body.plan ||
-        "free"
-    ).toLowerCase() ===
-    "pro"
+      body.plan || "free"
+    ).toLowerCase() === "pro"
       ? "pro"
       : "free";
 
-
   const tags =
-    Array.isArray(
-      body.tags
-    )
+    Array.isArray(body.tags)
       ? body.tags
-          .map(
-            tag =>
-              cleanText(
-                tag,
-                40
-              ).toLowerCase()
+          .map(tag =>
+            cleanText(
+              tag,
+              40
+            ).toLowerCase()
           )
           .filter(Boolean)
-          .slice(
-            0,
-            20
-          )
+          .slice(0, 20)
       : [];
 
+  const svg = String(
+    body.svg || ""
+  ).trim();
 
-  const svg =
-    String(
-      body.svg ||
-        ""
-    ).trim();
-
-
-  if (
-    !/^[a-z0-9-]+$/.test(
-      id
-    )
-  ) {
-
+  if (!/^[a-z0-9-]+$/.test(id)) {
     return jsonError(
       res,
       400,
@@ -596,9 +415,7 @@ export default async function handler(
     );
   }
 
-
   if (!name) {
-
     return jsonError(
       res,
       400,
@@ -607,9 +424,7 @@ export default async function handler(
     );
   }
 
-
   if (!category) {
-
     return jsonError(
       res,
       400,
@@ -618,13 +433,7 @@ export default async function handler(
     );
   }
 
-
-  if (
-    !validateSvg(
-      svg
-    )
-  ) {
-
+  if (!validateSvg(svg)) {
     return jsonError(
       res,
       400,
@@ -632,7 +441,6 @@ export default async function handler(
       "INVALID_SVG"
     );
   }
-
 
   const bucket =
     plan === "pro"
@@ -647,112 +455,70 @@ export default async function handler(
           DEFAULT_FREE_BUCKET
         );
 
-
   const storagePath =
-    id +
-    ".svg";
+    id + ".svg";
 
-
-  let uploaded =
-    false;
-
+  let uploaded = false;
 
   try {
-
     await uploadSvg(
       bucket,
       storagePath,
       svg
     );
 
-    uploaded =
-      true;
-
+    uploaded = true;
 
     const row =
       await insertIcon({
         id,
-
         name,
-
         category,
-
         tags,
-
         description:
-          description ||
-          null,
-
+          description || null,
         plan,
-
         storage_bucket:
           bucket,
-
         storage_path:
           storagePath,
-
-        is_active:
-          true,
-
+        is_active: true,
         created_by_bean_user_id:
-          String(
-            user.id
-          )
+          String(user.id)
       });
-
 
     return res
       .status(201)
       .json({
-        success:
-          true,
-
-        icon:
-          row
+        success: true,
+        icon: row
       });
 
-
   } catch (error) {
-
     console.error(
       "UAsset create icon failed:",
       {
         message:
           error?.message,
-
         status:
           error?.status,
-
         data:
           error?.data,
-
         id,
-
         plan,
-
         bucket,
-
         storagePath
       }
     );
 
-
-    if (
-      uploaded
-    ) {
-
+    if (uploaded) {
       await removeSvg(
         bucket,
         storagePath
       );
     }
 
-
-    if (
-      error?.status ===
-      409
-    ) {
-
+    if (error?.status === 409) {
       return jsonError(
         res,
         409,
@@ -761,13 +527,11 @@ export default async function handler(
       );
     }
 
-
     if (
       error?.message?.startsWith(
         "Storage upload failed"
       )
     ) {
-
       return jsonError(
         res,
         500,
@@ -776,13 +540,11 @@ export default async function handler(
       );
     }
 
-
     if (
       error?.message?.startsWith(
         "Database insert failed"
       )
     ) {
-
       return jsonError(
         res,
         500,
@@ -790,7 +552,6 @@ export default async function handler(
         "DATABASE_INSERT_FAILED"
       );
     }
-
 
     return jsonError(
       res,
