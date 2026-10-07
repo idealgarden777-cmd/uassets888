@@ -385,6 +385,16 @@ export default async function handler(
         pro:
           false,
 
+        plan:
+          "free",
+
+        testMode:
+          String(
+            process.env.LEMONSQUEEZY_TEST_MODE ||
+              "true"
+          ).toLowerCase() ===
+          "true",
+
         error:
           "Unable to verify Bean account",
 
@@ -414,6 +424,16 @@ export default async function handler(
         pro:
           false,
 
+        plan:
+          "free",
+
+        testMode:
+          String(
+            process.env.LEMONSQUEEZY_TEST_MODE ||
+              "true"
+          ).toLowerCase() ===
+          "true",
+
         subscription:
           null
 
@@ -439,6 +459,16 @@ export default async function handler(
 
         pro:
           false,
+
+        plan:
+          "free",
+
+        testMode:
+          String(
+            process.env.LEMONSQUEEZY_TEST_MODE ||
+              "true"
+          ).toLowerCase() ===
+          "true",
 
         error:
           "Bean user identity is missing",
@@ -484,6 +514,16 @@ export default async function handler(
         pro:
           false,
 
+        plan:
+          "free",
+
+        testMode:
+          String(
+            process.env.LEMONSQUEEZY_TEST_MODE ||
+              "true"
+          ).toLowerCase() ===
+          "true",
+
         error:
           "Unable to load subscription status",
 
@@ -504,6 +544,20 @@ export default async function handler(
     );
 
 
+  const testMode =
+    String(
+      process.env.LEMONSQUEEZY_TEST_MODE ||
+        "true"
+    ).toLowerCase() ===
+    "true";
+
+
+  const plan =
+    pro
+      ? "pro"
+      : "free";
+
+
   /* =======================================================
      SAFE RESPONSE
      ======================================================= */
@@ -519,6 +573,10 @@ export default async function handler(
         true,
 
       pro,
+
+      plan,
+
+      testMode,
 
       subscription:
         subscription
