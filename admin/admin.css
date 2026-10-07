@@ -2309,3 +2309,17 @@ select:focus-visible {
   }
 
 }
+
+
+/* Signaturesi brand mark (replaces the "U" letter tile) */
+.admin-brand-mark {
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text);
+}
+
+.admin-brand-mark svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
