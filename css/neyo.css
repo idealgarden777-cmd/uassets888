@@ -682,3 +682,30 @@ body {
     transform: none;
   }
 }
+
+
+/* ---------- Hero brand mark (large, simple) ---------- */
+
+.hero-mark {
+  width: clamp(96px, 12vw, 136px);
+  height: clamp(96px, 12vw, 136px);
+  margin: 0 auto clamp(24px, 3vw, 36px);
+  color: var(--sg-black);
+}
+
+.hero-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.hero .specs,
+.hero-eyebrow {
+  display: none !important;
+}
+
+.hero {
+  padding-top: clamp(56px, 8vw, 104px) !important;
+  padding-bottom: clamp(40px, 5vw, 64px) !important;
+}
