@@ -301,7 +301,7 @@ main {
 
   color: var(--text);
 
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .hero-search input::placeholder {
@@ -1698,4 +1698,16 @@ main {
 
     gap: 7px;
   }
+}
+
+/* =========================================================
+   COLLECTIONS — EMPTY STATE
+   ========================================================= */
+
+.collection-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 24px 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }

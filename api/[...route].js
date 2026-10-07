@@ -21,6 +21,11 @@ import iconsHandler
 import proAssetsHandler
   from "../server/uasset/assets/pro.js";
 
+import {
+  categoriesHandler,
+  collectionsHandler
+} from "../server/uasset/catalog.js";
+
 
 import createCheckoutHandler
   from "../server/uasset/billing/create-checkout.js";
@@ -96,6 +101,21 @@ const ROUTES = new Map([
   [
     "GET /api/icons",
     iconsHandler
+  ],
+
+
+  /* =====================================================
+     PUBLIC CATALOG
+     ===================================================== */
+
+  [
+    "GET /api/categories",
+    categoriesHandler
+  ],
+
+  [
+    "GET /api/collections",
+    collectionsHandler
   ],
 
 

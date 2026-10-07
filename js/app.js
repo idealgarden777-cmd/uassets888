@@ -78,6 +78,12 @@ const BILLING_CHECKOUT_ENDPOINT =
 const DATABASE_ICONS_ENDPOINT =
   "/api/icons";
 
+const CATEGORIES_ENDPOINT =
+  "/api/categories";
+
+const COLLECTIONS_ENDPOINT =
+  "/api/collections";
+
 
 /* =========================================================
    SECURE PRO ASSET API
@@ -2119,7 +2125,7 @@ let activeCodeTab =
    COLLECTIONS
    ========================================================= */
 
-const collections = [
+let collections = [
 
   {
     id:
@@ -2127,6 +2133,9 @@ const collections = [
 
     name:
       "Essential UI",
+
+    description:
+      "Navigation, actions and system basics.",
 
     categories: [
       "Navigation",
@@ -2142,6 +2151,9 @@ const collections = [
     name:
       "Time & Calendar",
 
+    description:
+      "Time, recent activity and date states.",
+
     categories: [
       "Time"
     ]
@@ -2153,6 +2165,9 @@ const collections = [
 
     name:
       "Files & Product",
+
+    description:
+      "Useful patterns for product interfaces.",
 
     categories: [
       "Files",
@@ -2180,6 +2195,182 @@ let categories = [
   )
 
 ];
+
+
+/*
+  Category order from the admin panel
+  (uasset_categories.sort_order).
+  Empty until /api/categories loads.
+*/
+
+let categoryOrder = [];
+
+
+/* =========================================================
+   HTML ESCAPE
+   Database text is never trusted as HTML.
+   ========================================================= */
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ?? ""
+  )
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+
+/* =========================================================
+   CATEGORY HELPERS
+   ========================================================= */
+
+function normalizeCategory(
+  value
+) {
+
+  return String(
+    value || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
+
+function collectionHasCategory(
+  collection,
+  category
+) {
+
+  const target =
+    normalizeCategory(
+      category
+    );
+
+  return (
+    Array.isArray(
+      collection?.categories
+    ) &&
+    collection.categories.some(
+      item =>
+        normalizeCategory(
+          item
+        ) ===
+        target
+    )
+  );
+}
+
+
+function getActiveIcons() {
+
+  return ICONS.filter(
+    icon =>
+      icon.isActive !==
+      false
+  );
+}
+
+
+function getCollectionIconCount(
+  collection
+) {
+
+  return getActiveIcons().filter(
+    icon =>
+      collectionHasCategory(
+        collection,
+        icon.category
+      )
+  ).length;
+}
+
+
+/*
+  "All" first, then admin-ordered categories
+  that actually contain icons, then any other
+  icon categories alphabetically.
+*/
+
+function rebuildCategories() {
+
+  const iconCategories =
+    [
+      ...new Set(
+        getActiveIcons()
+          .map(
+            icon =>
+              icon.category
+          )
+          .filter(Boolean)
+      )
+    ];
+
+  const used =
+    new Set();
+
+  const ordered = [];
+
+  categoryOrder.forEach(
+    name => {
+
+      const match =
+        iconCategories.find(
+          category =>
+            normalizeCategory(
+              category
+            ) ===
+            normalizeCategory(
+              name
+            )
+        );
+
+      if (
+        match &&
+        !used.has(match)
+      ) {
+
+        used.add(match);
+
+        ordered.push(match);
+      }
+    }
+  );
+
+  iconCategories
+    .filter(
+      category =>
+        !used.has(category)
+    )
+    .sort(
+      (a, b) =>
+        a.localeCompare(b)
+    )
+    .forEach(
+      category =>
+        ordered.push(category)
+    );
+
+  categories = [
+    "All",
+    ...ordered
+  ];
+
+  if (
+    !categories.includes(
+      activeCategory
+    )
+  ) {
+
+    activeCategory =
+      "All";
+  }
+}
 
 
 /* =========================================================
@@ -2283,6 +2474,71 @@ async function loadDatabaseIcons() {
           0
         ) {
 
+          /*
+            The database is the source of truth
+            for metadata edited in the admin
+            panel. Keep the bundled SVG when
+            the database has no file for it.
+          */
+
+          const existing =
+            ICONS[existingIndex];
+
+          const isPro =
+            databaseIcon.pro ===
+            true;
+
+          ICONS[existingIndex] = {
+
+            ...existing,
+
+            name:
+              databaseIcon.name ||
+              existing.name,
+
+            category:
+              databaseIcon.category ||
+              existing.category,
+
+            tags:
+              Array.isArray(
+                databaseIcon.tags
+              ) &&
+              databaseIcon.tags.length
+                ? databaseIcon.tags
+                : existing.tags,
+
+            description:
+              databaseIcon.description ||
+              existing.description,
+
+            pro:
+              isPro,
+
+            plan:
+              isPro
+                ? "pro"
+                : "free",
+
+            svg:
+              isPro
+                ? ""
+                : existing.svg,
+
+            svgUrl:
+              isPro
+                ? null
+                : (
+                    databaseIcon.svgUrl ||
+                    existing.svgUrl ||
+                    null
+                  ),
+
+            isActive:
+              databaseIcon.isActive !==
+              false
+          };
+
           return;
         }
 
@@ -2349,24 +2605,7 @@ async function loadDatabaseIcons() {
        Rebuild categories
        ----------------------------------------------------- */
 
-    categories = [
-
-      "All",
-
-      ...new Set(
-        ICONS
-          .filter(
-            icon =>
-              icon.isActive !==
-              false
-          )
-          .map(
-            icon =>
-              icon.category
-          )
-      )
-
-    ];
+    rebuildCategories();
 
 
     /* -----------------------------------------------------
@@ -2374,6 +2613,8 @@ async function loadDatabaseIcons() {
        ----------------------------------------------------- */
 
     renderFilters();
+
+    renderCollections();
 
     renderCollectionContext();
 
@@ -2430,9 +2671,9 @@ function renderFilters() {
                 ? "active"
                 : ""
             }"
-            data-category="${category}"
+            data-category="${escapeHtml(category)}"
           >
-            ${category}
+            ${escapeHtml(category)}
           </button>
 
         `
@@ -2524,12 +2765,9 @@ function renderCollectionContext() {
 
 
   const count =
-    ICONS.filter(
-      icon =>
-        collection.categories.includes(
-          icon.category
-        )
-    ).length;
+    getCollectionIconCount(
+      collection
+    );
 
 
   els.collectionContextName.textContent =
@@ -2610,25 +2848,272 @@ function selectCollection(
    ========================================================= */
 
 document
-  .querySelectorAll(
-    "[data-collection]"
+  .getElementById(
+    "collectionGrid"
   )
-  .forEach(
-    card => {
+  ?.addEventListener(
+    "click",
+    event => {
 
-      card.addEventListener(
-        "click",
-        () => {
+      const card =
+        event.target.closest(
+          "[data-collection]"
+        );
 
-          selectCollection(
-            card.dataset.collection
-          );
+      if (!card) {
+        return;
+      }
 
-        }
+      selectCollection(
+        card.dataset.collection
       );
 
     }
   );
+
+
+/* =========================================================
+   RENDER COLLECTIONS
+   Cards are built from the database when available,
+   otherwise from the bundled fallback list.
+   ========================================================= */
+
+const COLLECTION_MARKS = [
+  "◌",
+  "◷",
+  "▦",
+  "◇",
+  "△",
+  "○",
+  "□",
+  "◎"
+];
+
+
+function renderCollections() {
+
+  const grid =
+    document.getElementById(
+      "collectionGrid"
+    );
+
+  if (!grid) {
+    return;
+  }
+
+  if (
+    !collections.length
+  ) {
+
+    grid.innerHTML = `
+      <p class="collection-empty">
+        Collections are coming soon.
+      </p>
+    `;
+
+    return;
+  }
+
+  grid.innerHTML =
+    collections
+      .map(
+        (collection, index) => {
+
+          const count =
+            getCollectionIconCount(
+              collection
+            );
+
+          const description =
+            collection.description ||
+            collection.categories.join(
+              ", "
+            );
+
+          return `
+
+            <button
+              class="collection-card"
+              type="button"
+              data-collection="${escapeHtml(collection.id)}"
+              aria-label="View ${escapeHtml(collection.name)} collection"
+            >
+
+              <div class="collection-mark">
+                ${COLLECTION_MARKS[index % COLLECTION_MARKS.length]}
+              </div>
+
+              <div>
+
+                <h3>
+                  ${escapeHtml(collection.name)}
+                </h3>
+
+                <p>
+                  ${escapeHtml(description)}
+                </p>
+
+              </div>
+
+              <small data-collection-count>
+                ${count} ${count === 1 ? "icon" : "icons"}
+              </small>
+
+            </button>
+
+          `;
+        }
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   LOAD CATALOG (CATEGORIES + COLLECTIONS)
+   Falls back silently to bundled data on failure.
+   ========================================================= */
+
+async function fetchCatalog(
+  endpoint
+) {
+
+  const response =
+    await fetch(
+      endpoint,
+      {
+        method:
+          "GET",
+
+        headers: {
+          Accept:
+            "application/json"
+        }
+      }
+    );
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => ({})
+      );
+
+  if (
+    !response.ok ||
+    data.success !==
+      true
+  ) {
+
+    throw new Error(
+      `${endpoint} failed (${response.status})`
+    );
+  }
+
+  return data;
+}
+
+
+async function loadCategories() {
+
+  try {
+
+    const data =
+      await fetchCatalog(
+        CATEGORIES_ENDPOINT
+      );
+
+    categoryOrder =
+      Array.isArray(
+        data.categories
+      )
+        ? data.categories
+            .map(
+              category =>
+                category?.name
+            )
+            .filter(Boolean)
+        : [];
+
+    rebuildCategories();
+
+    renderFilters();
+
+  } catch (error) {
+
+    console.warn(
+      "UAsset categories fallback:",
+      error
+    );
+  }
+}
+
+
+async function loadCollections() {
+
+  try {
+
+    const data =
+      await fetchCatalog(
+        COLLECTIONS_ENDPOINT
+      );
+
+    const databaseCollections =
+      Array.isArray(
+        data.collections
+      )
+        ? data.collections.filter(
+            collection =>
+              collection?.id &&
+              collection?.name &&
+              Array.isArray(
+                collection.categories
+              ) &&
+              collection.categories.length
+          )
+        : [];
+
+    /*
+      Keep the bundled collections if the
+      admin has not created any yet.
+    */
+
+    if (
+      databaseCollections.length
+    ) {
+
+      collections =
+        databaseCollections;
+
+      if (
+        activeCollection &&
+        !collections.some(
+          collection =>
+            collection.id ===
+            activeCollection
+        )
+      ) {
+
+        activeCollection =
+          null;
+      }
+    }
+
+    renderCollections();
+
+    renderCollectionContext();
+
+    renderIcons(
+      getSearchTerm()
+    );
+
+  } catch (error) {
+
+    console.warn(
+      "UAsset collections fallback:",
+      error
+    );
+  }
+}
 
 
 /* =========================================================
@@ -2684,7 +3169,8 @@ function matchesIcon(
   ) {
 
     if (
-      !collection.categories.includes(
+      !collectionHasCategory(
+        collection,
         icon.category
       )
     ) {
@@ -3874,7 +4360,11 @@ document.addEventListener(
    INITIALIZE
    ========================================================= */
 
+rebuildCategories();
+
 renderFilters();
+
+renderCollections();
 
 renderCollectionContext();
 
@@ -3890,6 +4380,10 @@ updateProPlanUI();
    --------------------------------------------------------- */
 
 loadDatabaseIcons();
+
+loadCategories();
+
+loadCollections();
 
 
 /* ---------------------------------------------------------
