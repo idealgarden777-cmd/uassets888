@@ -1461,14 +1461,52 @@ function renderSvg(
       return "";
     }
 
-    root
-      .querySelectorAll(
-        "script,foreignObject"
-      )
-      .forEach(
-        node =>
-          node.remove()
-      );
+    /* Remove active content: scripts, foreign content,
+       event handlers and external links. */
+    const blockedTags = new Set([
+      "script", "foreignobject", "iframe", "embed",
+      "object", "style", "meta", "link", "base",
+      "form", "input", "textarea", "audio", "video",
+      "handler", "listener"
+    ]);
+
+    [root, ...root.querySelectorAll("*")]
+      .forEach(node => {
+
+        if (
+          blockedTags.has(
+            node.localName.toLowerCase()
+          )
+        ) {
+          node.remove();
+          return;
+        }
+
+        [...node.attributes].forEach(attr => {
+
+          const name =
+            attr.name.toLowerCase();
+
+          const attrValue =
+            String(attr.value || "")
+              .replace(/[\u0000-\u0020]+/g, "")
+              .toLowerCase();
+
+          const isLink =
+            name === "href" ||
+            name.endsWith(":href") ||
+            name === "src";
+
+          if (
+            name.startsWith("on") ||
+            /(javascript|vbscript|livescript):|data:text\/html/.test(attrValue) ||
+            (isLink && !attrValue.startsWith("#")) ||
+            (/url\(/.test(attrValue) && !/url\(["']?#/.test(attrValue))
+          ) {
+            node.removeAttribute(attr.name);
+          }
+        });
+      });
 
     root.setAttribute(
       "width",
@@ -1485,7 +1523,8 @@ function renderSvg(
       "true"
     );
 
-    return root.outerHTML;
+    return new XMLSerializer()
+      .serializeToString(root);
 
   } catch {
     return "";

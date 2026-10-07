@@ -4,6 +4,11 @@
    Lemon Squeezy subscription status
    ========================================================= */
 
+import {
+  isProSubscription,
+  pickSubscription
+} from "./subscription-rules.js";
+
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
@@ -154,7 +159,7 @@ async function getSubscription(
 
   query.set(
     "limit",
-    "1"
+    "10"
   );
 
 
@@ -211,9 +216,9 @@ async function getSubscription(
   }
 
 
-  return Array.isArray(data)
-    ? data[0] || null
-    : null;
+  return pickSubscription(
+    data
+  );
 }
 
 
@@ -224,79 +229,9 @@ async function getSubscription(
 function isActiveSubscription(
   subscription
 ) {
-  if (!subscription) {
-    return false;
-  }
-
-
-  const status =
-    String(
-      subscription.status ||
-        ""
-    ).toLowerCase();
-
-
-  if (
-    status !== "active" &&
-    status !== "on_trial"
-  ) {
-    return false;
-  }
-
-
-  if (
-    subscription.cancelled ===
-    true
-  ) {
-
-    if (
-      !subscription.ends_at
-    ) {
-      return false;
-    }
-
-
-    const endsAt =
-      new Date(
-        subscription.ends_at
-      ).getTime();
-
-
-    if (
-      Number.isNaN(
-        endsAt
-      ) ||
-      endsAt <=
-        Date.now()
-    ) {
-      return false;
-    }
-  }
-
-
-  if (
-    subscription.ends_at
-  ) {
-
-    const endsAt =
-      new Date(
-        subscription.ends_at
-      ).getTime();
-
-
-    if (
-      !Number.isNaN(
-        endsAt
-      ) &&
-      endsAt <=
-        Date.now()
-    ) {
-      return false;
-    }
-  }
-
-
-  return true;
+  return isProSubscription(
+    subscription
+  );
 }
 
 

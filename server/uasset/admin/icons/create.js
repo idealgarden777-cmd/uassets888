@@ -5,6 +5,8 @@
    Supabase database + storage
    ========================================================= */
 
+import { checkSvgSafety } from "../../svg-safety.js";
+
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
@@ -433,11 +435,14 @@ export default async function handler(
     );
   }
 
-  if (!validateSvg(svg)) {
+  const svgCheck =
+    checkSvgSafety(svg);
+
+  if (!svgCheck.ok) {
     return jsonError(
       res,
       400,
-      "Complete SVG markup is required",
+      svgCheck.reason,
       "INVALID_SVG"
     );
   }

@@ -16,6 +16,11 @@ Flow:
 =========================================================
 */
 
+import {
+  isProSubscription,
+  pickSubscription
+} from "../billing/subscription-rules.js";
+
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
 
@@ -229,7 +234,7 @@ async function getProSubscription(beanUserId) {
 
   query.set(
     "limit",
-    "1"
+    "10"
   );
 
   const response = await fetch(
@@ -266,9 +271,9 @@ async function getProSubscription(beanUserId) {
     );
   }
 
-  return Array.isArray(data)
-    ? data[0] || null
-    : null;
+  return pickSubscription(
+    data
+  );
 }
 
 
@@ -279,49 +284,9 @@ ACTIVE PRO CHECK
 */
 
 function isProActive(subscription) {
-  if (!subscription) {
-    return false;
-  }
-
-  if (subscription.cancelled === true) {
-    if (!subscription.ends_at) {
-      return false;
-    }
-
-    const endsAt =
-      new Date(subscription.ends_at).getTime();
-
-    return (
-      !Number.isNaN(endsAt) &&
-      endsAt > Date.now()
-    );
-  }
-
-  const status =
-    String(
-      subscription.status || ""
-    ).toLowerCase();
-
-  if (
-    status !== "active" &&
-    status !== "on_trial"
-  ) {
-    return false;
-  }
-
-  if (subscription.ends_at) {
-    const endsAt =
-      new Date(subscription.ends_at).getTime();
-
-    if (
-      !Number.isNaN(endsAt) &&
-      endsAt <= Date.now()
-    ) {
-      return false;
-    }
-  }
-
-  return true;
+  return isProSubscription(
+    subscription
+  );
 }
 
 

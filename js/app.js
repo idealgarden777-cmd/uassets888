@@ -44,6 +44,92 @@ const els = {
 
 
 /* =========================================================
+   SVG SAFETY (client)
+   Every fetched SVG is cleaned before it touches the DOM:
+   no scripts, event handlers, foreign content or
+   external links. Returns "" when the markup is not SVG.
+   ========================================================= */
+
+const SVG_BLOCKED_TAGS = new Set([
+  "script", "foreignobject", "iframe", "embed", "object",
+  "style", "meta", "link", "base", "form", "input",
+  "textarea", "audio", "video", "handler", "listener"
+]);
+
+function sanitizeSvgMarkup(
+  markup
+) {
+
+  try {
+
+    const doc =
+      new DOMParser().parseFromString(
+        String(markup || ""),
+        "image/svg+xml"
+      );
+
+    const root =
+      doc.documentElement;
+
+    if (
+      !root ||
+      root.nodeName.toLowerCase() !== "svg" ||
+      doc.getElementsByTagName("parsererror").length
+    ) {
+      return "";
+    }
+
+    const nodes =
+      [root, ...root.querySelectorAll("*")];
+
+    for (const node of nodes) {
+
+      if (
+        SVG_BLOCKED_TAGS.has(
+          node.localName.toLowerCase()
+        )
+      ) {
+        node.remove();
+        continue;
+      }
+
+      for (const attr of [...node.attributes]) {
+
+        const name =
+          attr.name.toLowerCase();
+
+        const value =
+          String(attr.value || "")
+            .replace(/[\u0000-\u0020]+/g, "")
+            .toLowerCase();
+
+        const isLink =
+          name === "href" ||
+          name.endsWith(":href") ||
+          name === "src";
+
+        if (
+          name.startsWith("on") ||
+          /(javascript|vbscript|livescript):|data:text\/html/.test(value) ||
+          (isLink && !value.startsWith("#")) ||
+          (/url\(/.test(value) && !/url\(["']?#/.test(value))
+        ) {
+          node.removeAttribute(attr.name);
+        }
+      }
+    }
+
+    return new XMLSerializer()
+      .serializeToString(root);
+
+  } catch (_) {
+
+    return "";
+  }
+}
+
+
+/* =========================================================
    DATABASE-ONLY LIBRARY
    Bundled icons from js/icons.js are not shown.
    Every icon comes from the admin panel (/api/icons).
@@ -766,13 +852,24 @@ async function getSecureProSvg(
       }
 
 
+      const safeSvg =
+        sanitizeSvgMarkup(
+          normalizedSvg
+        );
+
+      if (!safeSvg) {
+        throw new Error(
+          "Invalid SVG asset"
+        );
+      }
+
       proAssetCache.set(
         normalizedAssetId,
-        normalizedSvg
+        safeSvg
       );
 
 
-      return normalizedSvg;
+      return safeSvg;
 
     })();
 
@@ -960,13 +1057,24 @@ async function getFreeSvg(
       }
 
 
+      const safeSvg =
+        sanitizeSvgMarkup(
+          normalizedSvg
+        );
+
+      if (!safeSvg) {
+        throw new Error(
+          "Invalid Free SVG asset"
+        );
+      }
+
       freeAssetCache.set(
         assetId,
-        normalizedSvg
+        safeSvg
       );
 
 
-      return normalizedSvg;
+      return safeSvg;
 
     })();
 
@@ -3431,8 +3539,8 @@ function renderIcons(
             <button
               type="button"
               class="icon-card"
-              data-icon="${icon.id}"
-              aria-label="Open ${icon.name}"
+              data-icon="${escapeHtml(icon.id)}"
+              aria-label="Open ${escapeHtml(icon.name)}"
               style="position:relative;"
             >
 
@@ -3472,14 +3580,14 @@ function renderIcons(
 
                 ${
                   isProIcon(icon)
-                    ? `data-pro-asset="${icon.id}"`
+                    ? `data-pro-asset="${escapeHtml(icon.id)}"`
                     : ""
                 }
 
                 ${
                   !isProIcon(icon) &&
                   icon.svgUrl
-                    ? `data-free-asset="${icon.id}"`
+                    ? `data-free-asset="${escapeHtml(icon.id)}"`
                     : ""
                 }
 
@@ -3776,7 +3884,7 @@ async function openIcon(
     )
       .map(
         tag =>
-          `<span class="tag">${tag}</span>`
+          `<span class="tag">${escapeHtml(tag)}</span>`
       )
       .join("");
 

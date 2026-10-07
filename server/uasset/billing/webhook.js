@@ -148,6 +148,57 @@ function isUuid(value) {
 
 
 /* =========================================================
+   STORED SUBSCRIPTION TIME
+   ========================================================= */
+
+async function getStoredSubscriptionTime(
+  supabaseUrl,
+  serviceRoleKey,
+  subscriptionId
+) {
+  const query =
+    new URLSearchParams();
+
+  query.set("select", "updated_at");
+  query.set("provider", "eq.lemonsqueezy");
+  query.set(
+    "provider_subscription_id",
+    `eq.${subscriptionId}`
+  );
+  query.set("limit", "1");
+
+  const response =
+    await fetch(
+      `${supabaseUrl}/rest/v1/${SUPABASE_TABLE}?${query.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+          Accept: "application/json"
+        },
+        cache: "no-store"
+      }
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to read stored subscription"
+    );
+  }
+
+  const data =
+    await response
+      .json()
+      .catch(() => null);
+
+  return Array.isArray(data) && data[0]
+    ? data[0].updated_at || null
+    : null;
+}
+
+
+/* =========================================================
    UPSERT SUBSCRIPTION
    ========================================================= */
 
@@ -172,6 +223,18 @@ async function upsertSubscription(
   const attributes =
     subscription.attributes ||
     {};
+
+  const lemonUpdatedAt =
+    new Date(
+      attributes.updated_at || ""
+    );
+
+  const eventTime =
+    Number.isNaN(
+      lemonUpdatedAt.getTime()
+    )
+      ? new Date().toISOString()
+      : lemonUpdatedAt.toISOString();
 
 
   const row = {
@@ -242,9 +305,43 @@ async function upsertSubscription(
         attributes.test_mode
       ),
 
+    /*
+      Lemon Squeezy's own change time, so an old event
+      that is retried late can never overwrite a newer one.
+    */
     updated_at:
-      new Date().toISOString()
+      eventTime
   };
+
+
+  /* -------------------------------------------------------
+     OUT-OF-ORDER PROTECTION
+     Skip this event if the stored row is already newer.
+     ------------------------------------------------------- */
+
+  const existing =
+    await getStoredSubscriptionTime(
+      supabaseUrl,
+      serviceRoleKey,
+      subscriptionId
+    );
+
+  if (
+    existing &&
+    new Date(existing).getTime() >
+      new Date(eventTime).getTime()
+  ) {
+    console.log(
+      "UAsset webhook: older event skipped",
+      {
+        subscriptionId,
+        eventTime,
+        storedTime: existing
+      }
+    );
+
+    return null;
+  }
 
 
   const response =
