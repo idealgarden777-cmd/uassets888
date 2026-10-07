@@ -1,12 +1,20 @@
-/* =========================================================
-   UASSET PRO ASSET API
-   Bean authentication
-   Database-driven Pro asset verification
-   UAsset Pro subscription verification
-   Rate limiting
-   Private Supabase signed URL
-   Production security
-   ========================================================= */
+/*
+=========================================================
+UASSET — PRO ASSET API
+=========================================================
+
+GET /api/assets/pro?id=asset-id
+
+Flow:
+1. Verify Bean session
+2. Apply rate limit
+3. Verify active UAsset Pro subscription
+4. Verify Pro asset in database
+5. Create private Supabase signed URL
+6. Return secure asset URL
+
+=========================================================
+*/
 
 const ACCOUNTS_SESSION_URL =
   "https://accounts.signaturesi.com/api/auth/session";
@@ -27,96 +35,72 @@ const SIGNED_URL_SECONDS =
   600;
 
 
-/* =========================================================
-   REQUIRED ENVIRONMENT
-   ========================================================= */
+/*
+=========================================================
+ENVIRONMENT
+=========================================================
+*/
 
 function getRequiredEnv(name) {
+  const value = process.env[name];
 
-  const value =
-    process.env[name];
-
-  if (
-    !value ||
-    !String(value).trim()
-  ) {
-
-    throw new Error(
-      `${name} is missing`
-    );
+  if (!value || !String(value).trim()) {
+    throw new Error(`${name} is missing`);
   }
 
   return String(value).trim();
 }
 
 
-/* =========================================================
-   ASSET ERROR
-   ========================================================= */
+/*
+=========================================================
+CUSTOM ERROR
+=========================================================
+*/
 
-function createAssetError(
-  message,
-  code
-) {
-
-  const error =
-    new Error(
-      message
-    );
-
-  error.code =
-    code;
-
+function createAssetError(message, code) {
+  const error = new Error(message);
+  error.code = code;
   return error;
 }
 
 
-/* =========================================================
-   BEAN SESSION
-   ========================================================= */
+/*
+=========================================================
+BEAN SESSION
+=========================================================
+*/
 
 async function getBeanUser(req) {
-
-  const cookie =
-    req.headers.cookie;
+  const cookie = req.headers?.cookie;
 
   if (!cookie) {
     return null;
   }
 
-  const response =
-    await fetch(
-      ACCOUNTS_SESSION_URL,
-      {
-        method:
-          "GET",
+  const response = await fetch(
+    ACCOUNTS_SESSION_URL,
+    {
+      method: "GET",
 
-        headers: {
-          Accept:
-            "application/json",
+      headers: {
+        Accept: "application/json",
+        Cookie: cookie
+      },
 
-          Cookie:
-            cookie
-        },
+      cache: "no-store"
+    }
+  );
 
-        cache:
-          "no-store"
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => ({})
-      );
+  const data = await response
+    .json()
+    .catch(() => ({}));
 
   if (
     !response.ok ||
     !data.authenticated ||
     !data.user
   ) {
-
     return null;
   }
 
@@ -124,87 +108,52 @@ async function getBeanUser(req) {
 }
 
 
-/* =========================================================
-   RATE LIMIT
-   ========================================================= */
+/*
+=========================================================
+RATE LIMIT
+=========================================================
+*/
 
-async function checkRateLimit(
-  rateKey
-) {
-
+async function checkRateLimit(rateKey) {
   const supabaseUrl =
-    getRequiredEnv(
-      "SUPABASE_URL"
-    );
+    getRequiredEnv("SUPABASE_URL");
 
   const serviceRoleKey =
-    getRequiredEnv(
-      "SUPABASE_SERVICE_ROLE_KEY"
-    );
+    getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-  const response =
-    await fetch(
-      `${supabaseUrl}/rest/v1/rpc/uasset_rate_limit`,
-      {
-        method:
-          "POST",
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/uasset_rate_limit`,
+    {
+      method: "POST",
 
-        headers: {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
 
-          apikey:
-            serviceRoleKey,
+      body: JSON.stringify({
+        p_rate_key: rateKey,
+        p_limit: RATE_LIMIT,
+        p_window_seconds: RATE_WINDOW_SECONDS
+      }),
 
-          Authorization:
-            `Bearer ${serviceRoleKey}`,
+      cache: "no-store"
+    }
+  );
 
-          "Content-Type":
-            "application/json",
+  const data = await response
+    .json()
+    .catch(() => null);
 
-          Accept:
-            "application/json"
-        },
-
-        body:
-          JSON.stringify({
-
-            p_rate_key:
-              rateKey,
-
-            p_limit:
-              RATE_LIMIT,
-
-            p_window_seconds:
-              RATE_WINDOW_SECONDS
-
-          }),
-
-        cache:
-          "no-store"
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
-
-  if (
-    !response.ok
-  ) {
-
+  if (!response.ok) {
     console.error(
       "UAsset rate limit check failed:",
       {
-        status:
-          response.status,
-
-        statusText:
-          response.statusText,
-
-        response:
-          data
+        status: response.status,
+        statusText: response.statusText,
+        response: data
       }
     );
 
@@ -217,35 +166,26 @@ async function checkRateLimit(
 }
 
 
-/* =========================================================
-   GET PRO SUBSCRIPTION
-   ========================================================= */
+/*
+=========================================================
+PRO SUBSCRIPTION
+=========================================================
+*/
 
-async function getProSubscription(
-  beanUserId
-) {
-
+async function getProSubscription(beanUserId) {
   const supabaseUrl =
-    getRequiredEnv(
-      "SUPABASE_URL"
-    );
+    getRequiredEnv("SUPABASE_URL");
 
   const serviceRoleKey =
-    getRequiredEnv(
-      "SUPABASE_SERVICE_ROLE_KEY"
-    );
+    getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
   const variantId =
-    getRequiredEnv(
-      "LEMONSQUEEZY_VARIANT_ID"
-    );
+    getRequiredEnv("LEMONSQUEEZY_VARIANT_ID");
 
   const testMode =
     String(
-      process.env.LEMONSQUEEZY_TEST_MODE ||
-        "true"
-    ).toLowerCase() ===
-    "true";
+      process.env.LEMONSQUEEZY_TEST_MODE || "true"
+    ).toLowerCase() === "true";
 
   const query =
     new URLSearchParams();
@@ -292,53 +232,32 @@ async function getProSubscription(
     "1"
   );
 
-  const response =
-    await fetch(
-      `${supabaseUrl}/rest/v1/uasset_subscriptions?${query.toString()}`,
-      {
-        method:
-          "GET",
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/uasset_subscriptions?${query.toString()}`,
+    {
+      method: "GET",
 
-        headers: {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        Accept: "application/json"
+      },
 
-          apikey:
-            serviceRoleKey,
+      cache: "no-store"
+    }
+  );
 
-          Authorization:
-            `Bearer ${serviceRoleKey}`,
+  const data = await response
+    .json()
+    .catch(() => null);
 
-          Accept:
-            "application/json"
-
-        },
-
-        cache:
-          "no-store"
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
-
-  if (
-    !response.ok
-  ) {
-
+  if (!response.ok) {
     console.error(
       "UAsset Pro subscription lookup failed:",
       {
-        status:
-          response.status,
-
-        statusText:
-          response.statusText,
-
-        response:
-          data
+        status: response.status,
+        statusText: response.statusText,
+        response: data
       }
     );
 
@@ -347,85 +266,57 @@ async function getProSubscription(
     );
   }
 
-  return Array.isArray(
-    data
-  )
+  return Array.isArray(data)
     ? data[0] || null
     : null;
 }
 
 
-/* =========================================================
-   ACTIVE PRO CHECK
-   ========================================================= */
+/*
+=========================================================
+ACTIVE PRO CHECK
+=========================================================
+*/
 
-function isProActive(
-  subscription
-) {
-
+function isProActive(subscription) {
   if (!subscription) {
     return false;
   }
 
-  if (
-    subscription.cancelled ===
-    true
-  ) {
-
-    if (
-      !subscription.ends_at
-    ) {
-
+  if (subscription.cancelled === true) {
+    if (!subscription.ends_at) {
       return false;
     }
 
     const endsAt =
-      new Date(
-        subscription.ends_at
-      ).getTime();
+      new Date(subscription.ends_at).getTime();
 
     return (
-      !Number.isNaN(
-        endsAt
-      ) &&
-      endsAt >
-        Date.now()
+      !Number.isNaN(endsAt) &&
+      endsAt > Date.now()
     );
   }
 
   const status =
     String(
-      subscription.status ||
-        ""
+      subscription.status || ""
     ).toLowerCase();
 
   if (
-    status !==
-      "active" &&
-    status !==
-      "on_trial"
+    status !== "active" &&
+    status !== "on_trial"
   ) {
-
     return false;
   }
 
-  if (
-    subscription.ends_at
-  ) {
-
+  if (subscription.ends_at) {
     const endsAt =
-      new Date(
-        subscription.ends_at
-      ).getTime();
+      new Date(subscription.ends_at).getTime();
 
     if (
-      !Number.isNaN(
-        endsAt
-      ) &&
-      endsAt <=
-        Date.now()
+      !Number.isNaN(endsAt) &&
+      endsAt <= Date.now()
     ) {
-
       return false;
     }
   }
@@ -434,23 +325,18 @@ function isProActive(
 }
 
 
-/* =========================================================
-   GET PRO ASSET FROM DATABASE
-   ========================================================= */
+/*
+=========================================================
+GET PRO ASSET
+=========================================================
+*/
 
-async function getProAsset(
-  assetId
-) {
-
+async function getProAsset(assetId) {
   const supabaseUrl =
-    getRequiredEnv(
-      "SUPABASE_URL"
-    );
+    getRequiredEnv("SUPABASE_URL");
 
   const serviceRoleKey =
-    getRequiredEnv(
-      "SUPABASE_SERVICE_ROLE_KEY"
-    );
+    getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
   const query =
     new URLSearchParams();
@@ -487,55 +373,33 @@ async function getProAsset(
     "1"
   );
 
-  const response =
-    await fetch(
-      `${supabaseUrl}/rest/v1/${SUPABASE_ICONS_TABLE}?${query.toString()}`,
-      {
-        method:
-          "GET",
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${SUPABASE_ICONS_TABLE}?${query.toString()}`,
+    {
+      method: "GET",
 
-        headers: {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        Accept: "application/json"
+      },
 
-          apikey:
-            serviceRoleKey,
+      cache: "no-store"
+    }
+  );
 
-          Authorization:
-            `Bearer ${serviceRoleKey}`,
+  const data = await response
+    .json()
+    .catch(() => null);
 
-          Accept:
-            "application/json"
-
-        },
-
-        cache:
-          "no-store"
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
-
-  if (
-    !response.ok
-  ) {
-
+  if (!response.ok) {
     console.error(
       "UAsset Pro asset database lookup failed:",
       {
         assetId,
-
-        status:
-          response.status,
-
-        statusText:
-          response.statusText,
-
-        response:
-          data
+        status: response.status,
+        statusText: response.statusText,
+        response: data
       }
     );
 
@@ -549,31 +413,24 @@ async function getProAsset(
     !Array.isArray(data) ||
     !data[0]
   ) {
-
     throw createAssetError(
       "Pro asset not found",
       "INVALID_ASSET"
     );
   }
 
-  const asset =
-    data[0];
+  const asset = data[0];
 
   if (
     asset.storage_bucket !==
     PRO_BUCKET_NAME
   ) {
-
     console.error(
       "UAsset Pro asset bucket mismatch:",
       {
         assetId,
-
-        storageBucket:
-          asset.storage_bucket,
-
-        expectedBucket:
-          PRO_BUCKET_NAME
+        storageBucket: asset.storage_bucket,
+        expectedBucket: PRO_BUCKET_NAME
       }
     );
 
@@ -585,18 +442,8 @@ async function getProAsset(
 
   if (
     !asset.storage_path ||
-    !String(
-      asset.storage_path
-    ).trim()
+    !String(asset.storage_path).trim()
   ) {
-
-    console.error(
-      "UAsset Pro asset storage path missing:",
-      {
-        assetId
-      }
-    );
-
     throw createAssetError(
       "Pro asset storage path is missing",
       "ASSET_PATH_MISSING"
@@ -607,19 +454,18 @@ async function getProAsset(
 }
 
 
-/* =========================================================
-   CREATE SIGNED URL
-   ========================================================= */
+/*
+=========================================================
+CREATE SIGNED SUPABASE URL
+=========================================================
+*/
 
 async function createSignedUrl(
   storageBucket,
   storagePath
 ) {
-
   const supabaseUrl =
-    getRequiredEnv(
-      "SUPABASE_URL"
-    );
+    getRequiredEnv("SUPABASE_URL");
 
   const serviceRoleKey =
     getRequiredEnv(
@@ -627,100 +473,58 @@ async function createSignedUrl(
     );
 
   const encodedBucket =
-    String(
-      storageBucket
-    )
+    String(storageBucket)
       .split("/")
-      .map(
-        part =>
-          encodeURIComponent(
-            part
-          )
+      .map((part) =>
+        encodeURIComponent(part)
       )
       .join("/");
 
   const encodedPath =
-    String(
-      storagePath
-    )
+    String(storagePath)
       .split("/")
-      .map(
-        part =>
-          encodeURIComponent(
-            part
-          )
+      .map((part) =>
+        encodeURIComponent(part)
       )
       .join("/");
 
-  const response =
-    await fetch(
-      `${supabaseUrl}/storage/v1/object/sign/${encodedBucket}/${encodedPath}`,
-      {
-        method:
-          "POST",
+  const response = await fetch(
+    `${supabaseUrl}/storage/v1/object/sign/${encodedBucket}/${encodedPath}`,
+    {
+      method: "POST",
 
-        headers: {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
 
-          apikey:
-            serviceRoleKey,
+      body: JSON.stringify({
+        expiresIn: SIGNED_URL_SECONDS
+      }),
 
-          Authorization:
-            `Bearer ${serviceRoleKey}`,
+      cache: "no-store"
+    }
+  );
 
-          "Content-Type":
-            "application/json",
+  const data = await response
+    .json()
+    .catch(() => null);
 
-          Accept:
-            "application/json"
-        },
-
-        body:
-          JSON.stringify({
-
-            expiresIn:
-              SIGNED_URL_SECONDS
-
-          }),
-
-        cache:
-          "no-store"
-      }
-    );
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
-
-  if (
-    !response.ok
-  ) {
-
+  if (!response.ok) {
     console.error(
       "Supabase signed URL creation failed:",
       {
         storageBucket,
-
         storagePath,
-
-        status:
-          response.status,
-
-        statusText:
-          response.statusText,
-
-        response:
-          data
+        status: response.status,
+        statusText: response.statusText,
+        response: data
       }
     );
 
-    if (
-      response.status ===
-      404
-    ) {
-
+    if (response.status === 404) {
       throw createAssetError(
         "Pro asset file not found in secure storage",
         "ASSET_NOT_FOUND"
@@ -728,12 +532,9 @@ async function createSignedUrl(
     }
 
     if (
-      response.status ===
-        401 ||
-      response.status ===
-        403
+      response.status === 401 ||
+      response.status === 403
     ) {
-
       throw createAssetError(
         "Pro asset storage authorization failed",
         "ASSET_STORAGE_AUTH"
@@ -751,22 +552,7 @@ async function createSignedUrl(
     data?.signedUrl ||
     data?.signed_url;
 
-  if (
-    !signedPath
-  ) {
-
-    console.error(
-      "Supabase signed URL missing:",
-      {
-        storageBucket,
-
-        storagePath,
-
-        response:
-          data
-      }
-    );
-
+  if (!signedPath) {
     throw createAssetError(
       "Secure Pro asset URL was not returned",
       "ASSET_SIGN_URL_MISSING"
@@ -774,47 +560,34 @@ async function createSignedUrl(
   }
 
   const signedUrl =
-    String(
-      signedPath
-    ).startsWith(
-      "http"
-    )
-      ? String(
-          signedPath
-        )
+    String(signedPath).startsWith("http")
+      ? String(signedPath)
       : `${supabaseUrl}/storage/v1${
-          String(
-            signedPath
-          ).startsWith("/")
+          String(signedPath).startsWith("/")
             ? ""
             : "/"
-        }${String(
-          signedPath
-        ).replace(
+        }${String(signedPath).replace(
           /^\/storage\/v1/,
           ""
         )}`;
 
   return {
-
     signedUrl,
-
-    expiresIn:
-      SIGNED_URL_SECONDS
-
+    expiresIn: SIGNED_URL_SECONDS
   };
 }
 
 
-/* =========================================================
-   HANDLER
-   ========================================================= */
+/*
+=========================================================
+MAIN HANDLER
+=========================================================
+*/
 
 export default async function handler(
   req,
   res
 ) {
-
   res.setHeader(
     "Cache-Control",
     "no-store, private"
@@ -836,11 +609,11 @@ export default async function handler(
   );
 
 
-  if (
-    req.method !==
-    "GET"
-  ) {
+  /*
+  METHOD
+  */
 
+  if (req.method !== "GET") {
     res.setHeader(
       "Allow",
       "GET"
@@ -849,59 +622,47 @@ export default async function handler(
     return res
       .status(405)
       .json({
-
-        error:
-          "Method not allowed"
-
+        success: false,
+        error: "Method not allowed"
       });
   }
 
 
+  /*
+  ASSET ID
+  */
+
   const assetId =
     String(
-      req.query?.id ||
-        ""
+      req.query?.id || ""
     )
       .trim()
       .toLowerCase();
 
-
   if (
     !assetId ||
-    !/^[a-z0-9-]+$/.test(
-      assetId
-    )
+    !/^[a-z0-9-]+$/.test(assetId)
   ) {
-
     return res
       .status(404)
       .json({
-
-        success:
-          false,
-
-        error:
-          "Pro asset not found",
-
-        code:
-          "INVALID_ASSET"
-
+        success: false,
+        error: "Pro asset not found",
+        code: "INVALID_ASSET"
       });
   }
 
 
+  /*
+  BEAN AUTH
+  */
+
   let user;
 
-
   try {
-
     user =
-      await getBeanUser(
-        req
-      );
-
+      await getBeanUser(req);
   } catch (error) {
-
     console.error(
       "Bean verification failed:",
       error
@@ -910,66 +671,39 @@ export default async function handler(
     return res
       .status(502)
       .json({
-
-        success:
-          false,
-
-        authenticated:
-          false,
-
-        error:
-          "Unable to verify Bean account",
-
-        code:
-          "BEAN_SESSION_ERROR"
-
+        success: false,
+        authenticated: false,
+        error: "Unable to verify Bean account",
+        code: "BEAN_SESSION_ERROR"
       });
   }
 
-
   if (!user) {
-
     return res
       .status(401)
       .json({
-
-        success:
-          false,
-
-        authenticated:
-          false,
-
-        pro:
-          false,
-
-        error:
-          "Login with Bean ID required",
-
-        code:
-          "AUTH_REQUIRED"
-
+        success: false,
+        authenticated: false,
+        pro: false,
+        error: "Login with Bean ID required",
+        code: "AUTH_REQUIRED"
       });
   }
 
 
-  const rateKey =
-    `uasset:pro:${String(
-      user.id
-    )}`;
+  /*
+  RATE LIMIT
+  */
 
+  const rateKey =
+    `uasset:pro:${String(user.id)}`;
 
   let allowed;
 
-
   try {
-
     allowed =
-      await checkRateLimit(
-        rateKey
-      );
-
+      await checkRateLimit(rateKey);
   } catch (error) {
-
     console.error(
       "UAsset rate limit error:",
       error
@@ -978,72 +712,43 @@ export default async function handler(
     return res
       .status(503)
       .json({
-
-        success:
-          false,
-
-        authenticated:
-          true,
-
-        pro:
-          false,
-
-        error:
-          "Asset service temporarily unavailable",
-
-        code:
-          "RATE_LIMIT_SERVICE_ERROR"
-
+        success: false,
+        authenticated: true,
+        pro: false,
+        error: "Asset service temporarily unavailable",
+        code: "RATE_LIMIT_SERVICE_ERROR"
       });
   }
 
-
-  if (
-    !allowed
-  ) {
-
+  if (!allowed) {
     res.setHeader(
       "Retry-After",
-      String(
-        RATE_WINDOW_SECONDS
-      )
+      String(RATE_WINDOW_SECONDS)
     );
 
     return res
       .status(429)
       .json({
-
-        success:
-          false,
-
-        authenticated:
-          true,
-
-        pro:
-          false,
-
+        success: false,
+        authenticated: true,
+        pro: false,
         error:
           "Too many Pro asset requests. Please try again shortly.",
-
-        code:
-          "RATE_LIMITED"
-
+        code: "RATE_LIMITED"
       });
   }
 
 
+  /*
+  PRO SUBSCRIPTION
+  */
+
   let subscription;
 
-
   try {
-
     subscription =
-      await getProSubscription(
-        user.id
-      );
-
+      await getProSubscription(user.id);
   } catch (error) {
-
     console.error(
       "UAsset Pro check failed:",
       error
@@ -1052,79 +757,46 @@ export default async function handler(
     return res
       .status(500)
       .json({
-
-        success:
-          false,
-
-        authenticated:
-          true,
-
-        pro:
-          false,
-
-        error:
-          "Unable to verify UAsset Pro",
-
-        code:
-          "PRO_STATUS_ERROR"
-
+        success: false,
+        authenticated: true,
+        pro: false,
+        error: "Unable to verify UAsset Pro",
+        code: "PRO_STATUS_ERROR"
       });
   }
 
-
   const pro =
-    isProActive(
-      subscription
-    );
-
+    isProActive(subscription);
 
   if (!pro) {
-
     return res
       .status(403)
       .json({
-
-        success:
-          false,
-
-        authenticated:
-          true,
-
-        pro:
-          false,
-
-        error:
-          "UAsset Pro access required",
-
-        code:
-          "PRO_ACCESS_REQUIRED"
-
+        success: false,
+        authenticated: true,
+        pro: false,
+        error: "UAsset Pro access required",
+        code: "PRO_ACCESS_REQUIRED"
       });
   }
 
 
+  /*
+  PRO ASSET
+  */
+
   let asset;
 
-
   try {
-
     asset =
-      await getProAsset(
-        assetId
-      );
-
+      await getProAsset(assetId);
   } catch (error) {
-
     console.error(
       "UAsset Pro asset verification failed:",
       {
         assetId,
-
-        code:
-          error?.code,
-
-        message:
-          error?.message
+        code: error?.code,
+        message: error?.message
       }
     );
 
@@ -1132,139 +804,88 @@ export default async function handler(
       error?.code ===
       "INVALID_ASSET"
     ) {
-
       return res
         .status(404)
         .json({
-
-          success:
-            false,
-
-          pro:
-            true,
-
-          asset:
-            assetId,
-
-          error:
-            "Pro asset not found",
-
-          code:
-            "INVALID_ASSET"
-
+          success: false,
+          pro: true,
+          asset: assetId,
+          error: "Pro asset not found",
+          code: "INVALID_ASSET"
         });
     }
 
     return res
       .status(500)
       .json({
-
-        success:
-          false,
-
-        pro:
-          true,
-
-        asset:
-          assetId,
-
+        success: false,
+        pro: true,
+        asset: assetId,
         error:
           error?.message ||
           "Unable to verify Pro asset",
-
         code:
           error?.code ||
           "ASSET_VERIFICATION_FAILED"
-
       });
   }
 
 
-  try {
+  /*
+  SIGNED URL
+  */
 
+  try {
     const result =
       await createSignedUrl(
         asset.storage_bucket,
         asset.storage_path
       );
 
-
     return res
       .status(200)
       .json({
-
-        success:
-          true,
-
-        pro:
-          true,
-
-        asset:
-          asset.id,
-
-        name:
-          asset.name,
-
-        url:
-          result.signedUrl,
-
-        expiresIn:
-          result.expiresIn
-
+        success: true,
+        pro: true,
+        asset: asset.id,
+        name: asset.name,
+        url: result.signedUrl,
+        expiresIn: result.expiresIn
       });
 
   } catch (error) {
-
     console.error(
       "UAsset Pro asset delivery failed:",
       {
         assetId,
-
-        storageBucket:
-          asset.storage_bucket,
-
-        storagePath:
-          asset.storage_path,
-
+        storageBucket: asset.storage_bucket,
+        storagePath: asset.storage_path,
         code:
           error?.code ||
           "PRO_ASSET_DELIVERY_FAILED",
-
         message:
           error?.message ||
           error
       }
     );
 
-
     const statusCode =
-      error?.code ===
-        "ASSET_NOT_FOUND"
+      error?.code === "ASSET_NOT_FOUND"
         ? 404
         : 500;
-
 
     return res
       .status(statusCode)
       .json({
-
-        success:
-          false,
-
-        pro:
-          true,
-
-        asset:
-          assetId,
-
+        success: false,
+        pro: true,
+        asset: assetId,
         code:
           error?.code ||
           "PRO_ASSET_DELIVERY_FAILED",
-
         error:
           error?.message ||
           "Unable to load Pro asset"
-
       });
   }
 }
