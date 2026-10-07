@@ -33,6 +33,7 @@ const els = {
   copySvg: document.getElementById("copySvg"),
   downloadSvg: document.getElementById("downloadSvg"),
   openBean: document.getElementById("openBean"),
+  accountMenu: document.getElementById("accountMenu"),
   toast: document.getElementById("toast"),
   proButton: document.getElementById("proButton"),
   proPlanDescription: document.getElementById("proPlanDescription"),
@@ -374,26 +375,165 @@ function setAuthenticatedUser(user) {
 }
 
 
+function getAccountInitial() {
+  const source =
+    currentUser?.displayName ||
+    currentUser?.username ||
+    "U";
+
+  return String(source).trim().charAt(0).toUpperCase() || "U";
+}
+
+
+function formatPlanDate(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+
 function updateBeanButton() {
 
   if (
     authenticated &&
-    currentUser?.beanId
+    currentUser
   ) {
 
+    const name =
+      currentUser.displayName ||
+      currentUser.username ||
+      "Account";
+
+    els.openBean.classList.add("is-signed-in");
+    els.openBean.setAttribute("aria-label", `Account menu for ${name}`);
+
     els.openBean.innerHTML = `
-      <span class="bean-dot"></span>
-      ${currentUser.beanId}
+      <span class="account-avatar" aria-hidden="true">${escapeHtml(getAccountInitial())}</span>
+      <span class="account-button-name">${escapeHtml(name)}</span>
+      <svg class="account-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
     `;
+
+    renderAccountMenu();
 
     return;
   }
 
+  els.openBean.classList.remove("is-signed-in");
+  els.openBean.setAttribute("aria-label", "Login with Bean ID");
+  els.openBean.textContent = "Login with Bean ID";
 
-  els.openBean.innerHTML = `
-    <span class="bean-dot"></span>
-    Login with Bean ID
+  closeAccountMenu();
+
+  if (els.accountMenu) {
+    els.accountMenu.innerHTML = "";
+  }
+}
+
+
+function renderAccountMenu() {
+
+  if (
+    !els.accountMenu ||
+    !authenticated ||
+    !currentUser
+  ) {
+    return;
+  }
+
+  const name =
+    currentUser.displayName ||
+    currentUser.username ||
+    "Account";
+
+  const pro =
+    billingState.pro === true;
+
+  const sub =
+    billingState.subscription;
+
+  const endsAt =
+    formatPlanDate(sub?.endsAt);
+
+  let planNote = "Free plan";
+
+  if (!billingState.loaded) {
+    planNote = "Checking plan…";
+  } else if (pro && sub?.cancelled && endsAt) {
+    planNote = `Pro until ${endsAt}`;
+  } else if (pro && endsAt) {
+    planNote = `Pro · renews ${endsAt}`;
+  } else if (pro) {
+    planNote = "Pro plan";
+  }
+
+  const rows = [];
+
+  if (currentUser.beanId) {
+    rows.push(`
+      <div class="account-row">
+        <span class="account-row-label">Bean ID</span>
+        <span class="account-row-value">${escapeHtml(currentUser.beanId)}</span>
+        <button class="account-copy" type="button" data-copy="${escapeHtml(currentUser.beanId)}" aria-label="Copy Bean ID">Copy</button>
+      </div>
+    `);
+  }
+
+  if (currentUser.email) {
+    rows.push(`
+      <div class="account-row">
+        <span class="account-row-label">Email</span>
+        <span class="account-row-value">${escapeHtml(currentUser.email)}</span>
+      </div>
+    `);
+  }
+
+  els.accountMenu.innerHTML = `
+    <div class="account-head">
+      <span class="account-avatar account-avatar-lg" aria-hidden="true">${escapeHtml(getAccountInitial())}</span>
+      <div class="account-who">
+        <strong>${escapeHtml(name)}</strong>
+        <span>@${escapeHtml(currentUser.username || "user")}</span>
+      </div>
+    </div>
+
+    ${rows.length ? `<div class="account-rows">${rows.join("")}</div>` : ""}
+
+    <div class="account-plan">
+      <span class="account-plan-badge ${pro ? "pro" : ""}">${pro ? "Pro" : "Free"}</span>
+      <span class="account-plan-note">${escapeHtml(planNote)}${billingState.testMode ? " · test mode" : ""}</span>
+    </div>
+
+    <div class="account-actions">
+      ${pro ? "" : `<a class="account-item account-item-strong" role="menuitem" href="#pricing" data-account-close>Upgrade to Pro</a>`}
+      <a class="account-item" role="menuitem" href="${ACCOUNTS_ORIGIN}/" target="_blank" rel="noopener">Manage Bean ID account</a>
+      <button class="account-item account-logout" role="menuitem" type="button" data-account-logout>Log out</button>
+    </div>
   `;
+}
+
+
+function openAccountMenu() {
+  if (!els.accountMenu || !authenticated) return;
+
+  renderAccountMenu();
+  els.accountMenu.hidden = false;
+  els.openBean.setAttribute("aria-expanded", "true");
+}
+
+
+function closeAccountMenu() {
+  if (!els.accountMenu) return;
+
+  els.accountMenu.hidden = true;
+  els.openBean?.setAttribute("aria-expanded", "false");
 }
 
 
@@ -1421,6 +1561,8 @@ async function hydrateFreeIconPreviews() {
 
 function updateProPlanUI() {
 
+  renderAccountMenu();
+
   if (
     !els.proPlanBadge ||
     !els.proPlanStatus ||
@@ -2202,12 +2344,78 @@ window.UAssetAuth =
 
 els.openBean.addEventListener(
   "click",
-  () => {
+  event => {
 
-    redirectToLogin();
+    if (!authenticated) {
+      redirectToLogin();
+      return;
+    }
 
+    event.stopPropagation();
+
+    if (els.accountMenu?.hidden === false) {
+      closeAccountMenu();
+    } else {
+      openAccountMenu();
+    }
   }
 );
+
+
+els.accountMenu?.addEventListener(
+  "click",
+  async event => {
+
+    const copyBtn = event.target.closest("[data-copy]");
+
+    if (copyBtn) {
+      event.stopPropagation();
+
+      try {
+        await navigator.clipboard.writeText(copyBtn.dataset.copy || "");
+        copyBtn.textContent = "Copied";
+        setTimeout(() => { copyBtn.textContent = "Copy"; }, 1400);
+      } catch {
+        copyBtn.textContent = "Failed";
+      }
+
+      return;
+    }
+
+    if (event.target.closest("[data-account-logout]")) {
+      closeAccountMenu();
+      logout();
+      return;
+    }
+
+    if (event.target.closest("[data-account-close]")) {
+      closeAccountMenu();
+    }
+  }
+);
+
+
+document.addEventListener("click", event => {
+  if (
+    els.accountMenu &&
+    !els.accountMenu.hidden &&
+    !event.target.closest("#accountArea")
+  ) {
+    closeAccountMenu();
+  }
+});
+
+
+document.addEventListener("keydown", event => {
+  if (
+    event.key === "Escape" &&
+    els.accountMenu &&
+    !els.accountMenu.hidden
+  ) {
+    closeAccountMenu();
+    els.openBean.focus();
+  }
+});
 
 
 /* =========================================================

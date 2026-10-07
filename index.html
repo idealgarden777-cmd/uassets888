@@ -133,18 +133,29 @@
     </nav>
 
 
-    <button
-      class="bean-button"
-      id="openBean"
-      type="button"
-      aria-label="Login with Bean ID"
-    >
+    <div class="account" id="accountArea">
 
-      <span class="bean-dot"></span>
+      <button
+        class="bean-button"
+        id="openBean"
+        type="button"
+        aria-label="Login with Bean ID"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-controls="accountMenu"
+      >
+        Login with Bean ID
+      </button>
 
-      Login with Bean ID
+      <div
+        class="account-menu"
+        id="accountMenu"
+        role="menu"
+        aria-label="Account"
+        hidden
+      ></div>
 
-    </button>
+    </div>
 
   </header>
 
