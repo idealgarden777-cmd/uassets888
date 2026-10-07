@@ -1705,10 +1705,19 @@ async function startProCheckout() {
       );
 
 
-      showToast(
-        data.error ||
-        "Unable to create UAsset Pro checkout"
-      );
+      const errorMessage =
+        typeof data.error === "string"
+          ? data.error
+          : (
+              data.error?.detail ||
+              data.error?.message ||
+              data.error?.title ||
+              data.message ||
+              "Unable to create UAsset Pro checkout"
+            );
+
+
+      showToast(String(errorMessage));
 
 
       return;
