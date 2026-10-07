@@ -44,6 +44,15 @@ const els = {
 
 
 /* =========================================================
+   DATABASE-ONLY LIBRARY
+   Bundled icons from js/icons.js are not shown.
+   Every icon comes from the admin panel (/api/icons).
+   ========================================================= */
+
+ICONS.length = 0;
+
+
+/* =========================================================
    UASSET AUTH
    ========================================================= */
 
@@ -3113,8 +3122,9 @@ async function loadCollections() {
 
 let databaseCollectionsCache = [];
 
-const BUNDLED_COLLECTIONS =
-  collections.slice();
+const BUNDLED_COLLECTIONS = [];
+
+collections = [];
 
 
 function applyDatabaseCollections() {
@@ -3150,6 +3160,10 @@ function applyDatabaseCollections() {
       null;
   }
 
+  setCollectionsVisible(
+    collections.length > 0
+  );
+
   renderCollections();
 
   renderCollectionContext();
@@ -3158,6 +3172,33 @@ function applyDatabaseCollections() {
     getSearchTerm()
   );
 }
+
+
+function setCollectionsVisible(
+  visible
+) {
+
+  const section =
+    document.getElementById(
+      "collections"
+    );
+
+  if (section) {
+    section.hidden = !visible;
+  }
+
+  document
+    .querySelectorAll(
+      'a[href="#collections"]'
+    )
+    .forEach(
+      link => {
+        link.hidden = !visible;
+      }
+    );
+}
+
+setCollectionsVisible(false);
 
 
 /* =========================================================
