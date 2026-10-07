@@ -1,0 +1,446 @@
+/* =========================================================
+   UASSET — PREMIUM LAYER
+   Loaded after app.css. Quiet, minimal refinements:
+   calmer type, softer surfaces, one dark accent.
+   ========================================================= */
+
+::selection {
+  background: var(--text);
+  color: var(--surface);
+}
+
+body {
+  background:
+    radial-gradient(
+      1200px 520px at 50% -180px,
+      #ffffff 0%,
+      rgb(255 255 255 / 0) 70%
+    ),
+    var(--bg);
+  font-size: 14px;
+  letter-spacing: -0.005em;
+}
+
+
+/* ---------- Header ---------- */
+
+.header {
+  height: 68px;
+  padding: 0 max(24px, calc((100vw - var(--max)) / 2 + 24px));
+  background: rgb(247 247 245 / 0.78);
+  border-bottom-color: rgb(18 18 18 / 0.06);
+}
+
+.brand {
+  font-size: 17px;
+  letter-spacing: -0.03em;
+}
+
+.brand-logo {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 12px;
+}
+
+.nav {
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.7);
+}
+
+.nav-link {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.nav-link:hover {
+  background: var(--surface-soft);
+}
+
+.nav-link.active {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.bean-button {
+  padding: 9px 15px;
+  border-color: var(--line);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.bean-dot {
+  background: #22a35a;
+  box-shadow: 0 0 0 3px rgb(34 163 90 / 0.15);
+}
+
+
+/* ---------- Hero ---------- */
+
+.hero {
+  padding: 112px 24px 64px;
+}
+
+.eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+}
+
+.hero .eyebrow {
+  display: inline-flex;
+  margin-bottom: 26px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.hero h1 {
+  font-size: clamp(42px, 6.4vw, 72px);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+
+.hero h1 span {
+  color: #a3a49d;
+}
+
+.hero-text {
+  max-width: 520px;
+  margin: 22px auto 34px;
+  font-size: 15.5px;
+}
+
+.hero-search {
+  width: min(620px, 100%);
+  height: 58px;
+  padding: 0 10px 0 20px;
+  border-color: var(--line);
+  box-shadow:
+    0 1px 2px rgb(18 18 18 / 0.04),
+    0 18px 50px rgb(18 18 18 / 0.07);
+}
+
+.hero-search:focus-within {
+  border-color: var(--text);
+  box-shadow:
+    0 0 0 4px rgb(18 18 18 / 0.06),
+    0 18px 50px rgb(18 18 18 / 0.08);
+}
+
+.search-symbol svg {
+  width: 18px;
+  height: 18px;
+}
+
+.specs {
+  margin-top: 18px;
+  color: var(--muted);
+}
+
+
+/* ---------- Sections ---------- */
+
+.section {
+  padding: 56px 24px 88px;
+}
+
+.section h2 {
+  font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 600;
+}
+
+.mini-search {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.mini-search:focus-within {
+  border-color: var(--text);
+}
+
+
+/* ---------- Filters ---------- */
+
+.filters {
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.filter {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.filter:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+.filter.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+
+/* ---------- Icon grid ---------- */
+
+.icon-grid {
+  grid-template-columns:
+    repeat(auto-fill, minmax(168px, 1fr));
+  gap: 10px;
+}
+
+.icon-card {
+  min-height: 168px;
+  padding: 16px;
+  border-color: var(--line);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(18 18 18 / 0.03);
+}
+
+.icon-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.icon-draw {
+  height: 100px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.icon-draw svg {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-card:hover .icon-draw svg {
+  transform: scale(1.1);
+}
+
+.icon-title {
+  margin-top: 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.icon-category {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+
+/* ---------- Collections ---------- */
+
+.collection-card {
+  border-color: var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.collection-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.collection-mark {
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border-color: transparent;
+}
+
+
+/* ---------- Pricing ---------- */
+
+.pricing {
+  margin: 0 24px 96px;
+  padding: 48px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--surface);
+}
+
+.pro-feature-mark {
+  border-radius: 10px;
+  background: var(--surface-soft);
+  border-color: transparent;
+}
+
+.price-box {
+  border: 0;
+  border-radius: 22px;
+  background: var(--text);
+  color: var(--surface);
+  box-shadow: 0 24px 60px rgb(18 18 18 / 0.22);
+}
+
+.price-box .eyebrow,
+.price-box .plan-status,
+.price-box .price small {
+  color: rgb(255 255 255 / 0.6);
+}
+
+.price-box .dark-button {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--surface);
+}
+
+.price-box .dark-button:hover {
+  background: #ececea;
+}
+
+.price-box.pro-active {
+  outline: 1px solid rgb(34 163 90 / 0.6);
+  outline-offset: 4px;
+}
+
+.plan-badge.free {
+  background: rgb(255 255 255 / 0.12);
+  color: var(--surface);
+  border-color: transparent;
+}
+
+.plan-badge.pro {
+  background: #22a35a;
+  color: #fff;
+  border-color: transparent;
+}
+
+
+/* ---------- Buttons ---------- */
+
+.dark-button,
+.light-button {
+  height: 44px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.dark-button:hover,
+.light-button:hover {
+  transform: translateY(-1px);
+}
+
+
+/* ---------- Modal ---------- */
+
+.overlay {
+  background: rgb(18 18 18 / 0.32);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.modal {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 40px 120px rgb(18 18 18 / 0.25);
+}
+
+.preview {
+  border-radius: 18px;
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--surface-soft);
+}
+
+.tag {
+  border-radius: 999px;
+}
+
+.code {
+  border-radius: 14px;
+}
+
+
+/* ---------- Footer ---------- */
+
+.footer {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 28px 24px 40px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+
+/* ---------- Toast ---------- */
+
+.toast {
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+
+/* ---------- Motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 920px) {
+  .pricing {
+    padding: 32px 24px;
+  }
+}
+
+@media (max-width: 700px) {
+  .header {
+    padding: 0 16px;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .hero {
+    padding: 72px 20px 48px;
+  }
+
+  .pricing {
+    margin: 0 12px 64px;
+    padding: 24px 18px;
+    border-radius: 22px;
+  }
+
+  .icon-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}

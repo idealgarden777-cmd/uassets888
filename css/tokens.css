@@ -89,3 +89,58 @@
   --ease-standard:
     cubic-bezier(0.2, 0, 0, 1);
 }
+
+
+/* =========================================================
+   APP TOKENS
+   css/app.css reads these short names. They were never
+   defined, so the site fell back to browser defaults
+   (no fonts, no borders, no surfaces, no max width).
+   ========================================================= */
+
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface-soft: #f1f1ee;
+
+  --text: #121212;
+  --muted: #74756f;
+
+  --line: #e6e5e0;
+  --line-strong: #d4d3cc;
+
+  --shadow:
+    0 1px 2px rgb(18 18 18 / 0.04),
+    0 10px 28px rgb(18 18 18 / 0.06);
+
+  --sans:
+    "Inter",
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  --serif:
+    "Sora",
+    "Inter",
+    ui-sans-serif,
+    sans-serif;
+
+  --mono:
+    "IBM Plex Mono",
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+
+  --max: 1160px;
+
+  /* Keep the design-system names in sync */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-text-muted: var(--muted);
+  --color-border: var(--line);
+  --color-border-strong: var(--line-strong);
+}
