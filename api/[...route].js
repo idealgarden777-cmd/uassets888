@@ -280,7 +280,33 @@ function getPath(req) {
     );
 
 
-  return url.pathname;
+  /*
+  vercel.json rewrites every /api/* request to
+  /api/router?__route=<rest>. Vercel's plain
+  serverless functions do not match nested paths
+  with [...route], so this is how /api/billing/*
+  and /api/admin/* reach the router.
+  */
+
+  const rewritten =
+    url.searchParams.get(
+      "__route"
+    );
+
+  if (rewritten) {
+
+    return (
+      "/api/" +
+      rewritten
+        .replace(/^\/+/, "")
+        .replace(/\/+$/, "")
+    );
+  }
+
+  return url.pathname.replace(
+    /\/+$/,
+    ""
+  ) || "/";
 }
 
 
@@ -313,6 +339,14 @@ function getQuery(req) {
     ]
     of url.searchParams.entries()
   ) {
+
+    if (
+      key ===
+      "__route"
+    ) {
+
+      continue;
+    }
 
     if (
       query[key] === undefined
