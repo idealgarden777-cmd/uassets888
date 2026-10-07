@@ -1401,7 +1401,9 @@ function updateProPlanUI() {
 
 
   els.proPlanBadge.textContent =
-    "FREE";
+    authenticated
+      ? "YOU: FREE"
+      : "MONTHLY";
 
 
   els.proPlanBadge.classList.remove(
@@ -1416,8 +1418,8 @@ function updateProPlanUI() {
 
   els.proPlanStatus.textContent =
     authenticated
-      ? "Current plan: Free"
-      : "Login to see your current plan";
+      ? "You're on Free. Cancel Pro anytime."
+      : "Sign in with Bean ID to upgrade.";
 
 
   els.proPlanDescription.textContent =
@@ -1428,8 +1430,8 @@ function updateProPlanUI() {
 
   els.proButton.textContent =
     authenticated
-      ? "View UAsset Pro"
-      : "Login to UAsset Pro";
+      ? "Upgrade to Pro"
+      : "Sign in to get Pro";
 
 
   if (
@@ -2230,6 +2232,23 @@ function escapeHtml(
    CATEGORY HELPERS
    ========================================================= */
 
+function formatCategoryLabel(
+  value
+) {
+
+  return String(
+    value || ""
+  )
+    .trim()
+    .replace(
+      /(^|[\s_-])([a-z])/g,
+      (match, sep, letter) =>
+        (sep === "_" || sep === "-" ? " " : sep) +
+        letter.toUpperCase()
+    );
+}
+
+
 function normalizeCategory(
   value
 ) {
@@ -2614,7 +2633,7 @@ async function loadDatabaseIcons() {
 
     renderFilters();
 
-    renderCollections();
+    applyDatabaseCollections();
 
     renderCollectionContext();
 
@@ -2673,7 +2692,7 @@ function renderFilters() {
             }"
             data-category="${escapeHtml(category)}"
           >
-            ${escapeHtml(category)}
+            ${escapeHtml(formatCategoryLabel(category))}
           </button>
 
         `
@@ -3077,34 +3096,10 @@ async function loadCollections() {
       admin has not created any yet.
     */
 
-    if (
-      databaseCollections.length
-    ) {
+    databaseCollectionsCache =
+      databaseCollections;
 
-      collections =
-        databaseCollections;
-
-      if (
-        activeCollection &&
-        !collections.some(
-          collection =>
-            collection.id ===
-            activeCollection
-        )
-      ) {
-
-        activeCollection =
-          null;
-      }
-    }
-
-    renderCollections();
-
-    renderCollectionContext();
-
-    renderIcons(
-      getSearchTerm()
-    );
+    applyDatabaseCollections();
 
   } catch (error) {
 
@@ -3113,6 +3108,55 @@ async function loadCollections() {
       error
     );
   }
+}
+
+
+let databaseCollectionsCache = [];
+
+const BUNDLED_COLLECTIONS =
+  collections.slice();
+
+
+function applyDatabaseCollections() {
+
+  /*
+    Only collections that contain icons are shown.
+    With none, keep the bundled starter sets.
+  */
+
+  const filledCollections =
+    databaseCollectionsCache.filter(
+      collection =>
+        getCollectionIconCount(
+          collection
+        ) > 0
+    );
+
+  collections =
+    filledCollections.length
+      ? filledCollections
+      : BUNDLED_COLLECTIONS;
+
+  if (
+    activeCollection &&
+    !collections.some(
+      collection =>
+        collection.id ===
+        activeCollection
+    )
+  ) {
+
+    activeCollection =
+      null;
+  }
+
+  renderCollections();
+
+  renderCollectionContext();
+
+  renderIcons(
+    getSearchTerm()
+  );
 }
 
 
@@ -3410,7 +3454,7 @@ function renderIcons(
 
                 <div class="icon-title">
 
-                  ${icon.name}
+                  ${escapeHtml(formatCategoryLabel(icon.name))}
 
                   ${getProBadge(icon)}
 
@@ -3419,7 +3463,7 @@ function renderIcons(
 
                 <div class="icon-category">
 
-                  ${icon.category}
+                  ${escapeHtml(formatCategoryLabel(icon.category))}
 
                 </div>
 
@@ -3666,12 +3710,15 @@ async function openIcon(
 
 
   els.detailCategory.textContent =
-    icon.category
-      .toUpperCase();
+    String(
+      icon.category || ""
+    ).toUpperCase();
 
 
   els.detailName.textContent =
-    icon.name;
+    formatCategoryLabel(
+      icon.name
+    );
 
 
   els.detailDescription.textContent =

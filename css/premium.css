@@ -444,3 +444,29 @@ body {
       repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* ---------- Polish pass 2 ---------- */
+
+.eyebrow,
+.specs {
+  color: #5f605a;
+}
+
+.hero h1 span {
+  color: #84857e;
+}
+
+/* Locked Pro tiles: calm, not empty */
+.icon-card .icon-draw[data-pro-asset] {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--surface-soft) 0 8px,
+      #ecebe7 8px 9px
+    );
+}
+
+.price-head .eyebrow {
+  color: rgb(255 255 255 / 0.6);
+}
