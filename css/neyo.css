@@ -687,8 +687,8 @@ body {
 /* ---------- Hero brand mark (large, simple) ---------- */
 
 .hero-mark {
-  width: clamp(52px, 5.5vw, 68px);
-  height: clamp(52px, 5.5vw, 68px);
+  width: clamp(72px, 8vw, 90px);
+  height: clamp(72px, 8vw, 90px);
   margin: 0 auto 24px;
   color: var(--sg-black);
 }
